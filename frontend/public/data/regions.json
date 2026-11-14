@@ -1,0 +1,30 @@
+{
+  "regions": [
+    {
+      "id": "lajeado-estrela",
+      "name": { "pt": "Lajeado e Estrela", "en": "Lajeado and Estrela" },
+      "place": {
+        "pt": "Vale do Taquari, Rio Grande do Sul, Brasil",
+        "en": "Taquari Valley, Rio Grande do Sul, Brazil"
+      },
+      "center": [-51.961, -29.467],
+      "zoom": 12,
+      "availability": "analysis",
+      "analysisId": "lajeado-estrela-2026-07"
+    },
+    {
+      "id": "mucum-roca-sales-encantado",
+      "name": {
+        "pt": "Muçum, Roca Sales e Encantado",
+        "en": "Muçum, Roca Sales and Encantado"
+      },
+      "place": {
+        "pt": "Vale do Taquari, Rio Grande do Sul, Brasil",
+        "en": "Taquari Valley, Rio Grande do Sul, Brazil"
+      },
+      "center": [-51.87, -29.236],
+      "zoom": 11.5,
+      "availability": "catalog"
+    }
+  ]
+}

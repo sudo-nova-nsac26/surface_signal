@@ -1,0 +1,61 @@
+{
+  "id": "lajeado-estrela-2026-07",
+  "regionId": "lajeado-estrela",
+  "illustrative": true,
+  "validation": "not_validated",
+  "before": {
+    "sceneId": "NISAR_L2_PR_GCOV_025_053_D_103_4005_DHDH_A_20260711T213351_20260711T213426_P05023_N_F_J_001",
+    "acquiredAt": "2026-07-11T21:33:51Z"
+  },
+  "after": {
+    "sceneId": "NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P05023_N_F_J_001",
+    "acquiredAt": "2026-07-23T21:33:50Z"
+  },
+  "layers": {
+    "water": {
+      "status": "available",
+      "areaKm2": null,
+      "headline": {
+        "pt": "Lugares onde o radar passou a ver água que não estava lá 12 dias antes.",
+        "en": "Places where the radar started seeing water that was not there 12 days earlier."
+      }
+    },
+    "vegetation": {
+      "status": "exploratory",
+      "areaKm2": null,
+      "headline": {
+        "pt": "Lugares onde a cobertura de plantas mudou entre as duas datas.",
+        "en": "Places where plant cover changed between the two dates."
+      }
+    },
+    "slopes": {
+      "status": "unavailable",
+      "areaKm2": null,
+      "headline": {
+        "pt": "O movimento do solo nas encostas precisa de outro tipo de dado do satélite.",
+        "en": "Ground movement on slopes needs a different kind of satellite data."
+      }
+    }
+  },
+  "context": [
+    {
+      "source": "Serviço Geológico do Brasil (SGB)",
+      "url": "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia",
+      "observedAt": "2026-07-23T19:00:00Z",
+      "note": {
+        "pt": "Às 16h, o rio em Lajeado e Estrela estava acima do nível de inundação e começando a baixar. O satélite passou cerca de duas horas e meia depois.",
+        "en": "At 4 pm local time, the river at Lajeado and Estrela was above flood level and starting to fall. The satellite passed about two and a half hours later."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "name": "NISAR L2 GCOV (NASA/ISRO), Alaska Satellite Facility DAAC",
+      "url": "https://search.asf.alaska.edu/"
+    },
+    {
+      "name": "Serviço Geológico do Brasil (SGB)",
+      "url": "https://www.sgb.gov.br/"
+    }
+  ]
+}
