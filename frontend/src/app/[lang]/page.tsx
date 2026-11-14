@@ -59,39 +59,50 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         </div>
       </aside>
 
-      <section className="relative overflow-hidden bg-brand-deep text-brand-ink hc:border-y-2 hc:border-ink">
+      <section className="starfield relative overflow-hidden hc:border-y-2 hc:border-ink">
         <div
           aria-hidden="true"
-          className="flag-corner pointer-events-none absolute -bottom-px right-0 hidden h-40 w-72 opacity-90 lg:block"
+          className="horizon pointer-events-none absolute left-1/2 top-[78%] aspect-square w-[170%] -translate-x-1/2 hc:hidden sm:top-[70%] sm:w-[130%]"
         />
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-center">
+        <div
+          aria-hidden="true"
+          className="orbit pointer-events-none absolute -right-40 -top-40 hidden size-[34rem] hc:hidden lg:block"
+        >
+          <span className="orbit-dot absolute left-1/2 top-0 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand" />
+        </div>
+
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-20 pt-12 sm:pb-28 sm:pt-20 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-center">
           <div>
-            <p className="mb-4 inline-block rounded-full bg-highlight px-4 py-1 text-base font-bold text-highlight-ink">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand bg-brand-soft px-4 py-1 text-base font-bold text-brand-text">
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full bg-brand"
+              />
               {dict.hero.eyebrow}
             </p>
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl">
+            <h1 className="text-gradient text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">
               {dict.hero.title}
             </h1>
-            <p className="mt-5 max-w-2xl text-xl opacity-95">
+            <p className="mt-6 max-w-2xl text-xl text-ink-soft">
               {dict.hero.lead}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-9 flex flex-wrap items-center gap-4">
               <a
                 href="#story"
-                className="pressable inline-flex min-h-16 items-center gap-3 rounded-2xl bg-highlight px-8 text-2xl font-bold text-highlight-ink shadow-lg"
+                className="pressable glow inline-flex min-h-16 items-center gap-3 rounded-2xl bg-brand px-9 text-2xl font-bold text-brand-ink"
               >
                 {dict.hero.start}
                 <ArrowRightIcon />
               </a>
-              <p className="opacity-90">{dict.hero.startHint}</p>
+              <p className="text-ink-soft">{dict.hero.startHint}</p>
             </div>
           </div>
 
-          <dl className="relative grid gap-3 rounded-3xl bg-surface p-5 text-ink shadow-xl hc:border-2 hc:border-ink">
+          <dl className="relative grid gap-3">
             {dict.hero.facts.map((fact) => (
               <div
                 key={fact.label}
-                className="rounded-2xl bg-brand-soft px-4 py-3 hc:border hc:border-ink"
+                className="card rounded-2xl border border-line bg-surface/85 px-5 py-4 backdrop-blur-sm hc:border-2 hc:bg-surface"
               >
                 <dt className="text-base font-bold text-brand-text">
                   {fact.label}
@@ -118,7 +129,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
 
       <section
         aria-labelledby="layers-title"
-        className="bg-surface hc:border-y-2 hc:border-ink"
+        className="border-y border-line bg-bg-raised hc:border-y-2 hc:border-ink"
       >
         <div className="mx-auto max-w-6xl px-4 py-12">
           <h2
@@ -131,7 +142,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             {LAYERS.map(({ id, status, icon, colorClass }) => (
               <li
                 key={id}
-                className="flex flex-col overflow-hidden rounded-3xl border border-line bg-bg shadow-sm hc:border-2"
+                className="card flex flex-col overflow-hidden rounded-3xl border border-line bg-surface hc:border-2"
               >
                 <div className={`h-3 ${colorClass}`} aria-hidden="true" />
                 <div className="flex flex-1 flex-col gap-3 p-5">
@@ -161,7 +172,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
       <section
         id="story"
         aria-labelledby="story-title"
-        className="scroll-mt-4 bg-brand-soft"
+        className="starfield scroll-mt-4"
       >
         <div className="mx-auto max-w-6xl px-4 py-12">
           <h2
@@ -175,7 +186,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             {dict.story.steps.map((step, index) => (
               <li
                 key={step}
-                className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 font-bold shadow-sm hc:border-2"
+                className="card flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 font-bold hc:border-2"
               >
                 <span
                   aria-hidden="true"

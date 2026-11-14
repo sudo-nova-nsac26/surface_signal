@@ -90,7 +90,7 @@ function Scene({ step, labels }: { step: number; labels: Labels }) {
         />
 
         {/* Two small towns, one on each bank. */}
-        <g fill="var(--scene-town)" stroke="var(--ink)" strokeWidth="1.5">
+        <g fill="var(--scene-town)" stroke="var(--scene-stroke)" strokeWidth="1.5">
           <rect x="52" y="150" width="18" height="14" rx="2" />
           <rect x="76" y="144" width="14" height="20" rx="2" />
           <rect x="60" y="172" width="22" height="13" rx="2" />
@@ -108,7 +108,7 @@ function Scene({ step, labels }: { step: number; labels: Labels }) {
               opacity="0.45"
             />
           </g>
-          <g stroke="var(--ink)" strokeWidth="1.5">
+          <g stroke="var(--scene-stroke)" strokeWidth="1.5">
             <rect x="124" y="27" width="24" height="14" fill="var(--water)" />
             <rect x="172" y="27" width="24" height="14" fill="var(--water)" />
             <rect
@@ -117,26 +117,26 @@ function Scene({ step, labels }: { step: number; labels: Labels }) {
               width="24"
               height="24"
               rx="4"
-              fill="var(--surface)"
+              fill="var(--scene-town)"
             />
           </g>
         </g>
 
         {/* Step 2: divider and date labels. */}
         <g className="scene-layer" style={show(1)}>
-          <path d="M160 0 V230" stroke="var(--ink)" strokeWidth="3" />
+          <path d="M160 0 V230" stroke="var(--scene-stroke)" strokeWidth="3" />
           <circle
             cx="160"
             cy="115"
             r="13"
-            fill="var(--surface)"
-            stroke="var(--ink)"
+            fill="var(--scene-town)"
+            stroke="var(--scene-stroke)"
             strokeWidth="3"
           />
           <path
             d="M155 110 l-5 5 5 5 M165 110 l5 5 -5 5"
             fill="none"
-            stroke="var(--ink)"
+            stroke="var(--scene-stroke)"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -174,8 +174,8 @@ function SceneLabel({
         width={width}
         height="28"
         rx="14"
-        fill="var(--surface)"
-        stroke="var(--ink)"
+        fill="var(--scene-town)"
+        stroke="var(--scene-stroke)"
         strokeWidth="2"
       />
       <text
@@ -184,7 +184,7 @@ function SceneLabel({
         textAnchor="middle"
         fontSize="15"
         fontWeight="700"
-        fill="var(--ink)"
+        fill="var(--scene-stroke)"
       >
         {text}
       </text>
@@ -198,7 +198,7 @@ export function HowItWorks({ labels }: { labels: Labels }) {
 
   return (
     <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <figure className="overflow-hidden rounded-3xl border border-line bg-surface p-3 shadow-sm hc:border-2">
+      <figure className="overflow-hidden rounded-3xl border border-line bg-surface p-3 hc:border-2">
         <Scene step={step} labels={labels} />
         <figcaption className="px-2 pt-2 text-base text-ink-soft">
           {labels.sceneNote}

@@ -11,63 +11,59 @@
  * Design tokens. Every color in the interface comes from these variables so
  * the high-contrast mode can swap the whole palette in one place.
  *
- * Identity: the green, red and yellow of the Rio Grande do Sul flag. They are
- * used for the brand only (headers, buttons, decoration), never to encode
- * data, because red and green are the pair most often confused by people with
- * color blindness and red or yellow could be read as a warning.
+ * Identity: the Sudo Nova palette, taken from the team logo. Deep space navy
+ * for backgrounds, cyan for the brand and actions, white for text and amber
+ * for highlights. White on the navy background has a contrast above 17:1.
  *
- * Data layers use the Okabe-Ito palette, chosen to stay distinguishable for
- * people with color blindness. Color is never the only signal: every layer
- * also has an icon and a written name.
+ * Data layers use light tones of the Okabe-Ito palette, chosen to stay
+ * distinguishable for people with color blindness. Color is never the only
+ * signal: every layer also has an icon and a written name.
  */
 :root {
-  --bg: #fbf8f0;
-  --surface: #ffffff;
-  --ink: #14201a;
-  --ink-soft: #445046;
-  --line: #d9d3c3;
+  --bg: #050b14;
+  --bg-raised: #08121f;
+  --surface: #0c1826;
+  --ink: #ffffff;
+  --ink-soft: #b9c7d8;
+  --line: #20364d;
 
-  --brand: #0b6e3b;
-  --brand-deep: #084f2b;
-  --brand-ink: #ffffff;
-  --brand-soft: #e3f1e8;
-  --brand-text: #0b6e3b;
-  --flag-green: #0b6e3b;
-  --flag-red: #c4161c;
-  --flag-yellow: #ffcc00;
-  --highlight: #ffcc00;
-  --highlight-ink: #14201a;
+  --brand: #19e3ff;
+  --brand-ink: #04121c;
+  --brand-soft: #0b2a3a;
+  --brand-text: #5eebff;
+  --brand-glow: rgb(25 227 255 / 0.45);
+  --highlight: #ffb020;
+  --highlight-ink: #1a1000;
 
-  --focus: #14201a;
-  --focus-halo: #ffcc00;
+  --focus: #ffffff;
+  --focus-halo: #04121c;
 
-  --water: #0072b2;
-  --water-soft: #d9ecf7;
-  --vegetation: #00795c;
-  --slopes: #b54708;
+  --water: #56b4e9;
+  --water-soft: #0d2c44;
+  --vegetation: #3ddc97;
+  --slopes: #ff8a5c;
 
   /* Colors of the explanatory drawing. */
-  --scene-sky: #dcebf5;
-  --scene-land: #cfe3b9;
-  --scene-hill: #9cc48a;
-  --scene-town: #f4efe2;
+  --scene-sky: #07182b;
+  --scene-land: #123a4d;
+  --scene-hill: #0e2c40;
+  --scene-town: #e8f1f8;
+  --scene-stroke: #04121c;
 }
 
 :root[data-contrast="high"] {
   --bg: #000000;
+  --bg-raised: #000000;
   --surface: #000000;
   --ink: #ffffff;
   --ink-soft: #ffffff;
   --line: #ffffff;
 
-  --brand: #000000;
-  --brand-deep: #000000;
-  --brand-ink: #ffffff;
+  --brand: #ffd60a;
+  --brand-ink: #000000;
   --brand-soft: #000000;
-  --brand-text: #ffffff;
-  --flag-green: #4ade80;
-  --flag-red: #ff6b6b;
-  --flag-yellow: #ffd60a;
+  --brand-text: #ffd60a;
+  --brand-glow: transparent;
   --highlight: #ffd60a;
   --highlight-ink: #000000;
 
@@ -83,21 +79,20 @@
   --scene-land: #1a1a1a;
   --scene-hill: #3a3a3a;
   --scene-town: #ffffff;
+  --scene-stroke: #000000;
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
   --color-surface: var(--surface);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-line: var(--line);
   --color-brand: var(--brand);
-  --color-brand-deep: var(--brand-deep);
   --color-brand-ink: var(--brand-ink);
   --color-brand-soft: var(--brand-soft);
   --color-brand-text: var(--brand-text);
-  --color-flag-red: var(--flag-red);
-  --color-flag-yellow: var(--flag-yellow);
   --color-highlight: var(--highlight);
   --color-highlight-ink: var(--highlight-ink);
   --color-water: var(--water);
@@ -114,6 +109,7 @@
 html {
   font-size: 100%;
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 html[data-text="lg"] {
@@ -132,7 +128,7 @@ body {
   line-height: 1.6;
 }
 
-/* A dark ring with a yellow halo stays visible on every background. */
+/* A white ring with a dark halo stays visible on navy and on cyan alike. */
 :focus-visible {
   outline: 0.1875rem solid var(--focus);
   outline-offset: 0.125rem;
@@ -140,23 +136,95 @@ body {
   border-radius: 0.5rem;
 }
 
-/* The three flag colors as one diagonal ribbon, drawn with a single gradient. */
-.flag-stripe {
-  background: linear-gradient(
-    90deg,
-    var(--flag-green) 0 33.4%,
-    var(--flag-red) 33.4% 66.7%,
-    var(--flag-yellow) 66.7% 100%
-  );
+/*
+ * Space backdrop. Stars are a few repeating gradients, so they cost no
+ * images and no JavaScript.
+ */
+.starfield {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1.5px 1.5px at 24px 36px, #ffffff 50%, transparent 51%),
+    radial-gradient(1px 1px at 130px 90px, #cfe9ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 70px 160px, #ffffff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 200px 20px, #9fe9ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 260px 140px, #ffffff 50%, transparent 51%),
+    radial-gradient(
+      ellipse 70% 60% at 75% 0%,
+      rgb(25 227 255 / 0.13),
+      transparent 70%
+    );
+  background-size:
+    290px 230px,
+    330px 270px,
+    250px 310px,
+    370px 290px,
+    310px 350px,
+    100% 100%;
 }
 
-.flag-corner {
-  background: linear-gradient(
-    135deg,
-    transparent 0 46%,
-    var(--flag-red) 46% 64%,
-    var(--flag-yellow) 64% 100%
+:root[data-contrast="high"] .starfield {
+  background-image: none;
+}
+
+/* The lit horizon of a planet, echoing the arc under the team mascot. */
+.horizon {
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    #0f3d57 0%,
+    #08192a 38%,
+    var(--bg) 70%
   );
+  box-shadow:
+    0 -2px 0 0 var(--brand),
+    0 -18px 70px -8px var(--brand-glow),
+    0 -60px 160px -40px var(--brand-glow);
+}
+
+/* A slow orbit: one ring that turns, carrying a small satellite. */
+@keyframes orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orbit {
+  border: 1px dashed rgb(94 235 255 / 0.35);
+  border-radius: 50%;
+  animation: orbit-turn 48s linear infinite;
+}
+
+.orbit-dot {
+  box-shadow: 0 0 18px 4px var(--brand-glow);
+}
+
+.text-gradient {
+  background: linear-gradient(92deg, #ffffff 10%, var(--brand) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-contrast="high"] .text-gradient {
+  background: none;
+  color: var(--brand);
+}
+
+.glow {
+  box-shadow: 0 0 34px -6px var(--brand-glow);
+}
+
+.card {
+  transition:
+    transform 160ms ease-out,
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.card:hover {
+  transform: translateY(-0.1875rem);
+  border-color: var(--brand);
+  box-shadow: 0 0 34px -10px var(--brand-glow);
 }
 
 /*

@@ -67,18 +67,30 @@ export default async function RootLayout({
         <main id="content" className="flex-1">
           {children}
         </main>
-        <footer className="bg-brand-deep text-brand-ink hc:border-t-2 hc:border-ink">
-          <div className="flag-stripe h-2" aria-hidden="true" />
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-base sm:grid-cols-2">
+        <footer className="border-t border-line bg-bg-raised hc:border-t-2">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-base sm:grid-cols-[auto_1fr_1fr]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/sudo-nova-logo.jpeg"
+              alt="Sudo Nova"
+              width={112}
+              height={112}
+              loading="lazy"
+              className="size-28 rounded-2xl border border-line"
+            />
             <div>
-              <h2 className="text-lg font-bold">{dict.footer.data}</h2>
-              <p className="opacity-90">{dict.footer.dataBody}</p>
+              <h2 className="text-lg font-bold text-brand-text">
+                {dict.footer.data}
+              </h2>
+              <p className="text-ink-soft">{dict.footer.dataBody}</p>
             </div>
             <div>
-              <h2 className="text-lg font-bold">{dict.footer.team}</h2>
-              <p className="opacity-90">{dict.footer.teamBody}</p>
+              <h2 className="text-lg font-bold text-brand-text">
+                {dict.footer.team}
+              </h2>
+              <p className="text-ink-soft">{dict.footer.teamBody}</p>
             </div>
-            <p className="opacity-90 sm:col-span-2">{dict.footer.ai}</p>
+            <p className="text-ink-soft sm:col-span-3">{dict.footer.ai}</p>
           </div>
         </footer>
       </body>
