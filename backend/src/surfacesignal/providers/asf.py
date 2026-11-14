@@ -57,23 +57,37 @@ def map_feature(feature: dict, area_id: str, maturity: str | None = None) -> Sce
 
 
 def search(
-    wkt: str, start: str, end: str, area_id: str, *, generator=None, sleep=time.sleep, limit=10000
+    wkt: str,
+    start: str,
+    end: str,
+    area_id: str,
+    *,
+    short_name: str | None = None,
+    generator=None,
+    sleep=time.sleep,
+    limit=10000,
 ) -> list[Scene]:
     generator = generator or asf_search.search_generator
+    filters = (
+        {"shortName": short_name}
+        if short_name
+        else {"dataset": "NISAR", "processingLevel": "GCOV", "dataMaturity": "PROVISIONAL"}
+    )
+    maturity = "VALIDATED" if short_name == "NISAR_L2_GCOV_V1" else "PROVISIONAL"
+    collection = short_name or "NISAR_L2_GCOV_PROVISIONAL_V1"
     for attempt in range(3):
         try:
             scenes = {}
             for page in generator(
-                dataset="NISAR",
-                processingLevel="GCOV",
-                dataMaturity="PROVISIONAL",
+                **filters,
                 intersectsWith=wkt,
                 start=start,
                 end=end,
                 session=TimeoutSession(),
             ):
                 for feature in page.geojson()["features"]:
-                    scene = map_feature(feature, area_id, "PROVISIONAL")
+                    scene = map_feature(feature, area_id, maturity)
+                    scene.metadata["collection"] = collection
                     scenes[scene.scene_id] = scene
                     if len(scenes) > limit:
                         raise ProviderError(

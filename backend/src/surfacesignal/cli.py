@@ -1,7 +1,7 @@
 import argparse
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import rasterio
@@ -11,6 +11,7 @@ from surfacesignal.config import Settings
 from surfacesignal.domain import Scene, shortlist
 from surfacesignal.main import load_areas, load_scenes
 from surfacesignal.processing.gcov import crop, inspect_gcov
+from surfacesignal.processing.history import plan_history, planning_summary
 from surfacesignal.processing.pipeline import run_analysis
 from surfacesignal.providers.asf import ProviderError, download, search
 from surfacesignal.providers.hydro import read_records
@@ -62,6 +63,28 @@ def parser():
     analysis.add_argument("--edge-pixels", type=int, default=1)
     analysis.add_argument("--min-looks", type=float, default=1)
     analysis.add_argument("--hydro-csv", type=Path)
+    history = groups.add_parser("history").add_subparsers(dest="command", required=True)
+    run = history.add_parser("run", help="Download, retain and compare the snapshot history")
+    run.add_argument("--snapshot", type=Path, default=Path("docs/evidence/asf-catalog.json"))
+    run.add_argument("--with-validated-through", type=date.fromisoformat)
+    run.add_argument("--dry-run", action="store_true")
+    for action in analysis._actions:
+        if action.dest in {
+            "frequency",
+            "channel",
+            "delta_threshold",
+            "water_threshold",
+            "min_component_pixels",
+            "edge_pixels",
+            "min_looks",
+            "hydro_csv",
+        }:
+            run.add_argument(
+                *action.option_strings,
+                type=action.type,
+                default=action.default,
+                choices=action.choices,
+            )
     return root
 
 
@@ -90,7 +113,18 @@ def main(argv=None):
         selected_area = area(args.area) if hasattr(args, "area") else None
         if hasattr(args, "area") and selected_area is None:
             raise ValueError("Area not found in configuration")
-        if args.group == "scenes":
+        if args.group == "history":
+            from surfacesignal.processing.history import DEFAULT_PARAMETERS
+
+            plan = plan_history(
+                settings,
+                args.snapshot,
+                validated_through=args.with_validated_through,
+                parameters={k: getattr(args, k) for k in DEFAULT_PARAMETERS},
+                hydro_csv=args.hydro_csv,
+            )
+            result = planning_summary(settings, plan)
+        elif args.group == "scenes":
             if args.command == "search":
                 start, end = datetime.fromisoformat(args.start), datetime.fromisoformat(args.end)
                 if start > end:

@@ -54,6 +54,29 @@ def test_search_consumes_pages_and_retries_without_duplicates():
     assert len(found) == 1
 
 
+def test_validated_search_uses_short_name_and_preserves_collection():
+    class Page:
+        def geojson(self):
+            return {"features": [feature()]}
+
+    def pages(**kwargs):
+        assert kwargs["shortName"] == "NISAR_L2_GCOV_V1"
+        assert "dataMaturity" not in kwargs and "dataset" not in kwargs
+        yield Page()
+        yield Page()
+
+    found = search(
+        "POINT(0 0)",
+        "2026-06-17",
+        "2026-11-14",
+        "test",
+        short_name="NISAR_L2_GCOV_V1",
+        generator=pages,
+    )
+    assert len(found) == 1 and found[0].maturity == "VALIDATED"
+    assert found[0].metadata["collection"] == "NISAR_L2_GCOV_V1"
+
+
 def test_empty_and_cap_and_auth_error():
     assert (
         search("POINT(0 0)", "2026-01-01", "2026-02-01", "test", generator=lambda **k: iter([]))
