@@ -87,36 +87,63 @@ const en: Dictionary = {
   },
   story: {
     title: "The journey to the Taquari Valley",
-    lead: "You move forward with large buttons, one step at a time. No need to rotate or drag the map.",
-    steps: [
-      "World",
-      "Brazil",
-      "Rio Grande do Sul",
-      "Taquari Valley: Lajeado and Estrela",
-    ],
+    lead: "Tap the dots on the map or the large buttons to get closer, one place at a time.",
   },
   map: {
     label: "Map of the journey to the Taquari Valley",
     loading: "Preparing the map…",
     unsupported:
-      "This device could not open the map. You can still read the explanation of each step.",
-    previous: "Back",
-    next: "Next",
-    stepOf: "Step {current} of {total}",
-    simple: "Simple view",
-    simpleHint: "Flat map, seen from above",
+      "This device could not open the map. You can still read the explanation of each place.",
+    view: "How you want to see the map",
+    view2d: "2D",
+    view2dHint: "Flat map, lighter",
+    view3d: "3D",
+    view3dHint: "Globe and relief",
+    breadcrumb: "Where you are",
+    back: "Back",
+    goTo: "Go to {name}",
+    dotHint: "Tap the dot to get closer",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
+    rotateLabel: "Rotate",
+    rotateLeft: "Rotate left",
+    rotateRight: "Rotate right",
+    tiltLabel: "Tilt",
+    tiltMore: "Tilt more",
+    tiltLess: "Tilt less",
+    resetView: "Back to the starting view",
+    hint3d: "Here you can rotate and tilt the map with the buttons or by dragging with two fingers.",
     area: "Analysed area",
     gestureDesktop: "Hold Ctrl and scroll to zoom the map",
     gestureMac: "Hold ⌘ and scroll to zoom the map",
     gestureMobile: "Use two fingers to move the map",
-    descriptions: [
-      "This is our planet. The NISAR satellite circles it and observes almost all land every 12 days.",
-      "Brazil. We are heading to the south of the country.",
-      "Rio Grande do Sul. The Taquari River runs through the middle of the state, between the highlands and the capital.",
-      "Lajeado and Estrela sit on opposite banks of the Taquari River. The dashed line shows the area we compared.",
-    ],
+    places: {
+      world: {
+        name: "World",
+        description:
+          "This is our planet. The NISAR satellite circles it and observes almost all land every 12 days. Tap the dot to begin.",
+      },
+      "south-america": {
+        name: "South America",
+        description:
+          "South America. We are heading to the south of Brazil, where the river rose in July 2026.",
+      },
+      "brazil-south": {
+        name: "South region of Brazil",
+        description:
+          "The South region brings together Paraná, Santa Catarina and Rio Grande do Sul.",
+      },
+      "rio-grande-do-sul": {
+        name: "Rio Grande do Sul",
+        description:
+          "Rio Grande do Sul. The Taquari River runs through the middle of the state, between the highlands and the capital.",
+      },
+      "taquari-valley": {
+        name: "Taquari Valley: Lajeado and Estrela",
+        description:
+          "Lajeado and Estrela sit on opposite banks of the Taquari River. The dashed line shows the area we compared.",
+      },
+    },
   },
   region: {
     title: "What we have for this region",

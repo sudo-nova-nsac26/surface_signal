@@ -47,19 +47,6 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
 
   return (
     <>
-      <aside
-        aria-labelledby="notice-title"
-        className="bg-highlight text-highlight-ink"
-      >
-        <div className="mx-auto flex max-w-6xl gap-3 px-4 py-3">
-          <InfoIcon className="mt-0.5 shrink-0" />
-          <p className="text-base">
-            <strong id="notice-title">{dict.notice.title}.</strong>{" "}
-            {dict.notice.body}
-          </p>
-        </div>
-      </aside>
-
       <section className="starfield relative overflow-hidden hc:border-y-2 hc:border-ink">
         <div
           aria-hidden="true"
@@ -183,10 +170,24 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             {dict.story.title}
           </h2>
           <p className="mt-2 max-w-2xl text-ink-soft">{dict.story.lead}</p>
-          <GuidedStory steps={dict.story.steps} labels={dict.map} />
+          <GuidedStory labels={dict.map} />
           <RegionStatus lang={lang} labels={dict.region} badge={dict.illustrative} />
         </div>
       </section>
+
+      <aside aria-labelledby="notice-title" className="bg-bg-raised">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <p className="flex gap-2 rounded-xl border-l-4 border-highlight bg-surface px-4 py-3 text-base text-ink-soft">
+            <InfoIcon className="mt-0.5 shrink-0 text-highlight" />
+            <span>
+              <strong id="notice-title" className="text-ink">
+                {dict.notice.title}.
+              </strong>{" "}
+              {dict.notice.body}
+            </span>
+          </p>
+        </div>
+      </aside>
     </>
   );
 }

@@ -90,36 +90,63 @@ const pt = {
   },
   story: {
     title: "A viagem até o Vale do Taquari",
-    lead: "Você avança com botões grandes, um passo de cada vez. Não precisa girar nem arrastar o mapa.",
-    steps: [
-      "Mundo",
-      "Brasil",
-      "Rio Grande do Sul",
-      "Vale do Taquari: Lajeado e Estrela",
-    ],
+    lead: "Toque nas bolinhas do mapa ou nos botões grandes para chegar mais perto, um lugar de cada vez.",
   },
   map: {
     label: "Mapa da viagem até o Vale do Taquari",
     loading: "Preparando o mapa…",
     unsupported:
-      "Este aparelho não conseguiu abrir o mapa. Você ainda pode ler a explicação de cada passo.",
-    previous: "Voltar",
-    next: "Avançar",
-    stepOf: "Passo {current} de {total}",
-    simple: "Vista simples",
-    simpleHint: "Mapa plano, visto de cima",
+      "Este aparelho não conseguiu abrir o mapa. Você ainda pode ler a explicação de cada lugar.",
+    view: "Como você quer ver o mapa",
+    view2d: "2D",
+    view2dHint: "Mapa plano, mais leve",
+    view3d: "3D",
+    view3dHint: "Globo e relevo",
+    breadcrumb: "Onde você está",
+    back: "Voltar",
+    goTo: "Ir para {name}",
+    dotHint: "Toque na bolinha para chegar mais perto",
     zoomIn: "Aproximar",
     zoomOut: "Afastar",
+    rotateLabel: "Girar",
+    rotateLeft: "Girar para a esquerda",
+    rotateRight: "Girar para a direita",
+    tiltLabel: "Inclinar",
+    tiltMore: "Inclinar mais",
+    tiltLess: "Inclinar menos",
+    resetView: "Voltar à vista inicial",
+    hint3d: "Aqui você pode girar e inclinar o mapa pelos botões ou arrastando com dois dedos.",
     area: "Área analisada",
     gestureDesktop: "Segure Ctrl e role para aproximar o mapa",
     gestureMac: "Segure ⌘ e role para aproximar o mapa",
     gestureMobile: "Use dois dedos para mover o mapa",
-    descriptions: [
-      "Este é o nosso planeta. O satélite NISAR dá a volta nele e observa quase toda a terra firme a cada 12 dias.",
-      "O Brasil. Vamos para o Sul do país.",
-      "O Rio Grande do Sul. O Rio Taquari corre no centro do estado, entre a serra e a capital.",
-      "Lajeado e Estrela ficam uma de cada lado do Rio Taquari. A linha tracejada mostra a área que comparamos.",
-    ],
+    places: {
+      world: {
+        name: "Mundo",
+        description:
+          "Este é o nosso planeta. O satélite NISAR dá a volta nele e observa quase toda a terra firme a cada 12 dias. Toque na bolinha para começar.",
+      },
+      "south-america": {
+        name: "América do Sul",
+        description:
+          "A América do Sul. Vamos para o sul do Brasil, onde o rio subiu em julho de 2026.",
+      },
+      "brazil-south": {
+        name: "Região Sul do Brasil",
+        description:
+          "A Região Sul reúne Paraná, Santa Catarina e Rio Grande do Sul.",
+      },
+      "rio-grande-do-sul": {
+        name: "Rio Grande do Sul",
+        description:
+          "O Rio Grande do Sul. O Rio Taquari corre no centro do estado, entre a serra e a capital.",
+      },
+      "taquari-valley": {
+        name: "Vale do Taquari: Lajeado e Estrela",
+        description:
+          "Lajeado e Estrela ficam uma de cada lado do Rio Taquari. A linha tracejada mostra a área que comparamos.",
+      },
+    },
   },
   region: {
     title: "O que temos para esta região",

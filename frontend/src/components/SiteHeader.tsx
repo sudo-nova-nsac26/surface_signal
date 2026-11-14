@@ -3,38 +3,39 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import { AccessibilityMenu } from "./AccessibilityMenu";
 import { LanguageSwitch } from "./LanguageSwitch";
 
+/**
+ * A bright four-point star over the curve of a planet, echoing the star and
+ * the horizon of the Sudo Nova logo.
+ */
 function BrandMark() {
   return (
     <svg
-      viewBox="0 0 40 40"
-      className="size-11 shrink-0"
+      viewBox="0 0 44 44"
+      className="size-12 shrink-0"
       aria-hidden="true"
       focusable="false"
     >
-      <rect
-        x="1"
-        y="1"
-        width="38"
-        height="38"
-        rx="11"
-        fill="var(--bg-raised)"
+      <circle
+        cx="22"
+        cy="22"
+        r="20.500"
+        fill="var(--bg)"
         stroke="var(--brand)"
         strokeWidth="2"
       />
       <path
-        d="M8 15.500c4-3.500 8-3.500 12 0s8 3.500 12 0"
+        d="M5.500 31.500c8-5.500 25-5.500 33 0"
         fill="none"
         stroke="var(--brand)"
-        strokeWidth="3.200"
+        strokeWidth="2.600"
         strokeLinecap="round"
       />
       <path
-        d="M8 25c4-3.500 8-3.500 12 0s8 3.500 12 0"
-        fill="none"
-        stroke="var(--ink)"
-        strokeWidth="3.200"
-        strokeLinecap="round"
+        d="M22 7l2.600 7.400L32 17l-7.400 2.600L22 27l-2.600-7.400L12 17l7.400-2.600z"
+        fill="var(--brand)"
       />
+      <circle cx="33" cy="9.500" r="1.600" fill="var(--ink)" />
+      <circle cx="11" cy="26" r="1.200" fill="var(--ink)" />
     </svg>
   );
 }
