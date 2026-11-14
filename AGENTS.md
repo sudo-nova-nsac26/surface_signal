@@ -115,6 +115,18 @@ Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-
 `frontend/dist` that Next.js does not produce), license (Apache-2.0 suggested, not applied), pre-event
 eligibility of the backend, the root README still describes the frontend as Vite on port 5173.
 
+## Pending requests from the owner (2026-11-14, not done yet)
+
+1. **Place tree** must be World > Country > State > Region of the state (drop the continent and
+   "Região Sul" levels): world shows Brazil open plus dark locked countries; Brazil shows RS open plus
+   the other 26 states locked; RS shows the Taquari Valley open plus locked regions.
+2. **Opening zoom**: after "Start" the globe zooms in on Brazil and must STAY zoomed in (no zoom-out
+   afterwards), in both 2D and 3D. Give the world place a fixed, closer zoom (globe about 1000 px wide,
+   flat map about 110 degrees of longitude) and end the reveal there instead of settling to a wide view.
+3. **2D <-> 3D switch** at world/country level should be smooth: fade out, switch projection while
+   hidden, fade in (the close-up already feels right).
+4. Logo, wordmark font and header buttons were applied in the last commit; check them in the browser.
+
 ## Roadmap
 
 1. **Real data.** The timeline is not useful yet: it only shows catalog passes and one synthetic
