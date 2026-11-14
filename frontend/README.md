@@ -90,6 +90,7 @@ the backend stays technical.
 
 ## Credits
 
+- Team logo: `public/sudo-nova-logo.jpeg`, from the Sudo Nova organisation profile.
 - Typeface: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
   by the Braille Institute (SIL Open Font License).
 - Radar data: NISAR (NASA / ISRO), distributed by the Alaska Satellite Facility DAAC.
