@@ -19,9 +19,25 @@ export type PlaceId =
   | "rio-grande-do-sul"
   | "taquari-valley";
 
+/**
+ * The strong outline drawn around the area the visitor is looking at: a
+ * bundled outline (see public/data/boundaries).
+ */
+export interface Outline {
+  url: string;
+}
+
 export interface Place {
   id: PlaceId;
   parent: PlaceId | null;
+  /** Strong outline around this place while the visitor is in it. */
+  outline?: Outline;
+  /**
+   * Where the camera looks when the place has no close-up. When absent the
+   * camera fits `bounds`. The world is framed on Brazil, not on its middle,
+   * so the country of the story is always in front.
+   */
+  focus?: { center: LngLat };
   /** Where its dot sits on the map of its parent. */
   point: LngLat;
   /** Area shown when the visitor is at this place. */
@@ -91,6 +107,7 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
     {
       id: "world",
       parent: null,
+      focus: { center: [-52, -14] },
       point: [0, 0],
       bounds: [
         [-170, -56],
@@ -100,6 +117,7 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
     {
       id: "south-america",
       parent: "world",
+      outline: { url: "/data/boundaries/south-america.geojson" },
       point: [-60, -14],
       bounds: [
         [-84, -57],
@@ -109,6 +127,7 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
     {
       id: "brazil-south",
       parent: "south-america",
+      outline: { url: "/data/boundaries/brazil.geojson" },
       point: [-52.5, -28],
       bounds: [
         [-58.5, -34.5],
@@ -118,6 +137,7 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
     {
       id: "rio-grande-do-sul",
       parent: "brazil-south",
+      outline: { url: "/data/boundaries/rio-grande-do-sul.geojson" },
       point: [-53.2, -30],
       bounds: [
         [-57.8, -33.9],

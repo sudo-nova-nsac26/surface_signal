@@ -115,6 +115,12 @@ services that need no key or account.
 - **Opening**: a slowly turning globe sits behind the introduction. "Start"
   fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.
+- **Strong outline around the current place**: each place in `places.ts` can carry
+  an `outline` (a bundled GeoJSON in `public/data/boundaries`: South America,
+  Brazil, Rio Grande do Sul). It is drawn as a bright line over a soft glow.
+- **The world is framed on Brazil** (`focus` in `places.ts`), so the country of
+  the story is in front in both 2D and 3D; other continents stay visible at
+  the edges with dark locked dots.
 - **Timeline** ([`Timeline.tsx`](src/components/map/Timeline.tsx)): at the valley
   close-up, every satellite pass from the catalog is a dot on a line of time,
   every analysis the backend has published is a bar from its before date to
@@ -152,6 +158,8 @@ services that need no key or account.
 - Terrain: Mapzen terrain tiles on AWS Open Data.
 - Typeface: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
   by the Braille Institute (SIL Open Font License).
+- Outlines: IBGE Malhas Geográficas (CC BY 4.0) and Natural Earth (public domain);
+  see `public/data/boundaries/README.md`.
 - Radar data: NISAR (NASA / ISRO), distributed by the Alaska Satellite Facility DAAC.
 - River status: Serviço Geológico do Brasil (SGB).
 - Built with Next.js, React and Tailwind CSS.

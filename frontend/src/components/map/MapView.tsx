@@ -12,7 +12,7 @@ import {
   type ViewMode,
 } from "./camera";
 import type { MotionLevel } from "@/preferences/store";
-import type { Place } from "./places";
+import type { Outline, Place } from "./places";
 
 export interface MapViewHandle {
   zoomBy: (delta: number) => void;
@@ -57,6 +57,9 @@ export interface MapViewProps {
 setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
 
 const AREA_SOURCE = "analysed-area";
+const OUTLINE_SOURCE = "place-outline";
+const OUTLINE_LAYERS = ["outline-fill", "outline-glow", "outline-line"];
+const OUTLINE_COLOR = "#19e3ff";
 const CHANGES_SOURCE = "change-candidates";
 // Where the radar started seeing water. Okabe-Ito sky blue, readable on navy.
 const WATER_COLOR = "#56b4e9";
@@ -67,7 +70,7 @@ const DETAIL_PITCH = 62;
 const MAX_PITCH = 78;
 const RELIEF_EXAGGERATION = 2.8;
 /** Where the globe ends up when it comes forward, and where the map begins. */
-const SPOTLIGHT: LngLat = [-56, -17];
+const SPOTLIGHT: LngLat = [-52, -14];
 
 const easeInOut = (t: number) =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -163,6 +166,49 @@ function setChangeLayers(
   }
 }
 
+/**
+ * The strong outline around the current place: a soft glow under a bright
+ * line, so it reads on any background. Replaced whenever the place changes.
+ */
+function setOutline(map: MapLibreMap, outline: Outline | undefined) {
+  for (const id of OUTLINE_LAYERS) {
+    if (map.getLayer(id)) map.removeLayer(id);
+  }
+  if (map.getSource(OUTLINE_SOURCE)) map.removeSource(OUTLINE_SOURCE);
+  if (!outline) return;
+
+  // Keep place names above the outline.
+  const firstLabel = map
+    .getStyle()
+    .layers.find((layer) => layer.type === "symbol")?.id;
+  const glow = {
+    "line-color": OUTLINE_COLOR,
+    "line-width": 12,
+    "line-blur": 8,
+    "line-opacity": 0.45,
+  };
+  const line = { "line-color": OUTLINE_COLOR, "line-width": 3.2 };
+
+  map.addSource(OUTLINE_SOURCE, { type: "geojson", data: outline.url });
+  map.addLayer(
+    {
+      id: "outline-fill",
+      type: "fill",
+      source: OUTLINE_SOURCE,
+      paint: { "fill-color": OUTLINE_COLOR, "fill-opacity": 0.07 },
+    },
+    firstLabel,
+  );
+  map.addLayer(
+    { id: "outline-glow", type: "line", source: OUTLINE_SOURCE, paint: glow },
+    firstLabel,
+  );
+  map.addLayer(
+    { id: "outline-line", type: "line", source: OUTLINE_SOURCE, paint: line },
+    firstLabel,
+  );
+}
+
 /** Free rotation and tilt are only offered at the 3D close-up. */
 function setFreeCamera(map: MapLibreMap, free: boolean) {
   if (free) {
@@ -229,7 +275,11 @@ export default function MapView({
   const revealTimer = useRef<number | undefined>(undefined);
   const wasIntro = useRef(intro);
   const spinning = useRef(false);
-  const applied = useRef<{ globe?: boolean; relief?: boolean }>({});
+  const applied = useRef<{
+    globe?: boolean;
+    relief?: boolean;
+    outline?: string;
+  }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
   const latest = useRef({ place, markers, view, motion, intro, changes, area });
@@ -352,6 +402,13 @@ export default function MapView({
       freeRef.current = relief;
     }
 
+    // The strong outline follows the place; it is redrawn only when it changes.
+    const outlineKey = detail ? "" : place.id;
+    if (applied.current.outline !== outlineKey) {
+      applied.current.outline = outlineKey;
+      setOutline(map, detail ? undefined : place.outline);
+    }
+
     ensureAreaLayers(map, area);
     setChangeLayers(map, latest.current.changes, Boolean(detail));
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
@@ -371,6 +428,15 @@ export default function MapView({
         center: detail.center,
         zoom: is3d ? detail.zoom : detail.zoom - 0.3,
       };
+    } else if (place.focus) {
+      // Centred on the story's country. The zoom shows the whole globe (or the
+      // whole flat world) inside the space left by the panels.
+      const width = container.clientWidth - padding.left - padding.right;
+      const height = container.clientHeight - padding.top - padding.bottom;
+      const zoom = is3d
+        ? Math.log2((0.95 * Math.PI * Math.min(width, height)) / 512)
+        : Math.log2(Math.max(width, 320) / 512) + 0.2;
+      target = { center: place.focus.center, zoom: Math.max(zoom, 0.8) };
     } else {
       const fitted = map.cameraForBounds(place.bounds, { padding, maxZoom: 9 });
       const center = fitted?.center as { lng: number; lat: number } | undefined;
