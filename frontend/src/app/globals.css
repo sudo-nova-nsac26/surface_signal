@@ -137,8 +137,8 @@ body {
 }
 
 /*
- * Quiet header buttons, in the pattern of the team site: no fill and no
- * border until the pointer arrives, an icon with a short label.
+ * Header buttons: an icon with a short label inside a visible frame, so they
+ * read as buttons (the first version had no frame and looked like plain text).
  */
 .tool-button {
   display: inline-flex;
@@ -146,24 +146,36 @@ body {
   min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.65rem;
-  border: 1px solid transparent;
-  border-radius: 0.3125rem;
-  background: transparent;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border: 1.5px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
   color: var(--ink);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset;
   transition:
     background-color 140ms ease-out,
-    border-color 140ms ease-out;
+    border-color 140ms ease-out,
+    transform 120ms ease-out;
 }
 
 .tool-button:hover,
 .tool-button[aria-expanded="true"] {
-  background: var(--surface);
-  border-color: var(--line);
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-text);
+}
+
+.tool-button:active {
+  transform: translateY(1px);
+}
+
+:root[data-contrast="high"] .tool-button {
+  border-width: 2px;
+  border-color: var(--ink);
 }
 
 /* A white ring with a dark halo stays visible on navy and on cyan alike. */

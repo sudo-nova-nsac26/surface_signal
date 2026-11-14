@@ -72,6 +72,12 @@ const RELIEF_EXAGGERATION = 2.8;
 /** Where the globe ends up when it comes forward, and where the map begins. */
 const SPOTLIGHT: LngLat = [-52, -14];
 
+/**
+ * Zoom of the world view. The globe and the flat map use the same value, so
+ * switching between them (and arriving from the intro) never changes scale.
+ */
+const worldZoom = (width: number) => (width >= 1000 ? 2.6 : 2);
+
 const easeInOut = (t: number) =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
@@ -275,6 +281,7 @@ export default function MapView({
   const revealTimer = useRef<number | undefined>(undefined);
   const wasIntro = useRef(intro);
   const spinning = useRef(false);
+  const lastView = useRef(view);
   const applied = useRef<{
     globe?: boolean;
     relief?: boolean;
@@ -364,7 +371,7 @@ export default function MapView({
     }
   }
 
-  function applyView(animate: boolean, rise = false) {
+  function applyView(animate: boolean) {
     const map = mapRef.current;
     const container = containerRef.current;
     if (!map || !container || !loadedRef.current) return;
@@ -429,14 +436,12 @@ export default function MapView({
         zoom: is3d ? detail.zoom : detail.zoom - 0.3,
       };
     } else if (place.focus) {
-      // Centred on the story's country. The zoom shows the whole globe (or the
-      // whole flat world) inside the space left by the panels.
-      const width = container.clientWidth - padding.left - padding.right;
-      const height = container.clientHeight - padding.top - padding.bottom;
-      const zoom = is3d
-        ? Math.log2((0.95 * Math.PI * Math.min(width, height)) / 512)
-        : Math.log2(Math.max(width, 320) / 512) + 0.2;
-      target = { center: place.focus.center, zoom: Math.max(zoom, 0.8) };
+      // Centred on the story's country, close enough to feel inside the
+      // globe. The intro ends at this exact view, so nothing zooms back out.
+      target = {
+        center: place.focus.center,
+        zoom: worldZoom(container.clientWidth),
+      };
     } else {
       const fitted = map.cameraForBounds(place.bounds, { padding, maxZoom: 9 });
       const center = fitted?.center as { lng: number; lat: number } | undefined;
@@ -461,18 +466,9 @@ export default function MapView({
     if (animate && motion !== "none") {
       setFlying(true);
       if (motion === "full") {
-        // Arriving from the intro: start close and pull back to the place.
-        // The flat map starts where the globe stopped, then pulls back.
-        if (rise) {
-          map.jumpTo({
-            ...camera,
-            center: SPOTLIGHT,
-            zoom: Math.max(camera.zoom + 1.2, 2.3),
-          });
-        }
         map.flyTo({
           ...camera,
-          duration: rise ? 2400 : FLIGHT_MS,
+          duration: FLIGHT_MS,
           curve: 1.5,
           essential: true,
         });
@@ -558,37 +554,47 @@ export default function MapView({
       return;
     }
 
+    // The globe comes forward and stops at the world view. In 3D that is the
+    // end. In 2D the flat map then fades in at the same place and scale.
     const settle = () => {
-      // In 3D the globe simply flies on; in 2D the flat map fades in where
-      // the globe stopped, so the change of projection is never seen.
-      if (latest.current.view === "3d") {
-        applyView(true);
-        return;
-      }
-      fade.style.transition = "opacity 200ms ease-in";
-      fade.style.opacity = "0";
-      revealTimer.current = window.setTimeout(() => {
-        applyView(true, true);
-        fade.style.transition = "opacity 700ms ease-out";
-        fade.style.opacity = "1";
-      }, 210);
+      if (latest.current.view === "3d") applyView(false);
+      else crossfade();
     };
 
     if (motion === "gentle") {
-      settle();
+      crossfade();
       return;
     }
 
-    const wide = container.clientWidth >= 1000;
     map.easeTo({
       center: SPOTLIGHT,
-      zoom: wide ? 2.6 : 2,
-      padding: { top: 0, bottom: 0, left: 0, right: 0 },
-      duration: 1300,
+      zoom: worldZoom(container.clientWidth),
+      padding: framePadding(container.clientWidth),
+      duration: 1600,
       easing: easeInOut,
       essential: true,
     });
-    revealTimer.current = window.setTimeout(settle, 1300);
+    revealTimer.current = window.setTimeout(settle, 1600);
+  }
+
+  /**
+   * Changes the view behind a short fade, so a switch of projection (globe
+   * to flat map or back) is never seen as a jump.
+   */
+  function crossfade() {
+    const fade = fadeRef.current;
+    window.clearTimeout(revealTimer.current);
+    if (!fade || latest.current.motion === "none") {
+      applyView(false);
+      return;
+    }
+    fade.style.transition = "opacity 260ms ease-in";
+    fade.style.opacity = "0";
+    revealTimer.current = window.setTimeout(() => {
+      applyView(false);
+      fade.style.transition = "opacity 650ms ease-out";
+      fade.style.opacity = "1";
+    }, 280);
   }
 
   useEffect(() => {
@@ -831,8 +837,13 @@ export default function MapView({
 
   useEffect(() => {
     latest.current = { place, markers, view, motion, intro, changes, area };
+    const viewChanged = lastView.current !== view;
+    lastView.current = view;
     if (intro) introView();
     else if (wasIntro.current) reveal();
+    // With the whole globe or a country on screen, 2D <-> 3D goes through a
+    // fade. At the close-up the tilt animation already reads well.
+    else if (viewChanged && !place.detail) crossfade();
     else applyView(true);
     wasIntro.current = intro;
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -137,44 +137,16 @@ const en: Dictionary = {
       none: "No comparison is ready yet. The passes are already in NASA's catalog.",
       empty: "No passes are recorded for this place yet.",
     },
-    upcoming: {
-      "north-america": "North America",
-      europe: "Europe",
-      africa: "Africa",
-      asia: "Asia",
-      oceania: "Oceania",
-      "brazil-north": "North region",
-      "brazil-northeast": "Northeast region",
-      "brazil-central-west": "Central-West region",
-      "brazil-southeast": "Southeast region",
-      parana: "Paraná",
-      "santa-catarina": "Santa Catarina",
-      "rs-serra": "Serra Gaúcha",
-      "rs-metropolitana": "Porto Alegre metro area",
-      "rs-litoral": "North coast",
-      "rs-sul": "South",
-      "rs-campanha": "Campanha",
-      "rs-fronteira-oeste": "Western border",
-      "rs-missoes": "Missões",
-      "rs-planalto": "Central plateau",
-      "rs-central": "Central region",
-      "rs-rio-pardo": "Rio Pardo Valley",
-    },
     places: {
       world: {
         name: "World",
         description:
-          "This is our planet. The NISAR satellite circles it and observes almost all land every 12 days. Tap the dot to begin.",
+          "This is our planet. The NISAR satellite circles it and observes almost all land every 12 days. Tap the Brazil dot to begin.",
       },
-      "south-america": {
-        name: "South America",
+      brazil: {
+        name: "Brazil",
         description:
-          "South America. We are heading to the south of Brazil, where the river rose in July 2026.",
-      },
-      "brazil-south": {
-        name: "South region of Brazil",
-        description:
-          "The South region brings together Paraná, Santa Catarina and Rio Grande do Sul.",
+          "Brazil. We are heading to the south of the country, where the river rose in July 2026.",
       },
       "rio-grande-do-sul": {
         name: "Rio Grande do Sul",

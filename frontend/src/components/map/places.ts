@@ -1,21 +1,21 @@
 import type { LngLat } from "@/data/region";
 
 /**
- * The places the visitor can travel to, as a tree: world, continent, region
- * of the country, state, and finally the analysed valley. Only the path to
- * the Taquari Valley exists for now.
+ * The places the visitor can travel to, as a tree:
+ * World > Country > State > Region of the state (the analysed valley).
+ * Only the path to the Taquari Valley exists for now.
  *
  * Places that are not ready yet are listed in UPCOMING: they appear on the
- * map as dark dots that cannot be opened. Moving one from UPCOMING into
- * buildPlaces (with its bounds) is all it takes to open it.
+ * map as dark dots that cannot be opened. Moving one into buildPlaces (with
+ * its bounds) is all it takes to open it.
  *
- * Names and descriptions live in the dictionaries under `map.places` and
- * `map.upcoming`.
+ * Names and descriptions of open places live in the dictionaries under
+ * `map.places`; the names of upcoming places are written here, in both
+ * languages, because they are proper names.
  */
 export type PlaceId =
   | "world"
-  | "south-america"
-  | "brazil-south"
+  | "brazil"
   | "rio-grande-do-sul"
   | "taquari-valley";
 
@@ -49,57 +49,100 @@ export interface Place {
   detail?: { center: LngLat; zoom: number };
 }
 
-export type UpcomingId =
-  | "north-america"
-  | "europe"
-  | "africa"
-  | "asia"
-  | "oceania"
-  | "brazil-north"
-  | "brazil-northeast"
-  | "brazil-central-west"
-  | "brazil-southeast"
-  | "parana"
-  | "santa-catarina"
-  | "rs-serra"
-  | "rs-metropolitana"
-  | "rs-litoral"
-  | "rs-sul"
-  | "rs-campanha"
-  | "rs-fronteira-oeste"
-  | "rs-missoes"
-  | "rs-planalto"
-  | "rs-central"
-  | "rs-rio-pardo";
-
 export interface UpcomingPlace {
-  id: UpcomingId;
+  id: string;
   parent: PlaceId;
+  name: { pt: string; en: string };
   point: LngLat;
 }
 
+const country = (
+  id: string,
+  pt: string,
+  en: string,
+  point: LngLat,
+): UpcomingPlace => ({ id, parent: "world", name: { pt, en }, point });
+
+const state = (
+  id: string,
+  name: string,
+  point: LngLat,
+): UpcomingPlace => ({ id, parent: "brazil", name: { pt: name, en: name }, point });
+
+const region = (
+  id: string,
+  pt: string,
+  en: string,
+  point: LngLat,
+): UpcomingPlace => ({
+  id,
+  parent: "rio-grande-do-sul",
+  name: { pt, en },
+  point,
+});
+
 export const UPCOMING: UpcomingPlace[] = [
-  { id: "north-america", parent: "world", point: [-100, 44] },
-  { id: "europe", parent: "world", point: [14, 50] },
-  { id: "africa", parent: "world", point: [21, 4] },
-  { id: "asia", parent: "world", point: [92, 42] },
-  { id: "oceania", parent: "world", point: [134, -25] },
-  { id: "brazil-north", parent: "south-america", point: [-61, -4] },
-  { id: "brazil-northeast", parent: "south-america", point: [-41, -9] },
-  { id: "brazil-central-west", parent: "south-america", point: [-55, -15] },
-  { id: "brazil-southeast", parent: "south-america", point: [-45, -20.5] },
-  { id: "parana", parent: "brazil-south", point: [-51.6, -24.7] },
-  { id: "santa-catarina", parent: "brazil-south", point: [-50.6, -27.3] },
-  { id: "rs-serra", parent: "rio-grande-do-sul", point: [-51.18, -29.17] },
-  { id: "rs-metropolitana", parent: "rio-grande-do-sul", point: [-51.2, -30.03] },
-  { id: "rs-litoral", parent: "rio-grande-do-sul", point: [-50.27, -29.8] },
-  { id: "rs-sul", parent: "rio-grande-do-sul", point: [-52.34, -31.77] },
-  { id: "rs-campanha", parent: "rio-grande-do-sul", point: [-54.1, -31.3] },
-  { id: "rs-fronteira-oeste", parent: "rio-grande-do-sul", point: [-56.6, -29.75] },
-  { id: "rs-missoes", parent: "rio-grande-do-sul", point: [-54.26, -28.3] },
-  { id: "rs-planalto", parent: "rio-grande-do-sul", point: [-52.4, -28.26] },
-  { id: "rs-central", parent: "rio-grande-do-sul", point: [-53.8, -29.68] },
-  { id: "rs-rio-pardo", parent: "rio-grande-do-sul", point: [-52.6, -29.95] },
+  // Countries, seen from the world.
+  country("us", "Estados Unidos", "United States", [-98, 39]),
+  country("ca", "Canadá", "Canada", [-100, 58]),
+  country("mx", "México", "Mexico", [-102, 23]),
+  country("co", "Colômbia", "Colombia", [-73, 4]),
+  country("pe", "Peru", "Peru", [-75, -10]),
+  country("ar", "Argentina", "Argentina", [-64, -35]),
+  country("cl", "Chile", "Chile", [-71.5, -36]),
+  country("gb", "Reino Unido", "United Kingdom", [-2, 54]),
+  country("fr", "França", "France", [2, 46.5]),
+  country("de", "Alemanha", "Germany", [10.5, 51]),
+  country("es", "Espanha", "Spain", [-3.5, 40]),
+  country("pt", "Portugal", "Portugal", [-8, 39.5]),
+  country("eg", "Egito", "Egypt", [30, 26.5]),
+  country("ng", "Nigéria", "Nigeria", [8, 9.5]),
+  country("za", "África do Sul", "South Africa", [25, -29]),
+  country("ru", "Rússia", "Russia", [95, 61]),
+  country("in", "Índia", "India", [79, 22]),
+  country("cn", "China", "China", [104, 35]),
+  country("jp", "Japão", "Japan", [138, 36]),
+  country("au", "Austrália", "Australia", [134, -25]),
+
+  // The other states of Brazil, seen from Brazil.
+  state("br-ac", "Acre", [-70.5, -9]),
+  state("br-al", "Alagoas", [-36.6, -9.6]),
+  state("br-ap", "Amapá", [-51.9, 1.4]),
+  state("br-am", "Amazonas", [-64.6, -4]),
+  state("br-ba", "Bahia", [-41.7, -12.5]),
+  state("br-ce", "Ceará", [-39.3, -5.2]),
+  state("br-df", "Distrito Federal", [-47.8, -15.8]),
+  state("br-es", "Espírito Santo", [-40.7, -19.6]),
+  state("br-go", "Goiás", [-49.6, -15.9]),
+  state("br-ma", "Maranhão", [-45.3, -5.2]),
+  state("br-mt", "Mato Grosso", [-55.9, -12.9]),
+  state("br-ms", "Mato Grosso do Sul", [-54.6, -20.5]),
+  state("br-mg", "Minas Gerais", [-44.7, -18.5]),
+  state("br-pa", "Pará", [-52.5, -3.8]),
+  state("br-pb", "Paraíba", [-36.8, -7.1]),
+  state("br-pr", "Paraná", [-51.6, -24.7]),
+  state("br-pe", "Pernambuco", [-37.9, -8.4]),
+  state("br-pi", "Piauí", [-42.8, -7.7]),
+  state("br-rj", "Rio de Janeiro", [-42.7, -22.2]),
+  state("br-rn", "Rio Grande do Norte", [-36.5, -5.8]),
+  state("br-ro", "Rondônia", [-62.8, -10.9]),
+  state("br-rr", "Roraima", [-61.4, 2.1]),
+  state("br-sc", "Santa Catarina", [-50.5, -27.3]),
+  state("br-sp", "São Paulo", [-48.5, -22.2]),
+  state("br-se", "Sergipe", [-37.4, -10.6]),
+  state("br-to", "Tocantins", [-48.3, -10.2]),
+
+  // The other regions of Rio Grande do Sul, seen from the state.
+  region("rs-serra", "Serra Gaúcha", "Serra Gaúcha", [-51.18, -29.17]),
+  region("rs-metropolitana", "Região Metropolitana", "Porto Alegre metro area", [-51.2, -30.03]),
+  region("rs-litoral", "Litoral Norte", "North coast", [-50.27, -29.8]),
+  region("rs-sul", "Região Sul", "South", [-52.34, -31.77]),
+  region("rs-campanha", "Campanha", "Campanha", [-54.1, -31.3]),
+  region("rs-fronteira-oeste", "Fronteira Oeste", "Western border", [-56.6, -29.75]),
+  region("rs-missoes", "Missões", "Missões", [-54.26, -28.3]),
+  region("rs-planalto", "Planalto Médio", "Central plateau", [-52.4, -28.26]),
+  region("rs-central", "Região Central", "Central region", [-53.8, -29.68]),
+  region("rs-rio-pardo", "Vale do Rio Pardo", "Rio Pardo Valley", [-52.6, -29.95]),
 ];
 
 export function buildPlaces(valleyCenter: LngLat): Place[] {
@@ -115,28 +158,18 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
       ],
     },
     {
-      id: "south-america",
+      id: "brazil",
       parent: "world",
-      outline: { url: "/data/boundaries/south-america.geojson" },
-      point: [-60, -14],
-      bounds: [
-        [-84, -57],
-        [-33, 14],
-      ],
-    },
-    {
-      id: "brazil-south",
-      parent: "south-america",
       outline: { url: "/data/boundaries/brazil.geojson" },
-      point: [-52.5, -28],
+      point: [-52, -14],
       bounds: [
-        [-58.5, -34.5],
-        [-47, -22],
+        [-74, -34],
+        [-34, 5.5],
       ],
     },
     {
       id: "rio-grande-do-sul",
-      parent: "brazil-south",
+      parent: "brazil",
       outline: { url: "/data/boundaries/rio-grande-do-sul.geojson" },
       point: [-53.2, -30],
       bounds: [

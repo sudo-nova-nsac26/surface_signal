@@ -84,7 +84,7 @@ Switching to the real backend is configuration only. If the backend contract cha
 `api-types.ts` and `region.ts` only.
 
 **Map** (`src/components/map`): `MapStage` is the whole first screen (intro, then full-screen map with
-quiet controls). `MapView` owns MapLibre. `places.ts` is a tree (world > continent > region > state > valley):
+quiet controls). `MapView` owns MapLibre. `places.ts` is a tree (world > country > state > region of the state):
 bright dots open a place, `UPCOMING` places are dark locked dots. Each place can carry a strong `outline`
 and a `focus` (the world is framed on Brazil). `Timeline.tsx` draws real passes, published analyses and
 river bulletins. `hardware.ts` picks 3D or 2D at "Start" (device report + 1.5 s smoothness probe);
@@ -115,17 +115,18 @@ Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-
 `frontend/dist` that Next.js does not produce), license (Apache-2.0 suggested, not applied), pre-event
 eligibility of the backend, the root README still describes the frontend as Vite on port 5173.
 
-## Pending requests from the owner (2026-11-14, not done yet)
+## Owner decisions on the map (2026-11-14, done)
 
-1. **Place tree** must be World > Country > State > Region of the state (drop the continent and
-   "Região Sul" levels): world shows Brazil open plus dark locked countries; Brazil shows RS open plus
-   the other 26 states locked; RS shows the Taquari Valley open plus locked regions.
-2. **Opening zoom**: after "Start" the globe zooms in on Brazil and must STAY zoomed in (no zoom-out
-   afterwards), in both 2D and 3D. Give the world place a fixed, closer zoom (globe about 1000 px wide,
-   flat map about 110 degrees of longitude) and end the reveal there instead of settling to a wide view.
-3. **2D <-> 3D switch** at world/country level should be smooth: fade out, switch projection while
-   hidden, fade in (the close-up already feels right).
-4. Logo, wordmark font and header buttons were applied in the last commit; check them in the browser.
+- Place tree is **World > Country > State > Region of the state**. No continent or
+  "Região Sul" level. World: Brazil open, other countries locked. Brazil: RS open, the other
+  26 states locked. RS: Taquari Valley open, other regions locked. Names of locked places
+  live in `places.ts` (both languages).
+- After "Start" the globe **zooms in on Brazil and stays there** (no zoom-out). The world view
+  uses one fixed zoom for globe and flat map (`worldZoom`), so the two match in scale.
+- **2D <-> 3D** at world/country/state level goes through a short fade (`crossfade`); at the
+  close-up the tilt animation is kept.
+- Header: SurfaceSignal logo symbol + name in Poppins Bold; language and accessibility are
+  framed buttons (the owner found frameless ones did not read as buttons).
 
 ## Roadmap
 

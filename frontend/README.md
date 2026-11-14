@@ -86,7 +86,7 @@ controls around its edges. It uses [MapLibre GL JS](https://maplibre.org/) with
 services that need no key or account.
 
 - **Places are a tree** ([`places.ts`](src/components/map/places.ts)): world,
-  continent, region of the country, state, valley. Each place shows a bright
+  country, state, region of the state. Each place shows a bright
   dot for every place that can be opened; tapping it flies the camera there.
 - **Places still to come** are listed in `UPCOMING` and shown as dark dots
   that cannot be opened. Moving one into `buildPlaces` opens it.
@@ -116,8 +116,8 @@ services that need no key or account.
   fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.
 - **Strong outline around the current place**: each place in `places.ts` can carry
-  an `outline` (a bundled GeoJSON in `public/data/boundaries`: South America,
-  Brazil, Rio Grande do Sul). It is drawn as a bright line over a soft glow.
+  an `outline` (a bundled GeoJSON in `public/data/boundaries`: Brazil and
+  Rio Grande do Sul). It is drawn as a bright line over a soft glow.
 - **The world is framed on Brazil** (`focus` in `places.ts`), so the country of
   the story is in front in both 2D and 3D; other continents stay visible at
   the edges with dark locked dots.
@@ -158,7 +158,7 @@ services that need no key or account.
 - Terrain: Mapzen terrain tiles on AWS Open Data.
 - Typeface: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
   by the Braille Institute (SIL Open Font License).
-- Outlines: IBGE Malhas Geográficas (CC BY 4.0) and Natural Earth (public domain);
+- Outlines: IBGE Malhas Geográficas (CC BY 4.0);
   see `public/data/boundaries/README.md`.
 - Radar data: NISAR (NASA / ISRO), distributed by the Alaska Satellite Facility DAAC.
 - River status: Serviço Geológico do Brasil (SGB).

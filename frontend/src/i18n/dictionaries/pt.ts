@@ -140,44 +140,16 @@ const pt = {
       none: "Ainda não há comparação pronta. As passagens já estão no catálogo da NASA.",
       empty: "Ainda não há passagens registradas para este lugar.",
     },
-    upcoming: {
-      "north-america": "América do Norte",
-      europe: "Europa",
-      africa: "África",
-      asia: "Ásia",
-      oceania: "Oceania",
-      "brazil-north": "Região Norte",
-      "brazil-northeast": "Região Nordeste",
-      "brazil-central-west": "Região Centro-Oeste",
-      "brazil-southeast": "Região Sudeste",
-      parana: "Paraná",
-      "santa-catarina": "Santa Catarina",
-      "rs-serra": "Serra Gaúcha",
-      "rs-metropolitana": "Região Metropolitana",
-      "rs-litoral": "Litoral Norte",
-      "rs-sul": "Região Sul",
-      "rs-campanha": "Campanha",
-      "rs-fronteira-oeste": "Fronteira Oeste",
-      "rs-missoes": "Missões",
-      "rs-planalto": "Planalto Médio",
-      "rs-central": "Região Central",
-      "rs-rio-pardo": "Vale do Rio Pardo",
-    },
     places: {
       world: {
         name: "Mundo",
         description:
-          "Este é o nosso planeta. O satélite NISAR dá a volta nele e observa quase toda a terra firme a cada 12 dias. Toque na bolinha para começar.",
+          "Este é o nosso planeta. O satélite NISAR dá a volta nele e observa quase toda a terra firme a cada 12 dias. Toque na bolinha do Brasil para começar.",
       },
-      "south-america": {
-        name: "América do Sul",
+      brazil: {
+        name: "Brasil",
         description:
-          "A América do Sul. Vamos para o sul do Brasil, onde o rio subiu em julho de 2026.",
-      },
-      "brazil-south": {
-        name: "Região Sul do Brasil",
-        description:
-          "A Região Sul reúne Paraná, Santa Catarina e Rio Grande do Sul.",
+          "O Brasil. Vamos para o sul do país, onde o rio subiu em julho de 2026.",
       },
       "rio-grande-do-sul": {
         name: "Rio Grande do Sul",

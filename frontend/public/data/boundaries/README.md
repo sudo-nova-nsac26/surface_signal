@@ -10,6 +10,3 @@ Outlines drawn around the current place on the map.
 
 They are bundled so the site does not depend on the IBGE service at run time.
 
-- `south-america.geojson`: Natural Earth, 1:50m *Admin 0 – Countries* and
-  *Map Units* (French Guiana), public domain (https://www.naturalearthdata.com/),
-  merged into a single outline and rounded to two decimals, 2026-11-14.

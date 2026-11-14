@@ -117,7 +117,7 @@ export function MapStage({
     () => [
       ...upcomingOf(current.id).map((place) => ({
         id: place.id,
-        name: labels.upcoming[place.id],
+        name: place.name[lang],
         point: place.point,
         available: false,
       })),
@@ -128,7 +128,7 @@ export function MapStage({
         available: true,
       })),
     ],
-    [places, current.id, labels],
+    [places, current.id, labels, lang],
   );
   const closeUp = Boolean(current.detail);
   const free3d = closeUp && view === "3d";
