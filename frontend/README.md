@@ -83,12 +83,21 @@ The journey from the whole planet to Lajeado and Estrela lives in
 `src/components/map`. It uses [MapLibre GL JS](https://maplibre.org/) with
 services that need no key or account.
 
-- The visitor moves between four fixed stops with large buttons. North is
-  always up; rotation and free tilt are switched off, so nobody gets lost.
-- The last stop tilts the camera and adds relief. "Simple view" switches to a
-  flat map seen from above; it starts on by itself when "reduce motion" is on
-  or the device has little memory.
-- With "reduce motion" the camera jumps between stops instead of flying.
+- **Places are a tree** ([`places.ts`](src/components/map/places.ts)): world,
+  continent, region of the country, state, valley. Each place shows a dot for
+  its children; tapping a dot flies the camera there. Only the path to the
+  Taquari Valley exists for now; adding a place is one entry in that file plus
+  its name in the dictionaries.
+- Dots are real buttons laid over the map, so they work with keyboard and
+  screen readers. The same moves are offered as large buttons beside the map,
+  with a breadcrumb to go back up.
+- **2D is the default**: a flat map, light on slow devices. A large 2D / 3D
+  switch above the map turns on the globe and the 3D relief.
+- **3D relief**: terrain is exaggerated and tinted by elevation. At the
+  close-up the visitor can rotate and tilt freely (buttons, two-finger drag,
+  or right-button drag). Everywhere else rotation is off, so nobody loses
+  their bearings.
+- With "reduce motion" the camera jumps between places instead of flying.
 - The map library is downloaded only when the visitor reaches that section.
 - The page keeps scrolling normally: zooming needs Ctrl + scroll or two fingers.
 - The outline of the analysed area comes from the data layer.

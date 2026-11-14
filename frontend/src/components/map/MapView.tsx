@@ -4,29 +4,43 @@ import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
 import type { GeoJsonPolygon } from "@/data/api-types";
+import type { LngLat } from "@/data/region";
 import {
   BASEMAP_STYLE,
   TERRAIN_ATTRIBUTION,
   TERRAIN_TILES,
-  type CameraStop,
+  type ViewMode,
 } from "./camera";
+import type { Place } from "./places";
 
 export interface MapViewHandle {
   zoomBy: (delta: number) => void;
+  rotateBy: (degrees: number) => void;
+  tiltBy: (degrees: number) => void;
+  resetView: () => void;
+}
+
+export interface MapMarker {
+  id: string;
+  name: string;
+  point: LngLat;
 }
 
 export interface MapViewProps {
   ref?: Ref<MapViewHandle>;
-  stops: CameraStop[];
-  step: number;
-  /** Flat map seen from above: no globe, no tilt, no relief. */
-  simple: boolean;
-  /** Jump between stops instead of flying. */
+  place: Place;
+  /** Dots the visitor can tap to travel to the next place. */
+  markers: MapMarker[];
+  /** 2D is a flat map. 3D is a globe with relief and a tilted close-up. */
+  view: ViewMode;
+  /** Jump between places instead of flying. */
   reducedMotion: boolean;
-  /** Outline of the analysed area, shown on the last stop. */
+  /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
+  dotHint: string;
   gestureText: { desktop: string; mac: string; mobile: string };
+  onSelect: (id: string) => void;
   onReady: () => void;
   onError: () => void;
 }
@@ -36,6 +50,11 @@ setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
 
 const AREA_SOURCE = "analysed-area";
 const TERRAIN_SOURCE = "terrain";
+const RELIEF_SOURCE = "relief";
+const FLIGHT_MS = 2800;
+const DETAIL_PITCH = 62;
+const MAX_PITCH = 75;
+const RELIEF_EXAGGERATION = 2.8;
 
 /**
  * The free dark basemap is almost black. This lifts land, water and borders
@@ -88,31 +107,62 @@ function ensureAreaLayers(map: MapLibreMap, area: GeoJsonPolygon | null) {
   });
 }
 
+/** Free rotation and tilt are only offered at the 3D close-up. */
+function setFreeCamera(map: MapLibreMap, free: boolean) {
+  if (free) {
+    map.dragRotate.enable();
+    map.touchPitch.enable();
+    map.touchZoomRotate.enableRotation();
+    map.keyboard.enableRotation();
+  } else {
+    map.dragRotate.disable();
+    map.touchPitch.disable();
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
+  }
+}
+
+/** Angle in degrees between two points on the globe. */
+function angularDistance(a: LngLat, b: LngLat) {
+  const rad = Math.PI / 180;
+  const cos =
+    Math.sin(a[1] * rad) * Math.sin(b[1] * rad) +
+    Math.cos(a[1] * rad) *
+      Math.cos(b[1] * rad) *
+      Math.cos((a[0] - b[0]) * rad);
+  return Math.acos(Math.min(1, Math.max(-1, cos))) / rad;
+}
+
 /**
- * The map itself. It only follows orders: the parent says which stop to
- * show and the camera goes there. Rotation and free tilt are switched off;
- * the visitor can still pan and zoom.
+ * The map itself. It only follows orders: the parent says which place to
+ * show and in which view, and the camera goes there. Dots are real buttons
+ * laid over the map, so they work with keyboard and screen readers.
  */
 export default function MapView({
   ref,
-  stops,
-  step,
-  simple,
+  place,
+  markers,
+  view,
   reducedMotion,
   area,
   label,
+  dotHint,
   gestureText,
+  onSelect,
   onReady,
   onError,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const loadedRef = useRef(false);
+  const dotRefs = useRef(new Map<string, HTMLButtonElement>());
+  const flightTimer = useRef<number | undefined>(undefined);
 
   // Latest values for the map callbacks, without re-creating the map.
-  const latest = useRef({ stops, step, simple, reducedMotion, area });
+  const latest = useRef({ place, markers, view, reducedMotion, area });
   useEffect(() => {
-    latest.current = { stops, step, simple, reducedMotion, area };
+    latest.current = { place, markers, view, reducedMotion, area };
   });
   const callbacks = useRef({ onReady, onError });
   useEffect(() => {
@@ -121,50 +171,134 @@ export default function MapView({
 
   useImperativeHandle(ref, () => ({
     zoomBy(delta) {
-      const map = mapRef.current;
-      if (!map) return;
-      map.easeTo({
-        zoom: map.getZoom() + delta,
+      mapRef.current?.easeTo({
+        zoom: mapRef.current.getZoom() + delta,
         duration: latest.current.reducedMotion ? 0 : 300,
+      });
+    },
+    rotateBy(degrees) {
+      const map = mapRef.current;
+      map?.easeTo({
+        bearing: map.getBearing() + degrees,
+        duration: latest.current.reducedMotion ? 0 : 350,
+      });
+    },
+    tiltBy(degrees) {
+      const map = mapRef.current;
+      map?.easeTo({
+        pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() + degrees)),
+        duration: latest.current.reducedMotion ? 0 : 350,
+      });
+    },
+    resetView() {
+      mapRef.current?.easeTo({
+        bearing: 0,
+        pitch: latest.current.view === "3d" ? DETAIL_PITCH : 0,
+        duration: latest.current.reducedMotion ? 0 : 500,
       });
     },
   }));
 
+  /** Moves each dot to where its place currently is on screen. */
+  function updateDots() {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!map || !container) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const { markers, view } = latest.current;
+    const center = map.getCenter();
+    for (const marker of markers) {
+      const element = dotRefs.current.get(marker.id);
+      if (!element) continue;
+      const point = map.project(marker.point);
+      // On the globe, places on the far side are hidden.
+      const hidden =
+        view === "3d" &&
+        map.getZoom() < 6 &&
+        angularDistance([center.lng, center.lat], marker.point) > 78;
+      const inside =
+        point.x > -24 &&
+        point.x < width + 24 &&
+        point.y > -24 &&
+        point.y < height + 24;
+      element.style.visibility = !hidden && inside ? "visible" : "hidden";
+      element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
+      element.dataset.side = point.x > width * 0.6 ? "left" : "right";
+    }
+  }
+
+  function setFlying(flying: boolean) {
+    window.clearTimeout(flightTimer.current);
+    if (overlayRef.current) {
+      overlayRef.current.dataset.flying = flying ? "true" : "false";
+    }
+    // Safety net in case the camera ends up not moving at all.
+    if (flying) {
+      flightTimer.current = window.setTimeout(
+        () => setFlying(false),
+        FLIGHT_MS + 800,
+      );
+    }
+  }
+
   function applyView(animate: boolean) {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
-    const { stops, step, simple, reducedMotion, area } = latest.current;
-    const stop = stops[Math.min(step, stops.length - 1)];
-    const isRegion = step === stops.length - 1;
+    const { place, view, reducedMotion, area } = latest.current;
+    const is3d = view === "3d";
+    const detail = place.detail;
+    const relief = is3d && Boolean(detail);
 
-    map.setProjection({ type: simple ? "mercator" : "globe" });
+    map.setProjection({ type: is3d ? "globe" : "mercator" });
     map.setTerrain(
-      !simple && isRegion ? { source: TERRAIN_SOURCE, exaggeration: 1.7 } : null,
+      relief
+        ? { source: TERRAIN_SOURCE, exaggeration: RELIEF_EXAGGERATION }
+        : null,
     );
+    map.setPaintProperty(
+      "relief-shade",
+      "hillshade-exaggeration",
+      relief ? 0.95 : 0.22,
+    );
+    if (map.getLayer("relief-color")) {
+      map.setPaintProperty("relief-color", "color-relief-opacity", relief ? 0.7 : 0);
+    }
+    setFreeCamera(map, relief);
 
     ensureAreaLayers(map, area);
-    const hasArea = Boolean(area);
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
           layer,
           "visibility",
-          hasArea && isRegion ? "visible" : "none",
+          area && detail ? "visible" : "none",
         );
       }
     }
 
-    const camera = {
-      center: stop.center,
-      zoom: simple && isRegion ? stop.zoom + 0.3 : stop.zoom,
-      pitch: simple ? 0 : stop.pitch,
-      bearing: 0,
-    };
-    if (animate && !reducedMotion) {
-      map.flyTo({ ...camera, duration: 3200, essential: true });
+    const duration = animate && !reducedMotion ? FLIGHT_MS : 0;
+    if (duration > 0) setFlying(true);
+    if (detail) {
+      map.flyTo({
+        center: detail.center,
+        zoom: is3d ? detail.zoom : detail.zoom - 0.3,
+        pitch: is3d ? DETAIL_PITCH : 0,
+        bearing: 0,
+        duration,
+        essential: true,
+      });
     } else {
-      map.jumpTo(camera);
+      map.fitBounds(place.bounds, {
+        padding: 48,
+        maxZoom: 9,
+        pitch: 0,
+        bearing: 0,
+        duration,
+        essential: true,
+      });
     }
+    updateDots();
   }
 
   useEffect(() => {
@@ -173,20 +307,20 @@ export default function MapView({
 
     let map: MapLibreMap;
     try {
-      const first = latest.current.stops[0];
       map = new MapLibreMap({
         container,
         style: BASEMAP_STYLE,
-        center: first.center,
-        zoom: first.zoom,
+        center: [-52, -14],
+        zoom: 1,
         attributionControl: { compact: true },
         // The page keeps scrolling normally; zooming needs a deliberate gesture.
         cooperativeGestures: true,
+        // Rotation and tilt start off; they are switched on at the 3D close-up.
         dragRotate: false,
-        pitchWithRotate: false,
         touchPitch: false,
+        pitchWithRotate: true,
         rollEnabled: false,
-        maxPitch: 60,
+        maxPitch: MAX_PITCH,
         locale: {
           "CooperativeGesturesHandler.WindowsHelpText": gestureText.desktop,
           "CooperativeGesturesHandler.MacHelpText": gestureText.mac,
@@ -198,8 +332,10 @@ export default function MapView({
       return;
     }
     mapRef.current = map;
-    map.touchZoomRotate.disableRotation();
-    map.keyboard.disableRotation();
+    setFreeCamera(map, false);
+
+    map.on("render", updateDots);
+    map.on("moveend", () => setFlying(false));
 
     // "style.load" fires as soon as the map can be drawn, before every tile arrives.
     map.once("style.load", () => {
@@ -212,8 +348,7 @@ export default function MapView({
         maxzoom: 14,
         attribution: TERRAIN_ATTRIBUTION,
       });
-      // Shaded relief makes the valley and the hills readable at a glance.
-      map.addSource("relief", {
+      map.addSource(RELIEF_SOURCE, {
         type: "raster-dem",
         tiles: [TERRAIN_TILES],
         encoding: "terrarium",
@@ -223,16 +358,49 @@ export default function MapView({
       const firstLabel = map
         .getStyle()
         .layers.find((layer) => layer.type === "symbol")?.id;
+      // Elevation tint: valleys dark, hills lighter. It is only shown in 3D.
+      try {
+        map.addLayer(
+          {
+            id: "relief-color",
+            type: "color-relief",
+            source: RELIEF_SOURCE,
+            minzoom: 7,
+            paint: {
+              "color-relief-opacity": 0,
+              "color-relief-color": [
+                "interpolate",
+                ["linear"],
+                ["elevation"],
+                0,
+                "#06263a",
+                120,
+                "#0c4a63",
+                320,
+                "#1b7c8c",
+                600,
+                "#4cb38f",
+                900,
+                "#d4efb0",
+              ],
+            },
+          },
+          firstLabel,
+        );
+      } catch {
+        // Older browsers or builds without this layer still get the shading.
+      }
       map.addLayer(
         {
           id: "relief-shade",
           type: "hillshade",
-          source: "relief",
+          source: RELIEF_SOURCE,
           minzoom: 7,
           paint: {
-            "hillshade-exaggeration": 0.55,
+            "hillshade-exaggeration": 0.5,
+            "hillshade-method": "multidirectional",
             "hillshade-shadow-color": "#020810",
-            "hillshade-highlight-color": "#3f8fae",
+            "hillshade-highlight-color": "#6fc9e0",
             "hillshade-accent-color": "#0b2233",
           },
         },
@@ -251,6 +419,7 @@ export default function MapView({
     resize.observe(container);
 
     return () => {
+      window.clearTimeout(flightTimer.current);
       resize.disconnect();
       loadedRef.current = false;
       mapRef.current = null;
@@ -261,10 +430,15 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    latest.current = { stops, step, simple, reducedMotion, area };
+    latest.current = { place, markers, view, reducedMotion, area };
     applyView(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, simple, stops, area]);
+  }, [place, view, area]);
+
+  // New dots appear in the right spot as soon as they are rendered.
+  useEffect(() => {
+    updateDots();
+  }, [markers]);
 
   return (
     // MapLibre sets its own positioning on the element it is given, so the
@@ -276,6 +450,31 @@ export default function MapView({
         aria-label={label}
         className="h-full w-full"
       />
+      <div
+        ref={overlayRef}
+        data-flying="false"
+        className="map-dots pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        {markers.map((marker) => (
+          <button
+            key={marker.id}
+            ref={(element) => {
+              if (element) dotRefs.current.set(marker.id, element);
+              else dotRefs.current.delete(marker.id);
+            }}
+            type="button"
+            aria-label={`${marker.name}. ${dotHint}`}
+            onClick={() => onSelect(marker.id)}
+            className="map-dot pointer-events-auto invisible absolute left-0 top-0"
+          >
+            <span aria-hidden="true" className="map-dot-ring" />
+            <span aria-hidden="true" className="map-dot-core" />
+            <span aria-hidden="true" className="map-dot-label">
+              {marker.name}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
