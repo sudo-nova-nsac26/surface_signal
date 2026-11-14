@@ -85,6 +85,28 @@ const en: Dictionary = {
       "Taquari Valley: Lajeado and Estrela",
     ],
   },
+  region: {
+    title: "What we have for this region",
+    loading: "Loading data…",
+    error: "We could not load the data right now.",
+    retry: "Try again",
+    availability: {
+      analysis: "Comparison ready",
+      catalog: "Images available",
+      "no-pair": "No comparison yet",
+    },
+    analysisBody: "We have the comparison between {before} and {after}.",
+    catalogBody:
+      "The satellite has passed over this place {count} times. The passes of {before} and {after} can be compared, but that comparison has not been prepared yet.",
+    noPairBody:
+      "The satellite has not yet made two passes that can be compared over this place.",
+    river:
+      "The Geological Survey of Brazil reported the river status at {stations} about {hours} hours before the satellite passed.",
+    source: "See the source",
+    illustrativeBody:
+      "The shapes on the map are still examples. They will be replaced by the real satellite measurement.",
+    and: "and",
+  },
   illustrative: "Illustrative data",
   footer: {
     data: "Data",

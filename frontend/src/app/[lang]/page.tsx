@@ -10,7 +10,8 @@ import {
   SatelliteIcon,
   WaterIcon,
 } from "@/components/icons";
-import type { LayerId, LayerStatus } from "@/data/types";
+import { RegionStatus } from "@/components/RegionStatus";
+import type { LayerId, LayerStatus } from "@/data/region";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -176,6 +177,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
               </li>
             ))}
           </ol>
+          <RegionStatus lang={lang} labels={dict.region} badge={dict.illustrative} />
         </div>
       </section>
     </>
