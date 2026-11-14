@@ -30,36 +30,52 @@ src/app/[lang]/     pages, one tree per language (/pt, /en)
 src/components/     interface pieces (header, language switch, accessibility menu, icons)
 src/i18n/           languages and the text dictionaries (pt.ts is the reference shape)
 src/preferences/    accessibility preferences saved in the visitor's browser
-src/data/types.ts   shapes of the prepared data files
+src/data/           data layer: backend shapes, the single data door, plain-language model
 src/proxy.ts        sends "/" to the visitor's language
-public/data/        prepared data the site reads (see below)
+public/data/api/v1/ snapshot of backend responses used when no backend is configured
 ```
 
-## Data: the site never opens raw radar files
+## Data: one door, two sources
 
-NISAR products are several gigabytes each. An offline step turns a pair of
-scenes into a few small files, and the site only reads those:
+The site never opens raw radar files. It reads the small prepared outputs that
+the SurfaceSignal backend serves, through a single module
+([`src/data/source.ts`](src/data/source.ts)). No component reads a file or
+builds a backend address on its own.
 
-```text
-public/data/regions.json                      regions and what is available for each
-public/data/analyses/<analysis-id>/summary.json   dates, scene IDs, layer status, context, sources
-public/data/analyses/<analysis-id>/<layer>.geojson change shapes for a layer (when available)
-```
+| Mode | When | Where data comes from |
+|---|---|---|
+| API | `NEXT_PUBLIC_API_BASE_URL` is set | The backend (`/api/v1/areas`, `/scenes`, `/analyses`, artifacts) |
+| Static | variable not set | A snapshot of the same responses in `public/data/api/v1` |
 
-The exact shapes are documented in [`src/data/types.ts`](src/data/types.ts).
-Replacing the sample files with real outputs needs no code change.
+Both modes use the exact shapes of [the API contract](../docs/api-contract.md),
+typed in [`src/data/api-types.ts`](src/data/api-types.ts), so switching is
+configuration only.
 
-While `summary.json` has `"illustrative": true`, shapes are hand-made samples
-used to build the interface, and the site labels them as illustrative data.
+To use the live backend:
+
+1. Start it from the repository root (`docker compose up --build`, or the
+   Python setup in the root README).
+2. Allow this site in the root `.env`:
+   `SURFACESIGNAL_CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]`
+3. Copy `frontend/.env.example` to `frontend/.env.local` and uncomment
+   `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`.
+
+[`src/data/region.ts`](src/data/region.ts) turns backend records into what
+the interface says. It decides the state of each region from real data:
+
+| State | Rule |
+|---|---|
+| `analysis` | The backend has a prepared analysis for the area. |
+| `catalog` | No analysis, but two scenes are comparable (same rule as `comparable()` in the backend). |
+| `no-pair` | No two comparable passes yet. |
+
+An analysis the backend marks `synthetic` is labelled "illustrative data" in
+the interface. The bundled snapshot holds the real area and the real 19-scene
+catalog, plus one hand-made sample analysis marked `synthetic` with no shapes.
 Unmeasured values are `null`, never zero.
 
-Each region is in one of three states:
-
-| State | Meaning |
-|---|---|
-| `analysis` | A prepared before/after comparison exists and is shown. |
-| `catalog` | The satellite has comparable scenes, but they were not processed yet. |
-| `no-pair` | There are not two comparable passes for that place yet. |
+Everyday names for areas live in [`src/data/area-labels.ts`](src/data/area-labels.ts);
+the backend stays technical.
 
 ## Accessibility
 
