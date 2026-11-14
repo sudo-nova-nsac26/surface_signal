@@ -11,6 +11,7 @@ import {
   TERRAIN_TILES,
   type ViewMode,
 } from "./camera";
+import type { MotionLevel } from "@/preferences/store";
 import type { Place } from "./places";
 
 export interface MapViewHandle {
@@ -35,8 +36,10 @@ export interface MapViewProps {
   markers: MapMarker[];
   /** 2D is a flat map. 3D is a globe with relief and a tilted close-up. */
   view: ViewMode;
-  /** Jump between places instead of flying. */
-  reducedMotion: boolean;
+  /** How much the camera may move: sweeping flights, short moves, or none. */
+  motion: MotionLevel;
+  /** Before the visitor starts: a slowly turning globe behind the intro. */
+  intro: boolean;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -138,9 +141,11 @@ function angularDistance(a: LngLat, b: LngLat) {
 
 /** Room left for the panels laid over the map, so places are not hidden. */
 function framePadding(width: number) {
+  // Centred on purpose: the place sits in the middle of the screen, with the
+  // info card overlapping only a corner. On phones it clears the bottom card.
   return width >= 900
-    ? { top: 96, bottom: 72, left: 440, right: 96 }
-    : { top: 84, bottom: 260, left: 28, right: 28 };
+    ? { top: 84, bottom: 56, left: 56, right: 72 }
+    : { top: 84, bottom: 250, left: 24, right: 24 };
 }
 
 /**
@@ -153,7 +158,8 @@ export default function MapView({
   place,
   markers,
   view,
-  reducedMotion,
+  motion,
+  intro,
   area,
   label,
   dotHint,
@@ -170,12 +176,15 @@ export default function MapView({
   const dotRefs = useRef(new Map<string, HTMLButtonElement>());
   const flightTimer = useRef<number | undefined>(undefined);
   const freeRef = useRef(false);
+  const fadeRef = useRef<HTMLDivElement>(null);
+  const revealTimer = useRef<number | undefined>(undefined);
+  const wasIntro = useRef(intro);
   const applied = useRef<{ globe?: boolean; relief?: boolean }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
-  const latest = useRef({ place, markers, view, reducedMotion, area });
+  const latest = useRef({ place, markers, view, motion, intro, area });
   useEffect(() => {
-    latest.current = { place, markers, view, reducedMotion, area };
+    latest.current = { place, markers, view, motion, intro, area };
   });
   const callbacks = useRef({ onReady, onError });
   useEffect(() => {
@@ -186,28 +195,28 @@ export default function MapView({
     zoomBy(delta) {
       mapRef.current?.easeTo({
         zoom: mapRef.current.getZoom() + delta,
-        duration: latest.current.reducedMotion ? 0 : 300,
+        duration: latest.current.motion === "none" ? 0 : 300,
       });
     },
     rotateBy(degrees) {
       const map = mapRef.current;
       map?.easeTo({
         bearing: map.getBearing() + degrees,
-        duration: latest.current.reducedMotion ? 0 : 350,
+        duration: latest.current.motion === "none" ? 0 : 350,
       });
     },
     tiltBy(degrees) {
       const map = mapRef.current;
       map?.easeTo({
         pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() + degrees)),
-        duration: latest.current.reducedMotion ? 0 : 350,
+        duration: latest.current.motion === "none" ? 0 : 350,
       });
     },
     resetView() {
       mapRef.current?.easeTo({
         bearing: 0,
         pitch: latest.current.view === "3d" ? DETAIL_PITCH : 0,
-        duration: latest.current.reducedMotion ? 0 : 500,
+        duration: latest.current.motion === "none" ? 0 : 500,
       });
     },
   }));
@@ -255,11 +264,11 @@ export default function MapView({
     }
   }
 
-  function applyView(animate: boolean) {
+  function applyView(animate: boolean, rise = false) {
     const map = mapRef.current;
     const container = containerRef.current;
     if (!map || !container || !loadedRef.current) return;
-    const { place, view, reducedMotion, area } = latest.current;
+    const { place, view, motion, area } = latest.current;
     const is3d = view === "3d";
     const detail = place.detail;
     const relief = is3d && Boolean(detail);
@@ -332,18 +341,87 @@ export default function MapView({
       padding,
     };
 
-    if (animate && !reducedMotion) {
+    if (animate && motion !== "none") {
       setFlying(true);
-      map.flyTo({
-        ...camera,
-        duration: FLIGHT_MS,
-        curve: 1.5,
-        essential: true,
-      });
+      if (motion === "full") {
+        // Arriving from the intro: start close and pull back to the place.
+        if (rise) map.jumpTo({ ...camera, zoom: camera.zoom + 1.3 });
+        map.flyTo({
+          ...camera,
+          duration: rise ? 2400 : FLIGHT_MS,
+          curve: 1.5,
+          essential: true,
+        });
+      } else {
+        // The device asks for less motion: one short, smooth move.
+        map.easeTo({ ...camera, duration: 700, essential: true });
+      }
     } else {
       map.jumpTo(camera);
     }
     updateDots();
+  }
+
+  /** The slow turn of the globe behind the intro. */
+  function spin() {
+    const map = mapRef.current;
+    if (!map || !latest.current.intro || latest.current.motion !== "full") return;
+    const center = map.getCenter();
+    map.easeTo({
+      center: [center.lng + 90, center.lat],
+      duration: 24000,
+      easing: (t) => t,
+      essential: true,
+    });
+  }
+
+  /** The globe on the right, so the introduction can sit on the left. */
+  function introView() {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!map || !container || !loadedRef.current) return;
+    if (applied.current.globe !== true) {
+      applied.current.globe = true;
+      map.setProjection({ type: "globe" });
+    }
+    if (applied.current.relief) {
+      applied.current.relief = false;
+      map.setTerrain(null);
+      setFreeCamera(map, false);
+      freeRef.current = false;
+    }
+    for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
+      if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", "none");
+    }
+    const wide = container.clientWidth >= 1000;
+    map.jumpTo({
+      center: [-48, -12],
+      zoom: wide ? 1.55 : 1.2,
+      pitch: 0,
+      bearing: 0,
+      padding: wide ? { top: 0, bottom: 0, left: container.clientWidth * 0.42, right: 0 } : { top: 0, bottom: 0, left: 0, right: 0 },
+    });
+    spin();
+  }
+
+  /** From the intro to the map: a soft fade while the camera pulls back. */
+  function reveal() {
+    const map = mapRef.current;
+    const fade = fadeRef.current;
+    if (!map) return;
+    map.stop();
+    window.clearTimeout(revealTimer.current);
+    if (latest.current.motion === "none" || !fade) {
+      applyView(false);
+      return;
+    }
+    fade.style.transition = "opacity 220ms ease-in";
+    fade.style.opacity = "0";
+    revealTimer.current = window.setTimeout(() => {
+      applyView(true, true);
+      fade.style.transition = "opacity 900ms ease-out";
+      fade.style.opacity = "1";
+    }, 240);
   }
 
   useEffect(() => {
@@ -383,7 +461,10 @@ export default function MapView({
     setFreeCamera(map, false);
 
     map.on("render", updateDots);
-    map.on("moveend", () => setFlying(false));
+    map.on("moveend", () => {
+      setFlying(false);
+      if (latest.current.intro) spin();
+    });
 
     // Orbit like a CAD viewer: hold the mouse wheel and drag to rotate and
     // tilt, or hold Shift while scrolling to rotate.
@@ -393,7 +474,11 @@ export default function MapView({
       event.preventDefault();
       map.stop();
       orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
-      container.setPointerCapture(event.pointerId);
+      try {
+        container.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer already gone; the drag simply does nothing.
+      }
     };
     const onPointerMove = (event: PointerEvent) => {
       if (!orbit || event.pointerId !== orbit.id) return;
@@ -409,7 +494,11 @@ export default function MapView({
     const onPointerUp = (event: PointerEvent) => {
       if (!orbit || event.pointerId !== orbit.id) return;
       orbit = null;
-      container.releasePointerCapture(event.pointerId);
+      try {
+        container.releasePointerCapture(event.pointerId);
+      } catch {
+        // Nothing to release.
+      }
     };
     // Stops the browser's own "auto-scroll" on a middle click.
     const onMouseDown = (event: MouseEvent) => {
@@ -507,7 +596,8 @@ export default function MapView({
       });
 
       loadedRef.current = true;
-      applyView(false);
+      if (latest.current.intro) introView();
+      else applyView(false);
       callbacks.current.onReady();
     });
 
@@ -516,6 +606,7 @@ export default function MapView({
 
     return () => {
       window.clearTimeout(flightTimer.current);
+      window.clearTimeout(revealTimer.current);
       resize.disconnect();
       container.removeEventListener("pointerdown", onPointerDown);
       container.removeEventListener("pointermove", onPointerMove);
@@ -533,10 +624,13 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    latest.current = { place, markers, view, reducedMotion, area };
-    applyView(true);
+    latest.current = { place, markers, view, motion, intro, area };
+    if (intro) introView();
+    else if (wasIntro.current) reveal();
+    else applyView(true);
+    wasIntro.current = intro;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place.id, view, area]);
+  }, [place.id, view, area, intro]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
@@ -546,7 +640,7 @@ export default function MapView({
   return (
     // MapLibre sets its own positioning on the element it is given, so the
     // element that fills the frame is a wrapper around it.
-    <div className="absolute inset-0">
+    <div ref={fadeRef} className="absolute inset-0">
       <div
         ref={containerRef}
         role="region"

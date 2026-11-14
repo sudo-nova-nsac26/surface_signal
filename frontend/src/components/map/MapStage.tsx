@@ -7,7 +7,7 @@ import { STORY_AREA_ID } from "@/data/area-labels";
 import { boundsOf, type LngLat } from "@/data/region";
 import { listAreas } from "@/data/source";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { useReducedMotion } from "@/preferences/store";
+import { useMotionLevel } from "@/preferences/store";
 import { ArrowRightIcon } from "../icons";
 import type { ViewMode } from "./camera";
 import type { MapMarker, MapViewHandle } from "./MapView";
@@ -68,13 +68,15 @@ export function MapStage({
   labels: Labels;
   hero: Dictionary["hero"];
 }) {
-  const [started, setStarted] = useState(false);
+  // intro: a turning globe behind the introduction. leaving: the introduction
+  // fades while the camera pulls back. map: only the map and its controls.
+  const [phase, setPhase] = useState<"intro" | "leaving" | "map">("intro");
   const [placeId, setPlaceId] = useState<PlaceId>("world");
   const [view, setView] = useState<ViewMode>("2d");
   const [area, setArea] = useState<ApiArea | null>(null);
   const [status, setStatus] = useState<MapStatus>("loading");
   const mapHandle = useRef<MapViewHandle>(null);
-  const reducedMotion = useReducedMotion();
+  const motion = useMotionLevel();
 
   const places = useMemo(() => {
     let valley = FALLBACK_VALLEY;
@@ -126,6 +128,14 @@ export function MapStage({
 
   const go = (id: string) => setPlaceId(id as PlaceId);
 
+  const begin = () => setPhase(motion === "none" ? "map" : "leaving");
+
+  useEffect(() => {
+    if (phase !== "leaving") return;
+    const timer = window.setTimeout(() => setPhase("map"), 1000);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+
   return (
     <section
       aria-label={labels.label}
@@ -135,9 +145,10 @@ export function MapStage({
         <MapView
           ref={mapHandle}
           place={current}
-          markers={started ? markers : []}
+          markers={phase === "map" ? markers : []}
           view={view}
-          reducedMotion={reducedMotion}
+          motion={motion}
+          intro={phase === "intro"}
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -153,9 +164,15 @@ export function MapStage({
         />
       )}
 
-      {!started && (
-        <div className="intro-scrim absolute inset-0 z-10 flex overflow-y-auto">
-          <div className="rise-in mx-auto my-auto w-full max-w-6xl px-4 py-8">
+      {phase !== "map" && (
+        <div
+          className={`intro-scrim absolute inset-0 z-10 flex overflow-y-auto transition-[opacity,transform] duration-700 ease-in ${
+            phase === "leaving"
+              ? "pointer-events-none -translate-y-4 opacity-0"
+              : ""
+          }`}
+        >
+          <div className="stagger mx-auto my-auto w-full max-w-6xl px-4 py-8">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand bg-brand-soft px-4 py-1 text-base font-bold text-brand-text">
               <span
                 aria-hidden="true"
@@ -163,16 +180,16 @@ export function MapStage({
               />
               {hero.eyebrow}
             </p>
-            <h1 className="text-gradient max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight sm:text-7xl lg:text-8xl">
+            <h1 className="text-gradient max-w-3xl text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
               {hero.title}
             </h1>
-            <p className="mt-6 max-w-2xl text-xl text-ink-soft sm:text-2xl">
+            <p className="mt-6 max-w-xl text-xl text-ink-soft sm:text-2xl">
               {hero.lead}
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <button
                 type="button"
-                onClick={() => setStarted(true)}
+                onClick={begin}
                 className="pressable glow inline-flex min-h-16 items-center gap-3 rounded-2xl bg-brand px-10 text-2xl font-bold text-brand-ink"
               >
                 {hero.start}
@@ -201,8 +218,8 @@ export function MapStage({
         </div>
       )}
 
-      {started && (
-        <div className="pointer-events-none absolute inset-0 z-10">
+      {phase === "map" && (
+        <div className="rise-in pointer-events-none absolute inset-0 z-10">
           <h1 className="sr-only">{hero.title}</h1>
 
           {status === "loading" && (

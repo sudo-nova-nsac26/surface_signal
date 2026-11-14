@@ -100,7 +100,13 @@ services that need no key or account.
   CAD viewer; Shift + scroll rotates. Small buttons on the right edge do the
   same. Elsewhere rotation is off, so nobody loses their bearings.
 - **Touch**: one finger keeps scrolling the page; two fingers move the map.
-- With "reduce motion" the camera jumps between places instead of flying.
+- **Motion has three levels** (`useMotionLevel`): full (the camera flies and the
+  intro globe turns), gentle (the device asks for less motion: one short,
+  smooth move, no sweeping flights, no spinning) and none (the visitor turned
+  motion off here: the camera jumps). The switch in the accessibility menu
+  wins over the device setting, so motion can be turned back on.
+- **Opening**: a slowly turning globe sits behind the introduction. "Start"
+  fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.
 
 `npm run dev` and `npm run build` first copy the MapLibre worker file into

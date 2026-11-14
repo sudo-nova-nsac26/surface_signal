@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import {
   setPreferences,
   usePreferences,
+  useReducedMotion,
   type TextSize,
 } from "@/preferences/store";
 import { AccessibilityIcon, CloseIcon } from "./icons";
@@ -54,6 +55,7 @@ function Switch({
 export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
   const [open, setOpen] = useState(false);
   const prefs = usePreferences();
+  const reducedMotion = useReducedMotion();
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -154,11 +156,11 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         />
 
         <Switch
-          checked={prefs.motion === "reduce"}
-          onChange={(on) => setPreferences({ motion: on ? "reduce" : "auto" })}
+          checked={reducedMotion}
+          onChange={(on) => setPreferences({ motion: on ? "reduce" : "full" })}
           label={labels.motion}
           hint={labels.motionHint}
-          stateLabel={prefs.motion === "reduce" ? labels.on : labels.off}
+          stateLabel={reducedMotion ? labels.on : labels.off}
         />
       </div>
     </div>
