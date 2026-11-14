@@ -40,6 +40,8 @@ export interface MapViewProps {
   motion: MotionLevel;
   /** Before the visitor starts: a slowly turning globe behind the intro. */
   intro: boolean;
+  /** Change shapes (GeoJSON URL) of the selected comparison, if any. */
+  changes: string | null;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -55,12 +57,20 @@ export interface MapViewProps {
 setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
 
 const AREA_SOURCE = "analysed-area";
+const CHANGES_SOURCE = "change-candidates";
+// Where the radar started seeing water. Okabe-Ito sky blue, readable on navy.
+const WATER_COLOR = "#56b4e9";
 const TERRAIN_SOURCE = "terrain";
 const RELIEF_SOURCE = "relief";
 const FLIGHT_MS = 3200;
 const DETAIL_PITCH = 62;
 const MAX_PITCH = 78;
 const RELIEF_EXAGGERATION = 2.8;
+/** Where the globe ends up when it comes forward, and where the map begins. */
+const SPOTLIGHT: LngLat = [-56, -17];
+
+const easeInOut = (t: number) =>
+  t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
 /**
  * The free dark basemap is almost black. This lifts land, water and borders
@@ -113,6 +123,46 @@ function ensureAreaLayers(map: MapLibreMap, area: GeoJsonPolygon | null) {
   });
 }
 
+/**
+ * Shows the change shapes of the selected comparison. They come from the
+ * backend's change-candidates.geojson, so real results draw here as soon as
+ * they are published; an empty file simply draws nothing.
+ */
+function setChangeLayers(
+  map: MapLibreMap,
+  url: string | null,
+  visible: boolean,
+) {
+  const source = map.getSource(CHANGES_SOURCE) as
+    { setData: (data: string) => void } | undefined;
+  if (url && !source) {
+    map.addSource(CHANGES_SOURCE, { type: "geojson", data: url });
+    map.addLayer({
+      id: "changes-fill",
+      type: "fill",
+      source: CHANGES_SOURCE,
+      paint: { "fill-color": WATER_COLOR, "fill-opacity": 0.55 },
+    });
+    map.addLayer({
+      id: "changes-line",
+      type: "line",
+      source: CHANGES_SOURCE,
+      paint: { "line-color": "#d9f3ff", "line-width": 1.2 },
+    });
+  } else if (url && source) {
+    source.setData(url);
+  }
+  for (const layer of ["changes-fill", "changes-line"]) {
+    if (map.getLayer(layer)) {
+      map.setLayoutProperty(
+        layer,
+        "visibility",
+        url && visible ? "visible" : "none",
+      );
+    }
+  }
+}
+
 /** Free rotation and tilt are only offered at the 3D close-up. */
 function setFreeCamera(map: MapLibreMap, free: boolean) {
   if (free) {
@@ -133,9 +183,7 @@ function angularDistance(a: LngLat, b: LngLat) {
   const rad = Math.PI / 180;
   const cos =
     Math.sin(a[1] * rad) * Math.sin(b[1] * rad) +
-    Math.cos(a[1] * rad) *
-      Math.cos(b[1] * rad) *
-      Math.cos((a[0] - b[0]) * rad);
+    Math.cos(a[1] * rad) * Math.cos(b[1] * rad) * Math.cos((a[0] - b[0]) * rad);
   return Math.acos(Math.min(1, Math.max(-1, cos))) / rad;
 }
 
@@ -160,6 +208,7 @@ export default function MapView({
   view,
   motion,
   intro,
+  changes,
   area,
   label,
   dotHint,
@@ -182,9 +231,9 @@ export default function MapView({
   const applied = useRef<{ globe?: boolean; relief?: boolean }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
-  const latest = useRef({ place, markers, view, motion, intro, area });
+  const latest = useRef({ place, markers, view, motion, intro, changes, area });
   useEffect(() => {
-    latest.current = { place, markers, view, motion, intro, area };
+    latest.current = { place, markers, view, motion, intro, changes, area };
   });
   const callbacks = useRef({ onReady, onError });
   useEffect(() => {
@@ -303,6 +352,7 @@ export default function MapView({
     }
 
     ensureAreaLayers(map, area);
+    setChangeLayers(map, latest.current.changes, Boolean(detail));
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
@@ -345,7 +395,14 @@ export default function MapView({
       setFlying(true);
       if (motion === "full") {
         // Arriving from the intro: start close and pull back to the place.
-        if (rise) map.jumpTo({ ...camera, zoom: camera.zoom + 1.3 });
+        // The flat map starts where the globe stopped, then pulls back.
+        if (rise) {
+          map.jumpTo({
+            ...camera,
+            center: SPOTLIGHT,
+            zoom: Math.max(camera.zoom + 1.2, 2.3),
+          });
+        }
         map.flyTo({
           ...camera,
           duration: rise ? 2400 : FLIGHT_MS,
@@ -365,7 +422,8 @@ export default function MapView({
   /** The slow turn of the globe behind the intro. */
   function spin() {
     const map = mapRef.current;
-    if (!map || !latest.current.intro || latest.current.motion !== "full") return;
+    if (!map || !latest.current.intro || latest.current.motion !== "full")
+      return;
     const center = map.getCenter();
     map.easeTo({
       center: [center.lng + 90, center.lat],
@@ -391,7 +449,8 @@ export default function MapView({
       freeRef.current = false;
     }
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
-      if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", "none");
+      if (map.getLayer(layer))
+        map.setLayoutProperty(layer, "visibility", "none");
     }
     const wide = container.clientWidth >= 1000;
     map.jumpTo({
@@ -399,238 +458,315 @@ export default function MapView({
       zoom: wide ? 1.55 : 1.2,
       pitch: 0,
       bearing: 0,
-      padding: wide ? { top: 0, bottom: 0, left: container.clientWidth * 0.42, right: 0 } : { top: 0, bottom: 0, left: 0, right: 0 },
+      padding: wide
+        ? { top: 0, bottom: 0, left: container.clientWidth * 0.42, right: 0 }
+        : { top: 0, bottom: 0, left: 0, right: 0 },
     });
     spin();
   }
 
-  /** From the intro to the map: a soft fade while the camera pulls back. */
+  /**
+   * From the intro to the map. With full motion the globe first moves to the
+   * centre and grows, taking the stage while the introduction recedes; then
+   * the view settles into the map. Gentler levels use a short fade.
+   */
   function reveal() {
     const map = mapRef.current;
     const fade = fadeRef.current;
-    if (!map) return;
+    const container = containerRef.current;
+    if (!map || !container) return;
     map.stop();
     window.clearTimeout(revealTimer.current);
-    if (latest.current.motion === "none" || !fade) {
+    const { motion } = latest.current;
+    if (motion === "none" || !fade) {
       applyView(false);
       return;
     }
-    fade.style.transition = "opacity 220ms ease-in";
-    fade.style.opacity = "0";
-    revealTimer.current = window.setTimeout(() => {
-      applyView(true, true);
-      fade.style.transition = "opacity 900ms ease-out";
-      fade.style.opacity = "1";
-    }, 240);
+
+    const settle = () => {
+      // In 3D the globe simply flies on; in 2D the flat map fades in where
+      // the globe stopped, so the change of projection is never seen.
+      if (latest.current.view === "3d") {
+        applyView(true);
+        return;
+      }
+      fade.style.transition = "opacity 200ms ease-in";
+      fade.style.opacity = "0";
+      revealTimer.current = window.setTimeout(() => {
+        applyView(true, true);
+        fade.style.transition = "opacity 700ms ease-out";
+        fade.style.opacity = "1";
+      }, 210);
+    };
+
+    if (motion === "gentle") {
+      settle();
+      return;
+    }
+
+    const wide = container.clientWidth >= 1000;
+    map.easeTo({
+      center: SPOTLIGHT,
+      zoom: wide ? 2.6 : 2,
+      padding: { top: 0, bottom: 0, left: 0, right: 0 },
+      duration: 1300,
+      easing: easeInOut,
+      essential: true,
+    });
+    revealTimer.current = window.setTimeout(settle, 1300);
   }
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const element = containerRef.current;
+    if (!element) return;
+    const container: HTMLDivElement = element;
 
-    // With a mouse, scrolling over the map zooms it straight away. On touch
-    // screens one finger keeps scrolling the page and two fingers move the map.
-    const touch = window.matchMedia("(pointer: coarse)").matches;
+    // Creating the map is heavy. It waits until the browser is idle, so the
+    // page paints and the introduction appears first, even on slow phones.
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) cleanup = create();
+    };
+    const idle = "requestIdleCallback" in window;
+    const handle = idle
+      ? window.requestIdleCallback(run, { timeout: 1500 })
+      : window.setTimeout(run, 300);
 
-    let map: MapLibreMap;
-    try {
-      map = new MapLibreMap({
-        container,
-        style: BASEMAP_STYLE,
-        center: [-52, -14],
-        zoom: 1,
-        attributionControl: { compact: true },
-        cooperativeGestures: touch,
-        // Rotation and tilt start off; they are switched on at the 3D close-up.
-        dragRotate: false,
-        touchPitch: false,
-        pitchWithRotate: true,
-        rollEnabled: false,
-        maxPitch: MAX_PITCH,
-        locale: {
-          "CooperativeGesturesHandler.WindowsHelpText": gestureText.desktop,
-          "CooperativeGesturesHandler.MacHelpText": gestureText.mac,
-          "CooperativeGesturesHandler.MobileHelpText": gestureText.mobile,
-        },
-      });
-    } catch {
-      callbacks.current.onError();
-      return;
-    }
-    mapRef.current = map;
-    setFreeCamera(map, false);
+    return () => {
+      cancelled = true;
+      if (idle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+      cleanup?.();
+    };
 
-    map.on("render", updateDots);
-    map.on("moveend", () => {
-      setFlying(false);
-      if (latest.current.intro) spin();
-    });
+    function create(): (() => void) | undefined {
+      // With a mouse, scrolling over the map zooms it straight away. On touch
+      // screens one finger keeps scrolling the page and two fingers move the map.
+      const touch = window.matchMedia("(pointer: coarse)").matches;
 
-    // Orbit like a CAD viewer: hold the mouse wheel and drag to rotate and
-    // tilt, or hold Shift while scrolling to rotate.
-    let orbit: { x: number; y: number; id: number } | null = null;
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 1 || !freeRef.current) return;
-      event.preventDefault();
-      map.stop();
-      orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      let map: MapLibreMap;
       try {
-        container.setPointerCapture(event.pointerId);
+        map = new MapLibreMap({
+          container,
+          style: BASEMAP_STYLE,
+          center: [-52, -14],
+          zoom: 1,
+          attributionControl: { compact: true },
+          cooperativeGestures: touch,
+          // Rotation and tilt start off; they are switched on at the 3D close-up.
+          dragRotate: false,
+          touchPitch: false,
+          pitchWithRotate: true,
+          rollEnabled: false,
+          maxPitch: MAX_PITCH,
+          locale: {
+            "CooperativeGesturesHandler.WindowsHelpText": gestureText.desktop,
+            "CooperativeGesturesHandler.MacHelpText": gestureText.mac,
+            "CooperativeGesturesHandler.MobileHelpText": gestureText.mobile,
+          },
+        });
       } catch {
-        // Pointer already gone; the drag simply does nothing.
+        callbacks.current.onError();
+        return;
       }
-    };
-    const onPointerMove = (event: PointerEvent) => {
-      if (!orbit || event.pointerId !== orbit.id) return;
-      const dx = event.clientX - orbit.x;
-      const dy = event.clientY - orbit.y;
-      orbit.x = event.clientX;
-      orbit.y = event.clientY;
-      map.jumpTo({
-        bearing: map.getBearing() + dx * 0.4,
-        pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() - dy * 0.3)),
-      });
-    };
-    const onPointerUp = (event: PointerEvent) => {
-      if (!orbit || event.pointerId !== orbit.id) return;
-      orbit = null;
-      try {
-        container.releasePointerCapture(event.pointerId);
-      } catch {
-        // Nothing to release.
-      }
-    };
-    // Stops the browser's own "auto-scroll" on a middle click.
-    const onMouseDown = (event: MouseEvent) => {
-      if (event.button === 1) event.preventDefault();
-    };
-    const onWheel = (event: WheelEvent) => {
-      if (!event.shiftKey || !freeRef.current) return;
-      event.preventDefault();
-      event.stopPropagation();
-      map.setBearing(
-        map.getBearing() + (event.deltaY || event.deltaX) * 0.12,
-      );
-    };
-    container.addEventListener("pointerdown", onPointerDown);
-    container.addEventListener("pointermove", onPointerMove);
-    container.addEventListener("pointerup", onPointerUp);
-    container.addEventListener("pointercancel", onPointerUp);
-    container.addEventListener("mousedown", onMouseDown);
-    container.addEventListener("wheel", onWheel, {
-      capture: true,
-      passive: false,
-    });
+      mapRef.current = map;
+      setFreeCamera(map, false);
 
-    // "style.load" fires as soon as the map can be drawn, before every tile arrives.
-    map.once("style.load", () => {
-      recolourBasemap(map);
-      map.addSource(TERRAIN_SOURCE, {
-        type: "raster-dem",
-        tiles: [TERRAIN_TILES],
-        encoding: "terrarium",
-        tileSize: 256,
-        maxzoom: 14,
-        attribution: TERRAIN_ATTRIBUTION,
+      map.on("render", updateDots);
+      map.on("moveend", () => {
+        setFlying(false);
+        if (latest.current.intro) spin();
       });
-      map.addSource(RELIEF_SOURCE, {
-        type: "raster-dem",
-        tiles: [TERRAIN_TILES],
-        encoding: "terrarium",
-        tileSize: 256,
-        maxzoom: 14,
+
+      // Orbit like a CAD viewer: hold the mouse wheel and drag to rotate and
+      // tilt, or hold Shift while scrolling to rotate.
+      let orbit: { x: number; y: number; id: number } | null = null;
+      const onPointerDown = (event: PointerEvent) => {
+        if (event.button !== 1 || !freeRef.current) return;
+        event.preventDefault();
+        map.stop();
+        orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        try {
+          container.setPointerCapture(event.pointerId);
+        } catch {
+          // Pointer already gone; the drag simply does nothing.
+        }
+      };
+      const onPointerMove = (event: PointerEvent) => {
+        if (!orbit || event.pointerId !== orbit.id) return;
+        const dx = event.clientX - orbit.x;
+        const dy = event.clientY - orbit.y;
+        orbit.x = event.clientX;
+        orbit.y = event.clientY;
+        map.jumpTo({
+          bearing: map.getBearing() + dx * 0.4,
+          pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() - dy * 0.3)),
+        });
+      };
+      const onPointerUp = (event: PointerEvent) => {
+        if (!orbit || event.pointerId !== orbit.id) return;
+        orbit = null;
+        try {
+          container.releasePointerCapture(event.pointerId);
+        } catch {
+          // Nothing to release.
+        }
+      };
+      // Stops the browser's own "auto-scroll" on a middle click.
+      const onMouseDown = (event: MouseEvent) => {
+        if (event.button === 1) event.preventDefault();
+      };
+      const onWheel = (event: WheelEvent) => {
+        if (!event.shiftKey || !freeRef.current) return;
+        event.preventDefault();
+        event.stopPropagation();
+        map.setBearing(
+          map.getBearing() + (event.deltaY || event.deltaX) * 0.12,
+        );
+      };
+      container.addEventListener("pointerdown", onPointerDown);
+      container.addEventListener("pointermove", onPointerMove);
+      container.addEventListener("pointerup", onPointerUp);
+      container.addEventListener("pointercancel", onPointerUp);
+      container.addEventListener("mousedown", onMouseDown);
+      container.addEventListener("wheel", onWheel, {
+        capture: true,
+        passive: false,
       });
-      const firstLabel = map
-        .getStyle()
-        .layers.find((layer) => layer.type === "symbol")?.id;
-      // Elevation tint: valleys dark, hills lighter. It is only shown in 3D.
-      try {
+
+      // "style.load" fires as soon as the map can be drawn, before every tile arrives.
+      map.once("style.load", () => {
+        recolourBasemap(map);
+        map.addSource(TERRAIN_SOURCE, {
+          type: "raster-dem",
+          tiles: [TERRAIN_TILES],
+          encoding: "terrarium",
+          tileSize: 256,
+          maxzoom: 14,
+          attribution: TERRAIN_ATTRIBUTION,
+        });
+        map.addSource(RELIEF_SOURCE, {
+          type: "raster-dem",
+          tiles: [TERRAIN_TILES],
+          encoding: "terrarium",
+          tileSize: 256,
+          maxzoom: 14,
+        });
+        const firstLabel = map
+          .getStyle()
+          .layers.find((layer) => layer.type === "symbol")?.id;
+        // Elevation tint: valleys dark, hills lighter. It is only shown in 3D.
+        try {
+          map.addLayer(
+            {
+              id: "relief-color",
+              type: "color-relief",
+              source: RELIEF_SOURCE,
+              minzoom: 7,
+              paint: {
+                "color-relief-opacity": 0,
+                "color-relief-color": [
+                  "interpolate",
+                  ["linear"],
+                  ["elevation"],
+                  0,
+                  "#06263a",
+                  120,
+                  "#0c4a63",
+                  320,
+                  "#1b7c8c",
+                  600,
+                  "#4cb38f",
+                  900,
+                  "#d4efb0",
+                ],
+              },
+            },
+            firstLabel,
+          );
+        } catch {
+          // Older browsers or builds without this layer still get the shading.
+        }
         map.addLayer(
           {
-            id: "relief-color",
-            type: "color-relief",
+            id: "relief-shade",
+            type: "hillshade",
             source: RELIEF_SOURCE,
             minzoom: 7,
             paint: {
-              "color-relief-opacity": 0,
-              "color-relief-color": [
-                "interpolate",
-                ["linear"],
-                ["elevation"],
-                0,
-                "#06263a",
-                120,
-                "#0c4a63",
-                320,
-                "#1b7c8c",
-                600,
-                "#4cb38f",
-                900,
-                "#d4efb0",
-              ],
+              "hillshade-exaggeration": 0.22,
+              "hillshade-method": "multidirectional",
+              "hillshade-shadow-color": "#020810",
+              "hillshade-highlight-color": "#6fc9e0",
+              "hillshade-accent-color": "#0b2233",
             },
           },
           firstLabel,
         );
-      } catch {
-        // Older browsers or builds without this layer still get the shading.
-      }
-      map.addLayer(
-        {
-          id: "relief-shade",
-          type: "hillshade",
-          source: RELIEF_SOURCE,
-          minzoom: 7,
-          paint: {
-            "hillshade-exaggeration": 0.22,
-            "hillshade-method": "multidirectional",
-            "hillshade-shadow-color": "#020810",
-            "hillshade-highlight-color": "#6fc9e0",
-            "hillshade-accent-color": "#0b2233",
-          },
-        },
-        firstLabel,
-      );
-      map.setSky({
-        "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0],
+        map.setSky({
+          "atmosphere-blend": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0,
+            1,
+            5,
+            1,
+            7,
+            0,
+          ],
+        });
+
+        loadedRef.current = true;
+        if (latest.current.intro) introView();
+        else applyView(false);
+        callbacks.current.onReady();
+        // The globe fades in once it can be drawn.
+        if (fadeRef.current) {
+          fadeRef.current.style.transition = "opacity 900ms ease-out";
+          fadeRef.current.style.opacity = "1";
+        }
       });
 
-      loadedRef.current = true;
-      if (latest.current.intro) introView();
-      else applyView(false);
-      callbacks.current.onReady();
-    });
+      const resize = new ResizeObserver(() => map.resize());
+      resize.observe(container);
 
-    const resize = new ResizeObserver(() => map.resize());
-    resize.observe(container);
-
-    return () => {
-      window.clearTimeout(flightTimer.current);
-      window.clearTimeout(revealTimer.current);
-      resize.disconnect();
-      container.removeEventListener("pointerdown", onPointerDown);
-      container.removeEventListener("pointermove", onPointerMove);
-      container.removeEventListener("pointerup", onPointerUp);
-      container.removeEventListener("pointercancel", onPointerUp);
-      container.removeEventListener("mousedown", onMouseDown);
-      container.removeEventListener("wheel", onWheel, { capture: true });
-      loadedRef.current = false;
-      applied.current = {};
-      mapRef.current = null;
-      map.remove();
-    };
+      return () => {
+        window.clearTimeout(flightTimer.current);
+        window.clearTimeout(revealTimer.current);
+        resize.disconnect();
+        container.removeEventListener("pointerdown", onPointerDown);
+        container.removeEventListener("pointermove", onPointerMove);
+        container.removeEventListener("pointerup", onPointerUp);
+        container.removeEventListener("pointercancel", onPointerUp);
+        container.removeEventListener("mousedown", onMouseDown);
+        container.removeEventListener("wheel", onWheel, { capture: true });
+        loadedRef.current = false;
+        applied.current = {};
+        mapRef.current = null;
+        map.remove();
+      };
+    }
     // The map is created once; later changes go through applyView.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    latest.current = { place, markers, view, motion, intro, area };
+    latest.current = { place, markers, view, motion, intro, changes, area };
     if (intro) introView();
     else if (wasIntro.current) reveal();
     else applyView(true);
     wasIntro.current = intro;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id, view, area, intro]);
+
+  // A different comparison picked on the timeline.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    setChangeLayers(map, changes, Boolean(latest.current.place.detail));
+  }, [changes]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
@@ -640,7 +776,7 @@ export default function MapView({
   return (
     // MapLibre sets its own positioning on the element it is given, so the
     // element that fills the frame is a wrapper around it.
-    <div ref={fadeRef} className="absolute inset-0">
+    <div ref={fadeRef} className="absolute inset-0" style={{ opacity: 0 }}>
       <div
         ref={containerRef}
         role="region"

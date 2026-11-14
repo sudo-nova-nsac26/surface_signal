@@ -2,10 +2,17 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ApiArea } from "@/data/api-types";
+import { CHANGE_CANDIDATES_ARTIFACT, type ApiArea } from "@/data/api-types";
 import { STORY_AREA_ID } from "@/data/area-labels";
-import { boundsOf, type LngLat } from "@/data/region";
-import { listAreas } from "@/data/source";
+import {
+  boundsOf,
+  loadTimeline,
+  type LngLat,
+  type TimelinePair,
+  type TimelineView,
+} from "@/data/region";
+import { artifactUrl, listAreas } from "@/data/source";
+import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useMotionLevel } from "@/preferences/store";
 import { ArrowRightIcon } from "../icons";
@@ -18,6 +25,7 @@ import {
   upcomingOf,
   type PlaceId,
 } from "./places";
+import { Timeline } from "./Timeline";
 
 // The map library is large, so it is kept out of the first download and
 // never runs on the server.
@@ -62,11 +70,15 @@ function ControlButton({
  * few quiet controls around its edges.
  */
 export function MapStage({
+  lang,
   labels,
   hero,
+  illustrative,
 }: {
+  lang: Locale;
   labels: Labels;
   hero: Dictionary["hero"];
+  illustrative: string;
 }) {
   // intro: a turning globe behind the introduction. leaving: the introduction
   // fades while the camera pulls back. map: only the map and its controls.
@@ -75,6 +87,8 @@ export function MapStage({
   const [view, setView] = useState<ViewMode>("2d");
   const [area, setArea] = useState<ApiArea | null>(null);
   const [status, setStatus] = useState<MapStatus>("loading");
+  const [timeline, setTimeline] = useState<TimelineView | null>(null);
+  const [selectedPair, setSelectedPair] = useState<TimelinePair | null>(null);
   const mapHandle = useRef<MapViewHandle>(null);
   const motion = useMotionLevel();
 
@@ -126,15 +140,42 @@ export function MapStage({
     return () => controller.abort();
   }, []);
 
+  // The timeline of the story area: real passes plus any prepared analyses.
+  // Real results are preferred over samples; the latest comes first.
+  useEffect(() => {
+    const controller = new AbortController();
+    loadTimeline(STORY_AREA_ID, controller.signal)
+      .then((data) => {
+        setTimeline(data);
+        const pick =
+          [...data.pairs].reverse().find((pair) => !pair.illustrative) ??
+          data.pairs[data.pairs.length - 1] ??
+          null;
+        setSelectedPair(pick);
+      })
+      .catch(() => {
+        // The map works without the timeline.
+      });
+    return () => controller.abort();
+  }, []);
+
+  const changesUrl = selectedPair?.hasChangeShapes
+    ? artifactUrl(selectedPair.analysisId, CHANGE_CANDIDATES_ARTIFACT)
+    : null;
+
   const go = (id: string) => setPlaceId(id as PlaceId);
 
   const begin = () => setPhase(motion === "none" ? "map" : "leaving");
 
   useEffect(() => {
     if (phase !== "leaving") return;
-    const timer = window.setTimeout(() => setPhase("map"), 1000);
+    // Long enough for the globe to come forward and the camera to land.
+    const timer = window.setTimeout(
+      () => setPhase("map"),
+      motion === "full" ? 2300 : 900,
+    );
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [phase, motion]);
 
   return (
     <section
@@ -149,6 +190,7 @@ export function MapStage({
           view={view}
           motion={motion}
           intro={phase === "intro"}
+          changes={changesUrl}
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -166,10 +208,8 @@ export function MapStage({
 
       {phase !== "map" && (
         <div
-          className={`intro-scrim absolute inset-0 z-10 flex overflow-y-auto transition-[opacity,transform] duration-700 ease-in ${
-            phase === "leaving"
-              ? "pointer-events-none -translate-y-4 opacity-0"
-              : ""
+          className={`intro-scrim absolute inset-0 z-10 flex overflow-y-auto ${
+            phase === "leaving" ? "intro-leaving" : ""
           }`}
         >
           <div className="stagger mx-auto my-auto w-full max-w-6xl px-4 py-8">
@@ -335,6 +375,18 @@ export function MapStage({
                 {labels.area}
               </p>
             )}
+            {closeUp && timeline && (
+              <div className="border-t border-line pt-3 lg:hidden">
+                <Timeline
+                  data={timeline}
+                  lang={lang}
+                  labels={labels.timeline}
+                  illustrativeLabel={illustrative}
+                  selectedId={selectedPair?.analysisId ?? null}
+                  onSelect={setSelectedPair}
+                />
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               {current.parent && (
                 <button
@@ -359,6 +411,20 @@ export function MapStage({
               ))}
             </div>
           </div>
+
+          {/* Bottom: the timeline of passes and comparisons (wide screens). */}
+          {closeUp && timeline && (
+            <div className="glass rise-in pointer-events-auto absolute bottom-8 left-[27rem] right-20 hidden max-w-3xl rounded-3xl p-4 lg:block">
+              <Timeline
+                data={timeline}
+                lang={lang}
+                labels={labels.timeline}
+                illustrativeLabel={illustrative}
+                selectedId={selectedPair?.analysisId ?? null}
+                onSelect={setSelectedPair}
+              />
+            </div>
+          )}
 
           {/* Right edge: quiet camera controls. */}
           <div className="quiet pointer-events-auto absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2 max-sm:top-24 max-sm:translate-y-0">
@@ -414,7 +480,9 @@ export function MapStage({
           {/* Bottom centre: the way down to the rest of the page. */}
           <a
             href="#how"
-            className="glass quiet pointer-events-auto absolute bottom-8 left-1/2 hidden min-h-11 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-base font-bold lg:flex"
+            className={`glass quiet pointer-events-auto absolute bottom-8 left-1/2 hidden min-h-11 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-base font-bold ${
+              closeUp ? "" : "lg:flex"
+            }`}
           >
             {labels.more}
             <span aria-hidden="true">↓</span>

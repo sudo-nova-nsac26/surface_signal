@@ -188,3 +188,101 @@ export async function loadRegionView(
   ]);
   return buildRegionView(area, scenes, analyses);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Timeline: every satellite pass, every prepared comparison, and the     */
+/* river bulletins around them, so the visitor sees what happened when.   */
+/* ---------------------------------------------------------------------- */
+
+export interface TimelinePass {
+  sceneId: string;
+  /** ISO 8601 UTC acquisition time. */
+  at: string;
+  /** "ASCENDING" or "DESCENDING" when known. */
+  direction: string | null;
+}
+
+export interface TimelinePair {
+  analysisId: string;
+  beforeAt: string;
+  afterAt: string;
+  illustrative: boolean;
+  hasChangeShapes: boolean;
+}
+
+export interface TimelineEvent {
+  /** ISO 8601 UTC time of the observation. */
+  at: string;
+  source: string;
+  url: string;
+  stations: string[];
+}
+
+export interface TimelineView {
+  passes: TimelinePass[];
+  pairs: TimelinePair[];
+  events: TimelineEvent[];
+}
+
+export function buildTimeline(
+  scenes: ApiScene[],
+  analyses: ApiAnalysis[],
+): TimelineView {
+  const passes = new Map<string, TimelinePass>();
+  for (const scene of scenes) {
+    if (scene.synthetic) continue;
+    passes.set(scene.start_time, {
+      sceneId: scene.scene_id,
+      at: scene.start_time,
+      direction: scene.direction,
+    });
+  }
+
+  const pairs: TimelinePair[] = [];
+  const events = new Map<string, TimelineEvent>();
+  for (const analysis of analyses) {
+    const [before, after] = analysis.scenes;
+    if (!before || !after) continue;
+    pairs.push({
+      analysisId: analysis.analysis_id,
+      beforeAt: before.start_time,
+      afterAt: after.start_time,
+      illustrative: analysis.synthetic || analysis.evidence.synthetic,
+      hasChangeShapes: CHANGE_CANDIDATES_ARTIFACT in analysis.artifacts,
+    });
+    for (const record of analysis.provenance.hydrological_context ?? []) {
+      const key = `${record.observed_at}|${record.source_url}`;
+      const event = events.get(key) ?? {
+        at: record.observed_at,
+        source: "SGB",
+        url: record.source_url,
+        stations: [],
+      };
+      if (!event.stations.includes(record.station)) {
+        event.stations.push(record.station);
+      }
+      events.set(key, event);
+    }
+  }
+
+  const byTime = (a: { at: string }, b: { at: string }) =>
+    Date.parse(a.at) - Date.parse(b.at);
+  return {
+    passes: [...passes.values()].sort(byTime),
+    pairs: pairs.sort(
+      (a, b) => Date.parse(a.afterAt) - Date.parse(b.afterAt),
+    ),
+    events: [...events.values()].sort(byTime),
+  };
+}
+
+export async function loadTimeline(
+  areaId: string,
+  signal?: AbortSignal,
+): Promise<TimelineView> {
+  const [scenes, analyses] = await Promise.all([
+    listScenes(areaId, signal),
+    listAnalyses(areaId, signal),
+  ]);
+  return buildTimeline(scenes, analyses);
+}

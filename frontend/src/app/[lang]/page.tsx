@@ -9,6 +9,7 @@ import {
 } from "@/components/icons";
 import { MapStage } from "@/components/map/MapStage";
 import { RegionStatus } from "@/components/RegionStatus";
+import { Reveal } from "@/components/Reveal";
 import type { LayerId, LayerStatus } from "@/data/region";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -74,7 +75,12 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
 
   return (
     <>
-      <MapStage labels={dict.map} hero={dict.hero} />
+      <MapStage
+        lang={lang}
+        labels={dict.map}
+        hero={dict.hero}
+        illustrative={dict.illustrative}
+      />
 
       <section
         id="how"
@@ -82,10 +88,14 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         className="starfield scroll-mt-4"
       >
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
-          <SectionHeading id="how-title" number="01">
-            {dict.how.title}
-          </SectionHeading>
-          <HowItWorks labels={dict.how} />
+          <Reveal>
+            <SectionHeading id="how-title" number="01">
+              {dict.how.title}
+            </SectionHeading>
+          </Reveal>
+          <Reveal>
+            <HowItWorks labels={dict.how} />
+          </Reveal>
         </div>
       </section>
 
@@ -94,9 +104,12 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         className="border-y border-line bg-bg-raised hc:border-y-2 hc:border-ink"
       >
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
-          <SectionHeading id="layers-title" number="02">
-            {dict.layers.title}
-          </SectionHeading>
+          <Reveal>
+            <SectionHeading id="layers-title" number="02">
+              {dict.layers.title}
+            </SectionHeading>
+          </Reveal>
+          <Reveal>
           <ul className="mt-8 grid gap-4 md:grid-cols-3">
             {LAYERS.map(({ id, status, icon, colorClass, textClass }) => (
               <li
@@ -128,17 +141,20 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
               </li>
             ))}
           </ul>
+          </Reveal>
         </div>
       </section>
 
       <section aria-labelledby="region-title" className="starfield">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
-          <RegionStatus
-            lang={lang}
-            labels={dict.region}
-            badge={dict.illustrative}
-            number="03"
-          />
+          <Reveal>
+            <RegionStatus
+              lang={lang}
+              labels={dict.region}
+              badge={dict.illustrative}
+              number="03"
+            />
+          </Reveal>
           <p className="mt-8 flex gap-2 rounded-xl border-l-4 border-highlight bg-surface px-4 py-3 text-base text-ink-soft">
             <InfoIcon className="mt-0.5 shrink-0 text-highlight" />
             <span>
