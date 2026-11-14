@@ -114,6 +114,13 @@ function frameBounds(
   };
 }
 
+/**
+ * The glow around the globe. On the globe it is full until the camera is
+ * close; on the flat map there is none. Left alone it would stay lit while
+ * the map flattens, so the unfold gives it the same curve as the projection.
+ */
+const ATMOSPHERE_BY_ZOOM = ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0];
+
 const easeInOut = (t: number) =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
@@ -421,6 +428,9 @@ export default function MapView({
     if (applied.current.globe !== is3d) {
       applied.current.globe = is3d;
       map.setProjection({ type: is3d ? "globe" : "mercator" });
+      map.setSky({
+        "atmosphere-blend": is3d ? ATMOSPHERE_BY_ZOOM : 0,
+      } as never);
     }
     if (applied.current.relief !== relief) {
       applied.current.relief = relief;
@@ -666,6 +676,10 @@ export default function MapView({
         high,
         "mercator",
       ],
+    } as never);
+    // The glow follows the same curve: lit on the globe, gone on the flat map.
+    map.setSky({
+      "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], low, 1, high, 0],
     } as never);
     setFlying(true);
     map.easeTo({
