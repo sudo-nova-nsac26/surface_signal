@@ -3,9 +3,12 @@
 import hashlib
 import json
 import math
+import os
 import shutil
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import UTC, date, datetime, time
+from functools import partial
 from pathlib import Path
 
 from shapely.geometry import shape
@@ -258,10 +261,79 @@ def disk_budget(settings, total_bytes, remaining_bytes):
     }
 
 
-def planning_summary(settings, plan):
+@contextmanager
+def history_lock(settings, area_id):
+    directory = history_directory(settings, area_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / "history.lock").open("a+b") as lock:
+        if os.name == "nt":
+            import msvcrt
+
+            if lock.tell() == 0:
+                lock.write(b"0")
+                lock.flush()
+            lock.seek(0)
+            acquire = partial(msvcrt.locking, lock.fileno(), msvcrt.LK_NBLCK, 1)
+            release = partial(msvcrt.locking, lock.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            acquire = partial(fcntl.flock, lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            release = partial(fcntl.flock, lock.fileno(), fcntl.LOCK_UN)
+        try:
+            acquire()
+        except OSError:
+            raise ValueError(
+                "History already running for this area/work directory; wait for it to finish"
+            ) from None
+        try:
+            yield
+        finally:
+            if os.name == "nt":
+                lock.seek(0)
+            release()
+
+
+def raw_inventory(settings, plan, *, recover=False):
+    records = []
+    for scene in CatalogSnapshot.model_validate(plan["catalog"]).scenes:
+        target, receipt, _ = asf.raw_paths(scene, settings.root / "data/raw")
+        record = {
+            "scene_id": scene.scene_id,
+            "collection": scene.metadata.get("collection", "unknown"),
+            "source_url": scene.url,
+            "synthetic": scene.synthetic,
+            "mandatory": scene.scene_id in plan["mandatory_ids"],
+            "size_bytes": scene.size_bytes,
+            "path": str(target.relative_to(settings.root)),
+            "receipt_path": str(receipt.relative_to(settings.root)),
+            "status": "pending",
+        }
+        if scene.size_bytes is None:
+            record.update(
+                status="unknown_size",
+                reason="Catalog bytes unknown; refresh metadata before download",
+            )
+        else:
+            try:
+                record["receipt"] = asf.verify_download(scene, target.parent, recover=recover)
+                record.update(status="verified", receipt_sha256=checksum(receipt))
+            except FileNotFoundError:
+                record["reason"] = "Raw HDF5 is not yet downloaded"
+            except (ValueError, OSError):
+                record.update(
+                    status="needs_review",
+                    reason="Existing raw/receipt failed integrity check; preserve original and move it aside for review before rerunning",
+                )
+        records.append(record)
+    return records
+
+
+def planning_summary(settings, plan, *, inventory=None):
     scenes = CatalogSnapshot.model_validate(plan["catalog"]).scenes
+    inventory = raw_inventory(settings, plan) if inventory is None else inventory
     total = sum(s.size_bytes or 0 for s in scenes)
-    remaining = total
+    remaining = sum(s["size_bytes"] or 0 for s in inventory if s["status"] != "verified")
     return {
         "area_id": plan["area_id"],
         "plan_id": plan["plan_id"],
@@ -277,7 +349,127 @@ def planning_summary(settings, plan):
         ),
         "remaining_bytes": remaining,
         "unknown_size_ids": [s.scene_id for s in scenes if s.size_bytes is None],
+        "scenes": inventory,
         "disk": disk_budget(settings, total, remaining),
         "expected_artifacts": sorted(ARTIFACT_NAMES),
         "output_directory": str(settings.artifacts_dir / "<analysis_id>"),
     }
+
+
+def download_history(settings, plan, *, download_fn=None, progress=None, state_callback=None):
+    """Download one copy per ID. The caller holds history_lock through processing."""
+    scenes = {s.scene_id: s for s in CatalogSnapshot.model_validate(plan["catalog"]).scenes}
+    records = raw_inventory(settings, plan, recover=True)
+    summary = planning_summary(settings, plan, inventory=records)
+    result = {
+        "scenes": records,
+        "disk": summary["disk"],
+        "downloads_complete": False,
+        "error": None,
+    }
+
+    def checkpoint():
+        result["downloads_complete"] = all(s["status"] == "verified" for s in records)
+        if state_callback:
+            state_callback(result)
+
+    checkpoint()
+    if not summary["disk"]["sufficient"]:
+        result["error"] = (
+            "Insufficient disk space for all remaining HDF5 plus output/temp reserve; free space on the listed volumes and rerun"
+        )
+        checkpoint()
+        return result
+    try:
+        for index, record in enumerate(records, 1):
+            if record["status"] != "pending":
+                continue
+            scene = scenes[record["scene_id"]]
+            if progress:
+                progress(
+                    {
+                        "event": "start",
+                        "file": index,
+                        "files": len(records),
+                        "scene_id": scene.scene_id,
+                        "bytes": 0,
+                        "total_bytes": scene.size_bytes,
+                    }
+                )
+
+            def file_progress(count, total, *, index=index, scene=scene):
+                if progress:
+                    progress(
+                        {
+                            "event": "bytes",
+                            "file": index,
+                            "files": len(records),
+                            "scene_id": scene.scene_id,
+                            "bytes": count,
+                            "total_bytes": total,
+                        }
+                    )
+
+            try:
+                (download_fn or asf.download)(
+                    scene,
+                    settings.root / "data/raw",
+                    scene.size_bytes / 1_000_000_000 + 1e-9,
+                    progress=file_progress,
+                )
+                receipt = asf.verify_download(scene, settings.root / "data/raw", recover=True)
+                record.update(
+                    status="verified",
+                    receipt=receipt,
+                    receipt_sha256=checksum(settings.root / record["receipt_path"]),
+                )
+                record.pop("reason", None)
+                if progress:
+                    progress(
+                        {
+                            "event": "verified",
+                            "file": index,
+                            "files": len(records),
+                            "scene_id": scene.scene_id,
+                            "bytes": scene.size_bytes,
+                            "total_bytes": scene.size_bytes,
+                        }
+                    )
+            except (ValueError, OSError, asf.ProviderError) as exc:
+                message = (
+                    str(exc)
+                    if type(exc) in (ValueError, asf.ProviderError)
+                    else "Local file I/O failed; check disk and permissions, then rerun"
+                )
+                record.update(status="failed", reason=message)
+                result["error"] = message
+                break
+            finally:
+                checkpoint()
+    finally:
+        checkpoint()
+    return result
+
+
+def run_history(
+    settings,
+    snapshot_path,
+    *,
+    validated_through=None,
+    parameters=None,
+    hydro_csv=None,
+    dry_run=False,
+    progress=None,
+):
+    snapshot = CatalogSnapshot.model_validate(read_json(snapshot_path))
+    with history_lock(settings, snapshot.area_id):
+        plan = plan_history(
+            settings,
+            snapshot_path,
+            validated_through=validated_through,
+            parameters=parameters,
+            hydro_csv=hydro_csv,
+        )
+        if dry_run:
+            return planning_summary(settings, plan)
+        return download_history(settings, plan, progress=progress)

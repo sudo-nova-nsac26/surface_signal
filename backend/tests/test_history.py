@@ -158,3 +158,95 @@ def test_history_cli_dry_run_has_totals_without_download(tmp_path, capfd):
     assert result["total_bytes"] == result["remaining_bytes"] == 131_386_572_800
     assert result["disk"] and result["expected_artifacts"]
     assert not list(tmp_path.rglob("*.h5"))
+
+
+def test_download_batch_resume_retains_all_nineteen_receipts(tmp_path, area, gcov, monkeypatch):
+    from test_asf import DownloadSession
+
+    import surfacesignal.processing.history as history
+    from surfacesignal.providers.asf import download
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot = configure(tmp_path, area)
+    value = read_json(snapshot)
+    value["scenes"] = [
+        scene(
+            scene_id=f"synthetic-{n}",
+            maturity="PROVISIONAL",
+            synthetic=True,
+            size_bytes=gcov.stat().st_size,
+        ).model_dump(mode="json")
+        for n in range(19)
+    ]
+    write_json(snapshot, value)
+    plan = plan_history(settings, snapshot)
+    requested = []
+
+    def interrupted(scene, directory, budget, **kwargs):
+        if len(requested) == 5:
+            raise KeyboardInterrupt
+        requested.append(scene.scene_id)
+        return download(scene, directory, budget, session=DownloadSession(gcov.read_bytes()))
+
+    with pytest.raises(KeyboardInterrupt):
+        history.download_history(settings, plan, download_fn=interrupted)
+    assert len(list((tmp_path / "data/raw").glob("*.receipt.json"))) == 5
+
+    def complete(scene, directory, budget, **kwargs):
+        requested.append(scene.scene_id)
+        return download(scene, directory, budget, session=DownloadSession(gcov.read_bytes()))
+
+    result = history.download_history(settings, plan, download_fn=complete)
+    assert result["downloads_complete"] and len(result["scenes"]) == 19
+    assert len(requested) == len(set(requested)) == 19
+    assert len(list((tmp_path / "data/raw").glob("*.receipt.json"))) == 19
+    assert history.planning_summary(settings, plan)["remaining_bytes"] == 0
+
+
+def test_batch_disk_preflight_blocks_all_network(tmp_path, area, monkeypatch):
+    import surfacesignal.processing.history as history
+
+    settings, snapshot = configure(tmp_path, area)
+    plan = plan_history(settings, snapshot)
+    monkeypatch.setattr(history.shutil, "disk_usage", lambda _: type("Usage", (), {"free": 1})())
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("disk guard reached network")
+
+    result = history.download_history(settings, plan, download_fn=forbidden)
+    assert not result["downloads_complete"]
+    assert "disk" in result["error"].lower()
+
+
+def test_unknown_size_and_unreceipted_files_preserved_for_review(tmp_path, area):
+    import surfacesignal.processing.history as history
+
+    settings, snapshot = configure(tmp_path, area)
+    value = read_json(snapshot)
+    unknown = scene(scene_id="unknown", maturity="PROVISIONAL").model_dump(mode="json")
+    value["scenes"].append(unknown)
+    write_json(snapshot, value)
+    plan = plan_history(settings, snapshot)
+    raw = tmp_path / "data/raw"
+    raw.mkdir(parents=True)
+    target = raw / (plan["mandatory_ids"][0] + ".h5")
+    target.write_bytes(b"preserve this original")
+    result = history.download_history(
+        settings, plan, download_fn=lambda *a, **k: pytest.fail("unsafe redownload")
+    )
+    assert not result["downloads_complete"]
+    assert {s["status"] for s in result["scenes"]} == {"needs_review", "unknown_size"}
+    assert target.read_bytes() == b"preserve this original"
+
+
+def test_history_lock_released_after_interruption(tmp_path):
+    from surfacesignal.processing.history import history_lock
+
+    settings = Settings(root=tmp_path)
+    with pytest.raises(KeyboardInterrupt), history_lock(settings, "test"):
+        with pytest.raises(ValueError, match="already running"):
+            with history_lock(settings, "test"):
+                pass
+        raise KeyboardInterrupt
+    with history_lock(settings, "test"):
+        pass

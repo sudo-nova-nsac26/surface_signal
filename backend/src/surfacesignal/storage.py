@@ -6,6 +6,16 @@ import tempfile
 from pathlib import Path
 
 
+def sync_directory(path: Path) -> None:
+    """Persist atomic renames on POSIX; directory fsync is unavailable on Windows."""
+    if os.name == "posix":
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
 def safe_id(value: str) -> str:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", value) or ".." in value:
         raise ValueError("Invalid identifier")
@@ -25,6 +35,7 @@ def write_json(path: Path, value) -> None:
             # Keep the temporary file private until its complete content is ready.
             os.fchmod(file.fileno(), 0o644)
         os.replace(name, path)
+        sync_directory(path.parent)
     finally:
         Path(name).unlink(missing_ok=True)
 

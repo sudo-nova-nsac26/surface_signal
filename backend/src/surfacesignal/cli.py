@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+import time
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from surfacesignal.config import Settings
 from surfacesignal.domain import Scene, shortlist
 from surfacesignal.main import load_areas, load_scenes
 from surfacesignal.processing.gcov import crop, inspect_gcov
-from surfacesignal.processing.history import plan_history, planning_summary
+from surfacesignal.processing.history import run_history
 from surfacesignal.processing.pipeline import run_analysis
 from surfacesignal.providers.asf import ProviderError, download, search
 from surfacesignal.providers.hydro import read_records
@@ -116,14 +117,28 @@ def main(argv=None):
         if args.group == "history":
             from surfacesignal.processing.history import DEFAULT_PARAMETERS
 
-            plan = plan_history(
+            last_progress = 0.0
+
+            def progress(event):
+                nonlocal last_progress
+                now = time.monotonic()
+                if event["event"] != "bytes" or now - last_progress >= 2:
+                    print(
+                        f"[{event['file']}/{event['files']}] {event['scene_id']}: {event['bytes']:,}/{event['total_bytes']:,} bytes ({event['event']})",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    last_progress = now
+
+            result = run_history(
                 settings,
                 args.snapshot,
                 validated_through=args.with_validated_through,
                 parameters={k: getattr(args, k) for k in DEFAULT_PARAMETERS},
                 hydro_csv=args.hydro_csv,
+                dry_run=args.dry_run,
+                progress=progress,
             )
-            result = planning_summary(settings, plan)
         elif args.group == "scenes":
             if args.command == "search":
                 start, end = datetime.fromisoformat(args.start), datetime.fromisoformat(args.end)
@@ -213,6 +228,8 @@ def main(argv=None):
                 hydro_records=read_records(args.hydro_csv) if args.hydro_csv else [],
             ).model_dump(mode="json")
         print(json.dumps(result, indent=2, allow_nan=False))
+        if args.group == "history" and not args.dry_run and not result["downloads_complete"]:
+            return 3
         return 0
     except ProviderError as exc:
         print(f"External provider unavailable: {exc}", file=sys.stderr)

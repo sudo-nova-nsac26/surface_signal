@@ -1,5 +1,6 @@
 """ASF catalog adapter. Public metadata; Earthdata authentication only for file access."""
 
+import errno
 import math
 import os
 import shutil
@@ -11,7 +12,7 @@ import asf_search
 import requests
 
 from surfacesignal.domain import Scene
-from surfacesignal.storage import checksum, read_json, safe_id, write_json
+from surfacesignal.storage import checksum, read_json, safe_id, sync_directory, write_json
 
 
 class ProviderError(RuntimeError):
@@ -109,7 +110,55 @@ def search(
     raise ProviderError("ASF unavailable")
 
 
-def download(scene: Scene, directory: Path, max_gb: float, *, session=None) -> Path:
+def raw_paths(scene: Scene, directory: Path):
+    target = directory / (safe_id(scene.scene_id) + ".h5")
+    return target, target.with_suffix(".receipt.json"), target.with_suffix(".h5.part")
+
+
+def _verify_receipt(scene, path, receipt):
+    import h5py
+
+    try:
+        value = read_json(receipt)
+        valid = (
+            not path.is_symlink()
+            and not receipt.is_symlink()
+            and value["scene_id"] == scene.scene_id
+            and value["size_bytes"] == scene.size_bytes == path.stat().st_size
+            and value["source_url"] == scene.url
+            and h5py.is_hdf5(path)
+            and checksum(path) == value["sha256"]
+        )
+        if valid:
+            return value
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    raise ValueError(
+        "Existing file lacks valid receipt/checksum; preserve it for review and move it aside before retrying"
+    )
+
+
+def verify_download(scene: Scene, directory: Path, *, recover=False) -> dict:
+    target, receipt, part = raw_paths(scene, directory)
+    if scene.size_bytes is None:
+        raise ValueError("Catalog file size is unknown; refresh metadata before download")
+    if target.exists() or target.is_symlink():
+        return _verify_receipt(scene, target, receipt)
+    if recover and part.exists() and receipt.exists():
+        value = _verify_receipt(scene, part, receipt)
+        os.replace(part, target)
+        sync_directory(directory)
+        return value
+    raise FileNotFoundError("Raw HDF5 is not yet downloaded")
+
+
+class _CorruptDownload(ValueError):
+    pass
+
+
+def download(
+    scene: Scene, directory: Path, max_gb: float, *, session=None, sleep=time.sleep, progress=None
+) -> Path:
     if not math.isfinite(max_gb) or max_gb <= 0:
         raise ValueError("Download budget must be finite and positive")
     if scene.size_bytes is None:
@@ -120,23 +169,19 @@ def download(scene: Scene, directory: Path, max_gb: float, *, session=None) -> P
         or url.hostname != "nisar.asf.earthdatacloud.nasa.gov"
         or url.username
         or url.query
+        or url.fragment
+        or url.port not in (None, 443)
     ):
         raise ValueError("Download host must be the official NISAR ASF archive")
     if max_gb <= 0 or scene.size_bytes > max_gb * 1_000_000_000:
         raise ValueError("Scene exceeds maximum download budget")
     directory.mkdir(parents=True, exist_ok=True)
-    target = directory / (safe_id(scene.scene_id) + ".h5")
-    receipt = target.with_suffix(".receipt.json")
-    if target.exists():
-        if (
-            receipt.exists()
-            and target.stat().st_size == scene.size_bytes
-            and checksum(target) == read_json(receipt)["sha256"]
-        ):
-            return target
-        raise ValueError(
-            "Existing file lacks valid receipt/checksum; move it aside before retrying"
-        )
+    target, receipt, part = raw_paths(scene, directory)
+    try:
+        verify_download(scene, directory, recover=True)
+        return target
+    except FileNotFoundError:
+        pass
     if shutil.disk_usage(directory).free < scene.size_bytes + 512 * 1024 * 1024:
         raise ValueError("Insufficient disk space with 512 MiB reserve")
     session = session or TimeoutSession()
@@ -146,42 +191,73 @@ def download(scene: Scene, directory: Path, max_gb: float, *, session=None) -> P
             session.auth_with_token(token)
         except Exception:
             raise ProviderError("Earthdata token authentication failed") from None
-    part = target.with_suffix(".h5.part")
-    try:
-        with session.get(scene.url, stream=True, timeout=(15, 60)) as response:
-            response.raise_for_status()
-            declared = response.headers.get("Content-Length")
-            if declared and int(declared) != scene.size_bytes:
-                raise ValueError("Remote Content-Length differs from catalog size")
-            count = 0
-            with part.open("wb") as file:
-                for chunk in response.iter_content(1024 * 1024):
-                    count += len(chunk)
-                    if count > scene.size_bytes:
-                        raise ValueError("Download exceeds expected size")
-                    file.write(chunk)
-            if count != scene.size_bytes:
-                raise ValueError("Incomplete download")
-        import h5py
+    for attempt in range(3):
+        journaled = False
+        try:
+            if progress:
+                progress(0, scene.size_bytes)
+            with session.get(scene.url, stream=True, timeout=(15, 60)) as response:
+                response.raise_for_status()
+                declared = response.headers.get("Content-Length")
+                if declared and (not declared.isdecimal() or int(declared) != scene.size_bytes):
+                    raise _CorruptDownload("Remote Content-Length differs from catalog size")
+                count = 0
+                with part.open("wb") as file:
+                    for chunk in response.iter_content(1024 * 1024):
+                        count += len(chunk)
+                        if count > scene.size_bytes:
+                            raise _CorruptDownload("Download exceeds expected size")
+                        file.write(chunk)
+                        if progress:
+                            progress(count, scene.size_bytes)
+                    file.flush()
+                    os.fsync(file.fileno())
+                if count != scene.size_bytes:
+                    raise _CorruptDownload("Incomplete download")
+            import h5py
 
-        if not h5py.is_hdf5(part):
-            raise ValueError("Response is not HDF5 (possible authentication page)")
-        digest = checksum(part)
-        os.replace(part, target)
-        write_json(
-            receipt,
-            {
-                "scene_id": scene.scene_id,
-                "size_bytes": count,
-                "sha256": digest,
-                "source_url": scene.url,
-                "integrity": "local SHA256 and size; provider checksum unavailable",
-            },
-        )
-        return target
-    except requests.RequestException:
-        raise ProviderError(
-            "Earthdata download failed; configure official .netrc or EARTHDATA_TOKEN locally"
-        ) from None
-    finally:
-        part.unlink(missing_ok=True)
+            if not h5py.is_hdf5(part):
+                raise _CorruptDownload("Response is not HDF5 (possible authentication page)")
+            digest = checksum(part)
+            # The durable receipt is also a recovery journal for the verified .part file.
+            # Publish the final name only after its integrity proof has been saved.
+            write_json(
+                receipt,
+                {
+                    "scene_id": scene.scene_id,
+                    "size_bytes": count,
+                    "sha256": digest,
+                    "source_url": scene.url,
+                    "integrity": "local SHA256 and size; provider checksum unavailable",
+                },
+            )
+            journaled = True
+            os.replace(part, target)
+            sync_directory(directory)
+            return target
+        except requests.RequestException as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status in (401, 403):
+                raise ProviderError(
+                    f"Earthdata authorization failed ({status}); configure your own EARTHDATA_TOKEN or official .netrc and ASF access, then rerun"
+                ) from None
+            if (status is not None and status not in (429, 500, 502, 503, 504)) or attempt == 2:
+                raise ProviderError(
+                    "Earthdata download failed after bounded retries; check connection and ASF access, then rerun the same command"
+                ) from None
+        except _CorruptDownload as exc:
+            if attempt == 2:
+                raise ValueError(
+                    f"{exc}; corruption persisted after 3 attempts; check ASF metadata and rerun"
+                ) from None
+        except OSError as exc:
+            if exc.errno == errno.ENOSPC:
+                raise ProviderError(
+                    "Insufficient disk space during download; free space on the raw volume and rerun"
+                ) from None
+            raise
+        finally:
+            if not journaled:
+                part.unlink(missing_ok=True)
+        sleep(2**attempt)
+    raise ProviderError("Earthdata download unavailable")
