@@ -228,6 +228,7 @@ export default function MapView({
   const fadeRef = useRef<HTMLDivElement>(null);
   const revealTimer = useRef<number | undefined>(undefined);
   const wasIntro = useRef(intro);
+  const spinning = useRef(false);
   const applied = useRef<{ globe?: boolean; relief?: boolean }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
@@ -424,13 +425,21 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !latest.current.intro || latest.current.motion !== "full")
       return;
-    const center = map.getCenter();
-    map.easeTo({
-      center: [center.lng + 90, center.lat],
-      duration: 24000,
-      easing: (t) => t,
-      essential: true,
-    });
+    // Starting an ease stops the previous one, and stopping ends a move,
+    // which asks for another spin. These two guards break that chain.
+    if (spinning.current || map.isMoving()) return;
+    spinning.current = true;
+    try {
+      const center = map.getCenter();
+      map.easeTo({
+        center: [center.lng + 90, center.lat],
+        duration: 24000,
+        easing: (t) => t,
+        essential: true,
+      });
+    } finally {
+      spinning.current = false;
+    }
   }
 
   /** The globe on the right, so the introduction can sit on the left. */
@@ -576,7 +585,9 @@ export default function MapView({
       map.on("render", updateDots);
       map.on("moveend", () => {
         setFlying(false);
-        if (latest.current.intro) spin();
+        // Next turn of the event loop, so a move that was just cut short by
+        // another one does not start a spin from inside that call.
+        if (latest.current.intro) window.setTimeout(spin, 0);
       });
 
       // Orbit like a CAD viewer: hold the mouse wheel and drag to rotate and

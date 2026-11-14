@@ -120,6 +120,8 @@ const pt = {
     gestureDesktop: "Segure Ctrl e role para aproximar o mapa",
     gestureMac: "Segure ⌘ e role para aproximar o mapa",
     gestureMobile: "Use dois dedos para mover o mapa",
+    auto3d: "Seu aparelho parece rápido: vamos abrir o mapa em 3D. Você pode trocar quando quiser.",
+    auto2d: "Para ficar leve no seu aparelho, vamos abrir o mapa em 2D. Você pode trocar para 3D quando quiser.",
     upcomingLabel: "Ainda não disponível",
     explore: "Explorar o mapa",
     more: "Como funciona",

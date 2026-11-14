@@ -117,6 +117,8 @@ const en: Dictionary = {
     gestureDesktop: "Hold Ctrl and scroll to zoom the map",
     gestureMac: "Hold ⌘ and scroll to zoom the map",
     gestureMobile: "Use two fingers to move the map",
+    auto3d: "Your device looks fast: the map will open in 3D. You can switch whenever you like.",
+    auto2d: "To keep things light on your device, the map will open in 2D. You can switch to 3D whenever you like.",
     upcomingLabel: "Not available yet",
     explore: "Explore the map",
     more: "How it works",

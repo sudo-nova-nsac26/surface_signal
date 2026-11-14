@@ -16,6 +16,12 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useMotionLevel } from "@/preferences/store";
 import { ArrowRightIcon } from "../icons";
+import {
+  assessGraphics,
+  measureFps,
+  SMOOTH_FPS,
+  type GraphicsTier,
+} from "./hardware";
 import type { ViewMode } from "./camera";
 import type { MapMarker, MapViewHandle } from "./MapView";
 import {
@@ -87,6 +93,9 @@ export function MapStage({
   const [view, setView] = useState<ViewMode>("2d");
   const [area, setArea] = useState<ApiArea | null>(null);
   const [status, setStatus] = useState<MapStatus>("loading");
+  // How well this device draws: decides the starting view, never forced.
+  const [tier, setTier] = useState<GraphicsTier | null>(null);
+  const viewChosen = useRef(false);
   const [timeline, setTimeline] = useState<TimelineView | null>(null);
   const [selectedPair, setSelectedPair] = useState<TimelinePair | null>(null);
   const mapHandle = useRef<MapViewHandle>(null);
@@ -165,7 +174,42 @@ export function MapStage({
 
   const go = (id: string) => setPlaceId(id as PlaceId);
 
-  const begin = () => setPhase(motion === "none" ? "map" : "leaving");
+  // Look at the device while the introduction is on screen. A device that
+  // reports well is then watched for a moment: if the globe would not draw
+  // smoothly, the flat map is chosen instead.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const report = assessGraphics();
+      if (report.tier === "low") {
+        console.info("SurfaceSignal: starting in 2D because of", report.reasons);
+        if (!cancelled) setTier("low");
+        return;
+      }
+      const fps = await measureFps(1500);
+      if (cancelled) return;
+      const smooth = fps === null || fps >= SMOOTH_FPS;
+      if (!smooth) {
+        console.info("SurfaceSignal: starting in 2D,", Math.round(fps ?? 0), "fps");
+      }
+      setTier(smooth ? "high" : "low");
+    }, 1200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  const chooseView = (next: ViewMode) => {
+    viewChosen.current = true;
+    setView(next);
+  };
+
+  const begin = () => {
+    // 3D from the start only when the device is known to be able to.
+    if (!viewChosen.current) setView(tier === "high" ? "3d" : "2d");
+    setPhase(motion === "none" ? "map" : "leaving");
+  };
 
   useEffect(() => {
     if (phase !== "leaving") return;
@@ -242,6 +286,11 @@ export function MapStage({
                 {labels.more}
               </a>
             </div>
+            {tier && (
+              <p className="mt-4 max-w-xl text-base text-ink-soft">
+                {tier === "high" ? labels.auto3d : labels.auto2d}
+              </p>
+            )}
             <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
               {hero.facts.map((fact) => (
                 <div key={fact.label} className="border-l-2 border-brand pl-4">
@@ -330,7 +379,7 @@ export function MapStage({
                     role="radio"
                     aria-checked={checked}
                     aria-label={`${title}: ${hint}`}
-                    onClick={() => setView(value)}
+                    onClick={() => chooseView(value)}
                     className={`flex min-h-12 items-center gap-2 rounded-xl px-4 ${
                       checked
                         ? "bg-brand text-brand-ink"

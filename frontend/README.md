@@ -105,6 +105,13 @@ services that need no key or account.
   smooth move, no sweeping flights, no spinning) and none (the visitor turned
   motion off here: the camera jumps). The switch in the accessibility menu
   wins over the device setting, so motion can be turned back on.
+- **3D or 2D from the start** ([`hardware.ts`](src/components/map/hardware.ts)):
+  while the introduction is on screen, the page checks what the device
+  reports (WebGL 2, software graphics drivers, memory, cores, data saver,
+  phone or computer) and then watches how smoothly it draws for 1.5 seconds.
+  A device that passes opens in 3D; any other opens in 2D, and a line under
+  "Start" says which and why in plain words. The visitor's own choice on the
+  2D / 3D switch always wins. Nothing about the device is stored or sent.
 - **Opening**: a slowly turning globe sits behind the introduction. "Start"
   fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.
