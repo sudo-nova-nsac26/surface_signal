@@ -116,8 +116,9 @@ function frameBounds(
 
 /**
  * The glow around the globe. On the globe it is full until the camera is
- * close; on the flat map there is none. Left alone it would stay lit while
- * the map flattens, so the unfold gives it the same curve as the projection.
+ * close; on the flat map there is none. It never changes while the globe is
+ * moving: it goes out before the globe flattens and comes back after the
+ * map has curved into a globe (see `fadeGlow`).
  */
 const ATMOSPHERE_BY_ZOOM = ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0];
 
@@ -325,6 +326,7 @@ export default function MapView({
   const wasIntro = useRef(intro);
   const spinning = useRef(false);
   const lastView = useRef(view);
+  const glowFrame = useRef(0);
   const applied = useRef<{
     globe?: boolean;
     relief?: boolean;
@@ -428,9 +430,16 @@ export default function MapView({
     if (applied.current.globe !== is3d) {
       applied.current.globe = is3d;
       map.setProjection({ type: is3d ? "globe" : "mercator" });
-      map.setSky({
-        "atmosphere-blend": is3d ? ATMOSPHERE_BY_ZOOM : 0,
-      } as never);
+      // The glow belongs to the globe only. It returns once the globe is
+      // there, never while the map is still moving.
+      map.setSky({ "atmosphere-blend": 0 } as never);
+      if (is3d) {
+        if (motion === "none") {
+          map.setSky({ "atmosphere-blend": ATMOSPHERE_BY_ZOOM } as never);
+        } else {
+          fadeGlow(0, 1, 900);
+        }
+      }
     }
     if (applied.current.relief !== relief) {
       applied.current.relief = relief;
@@ -643,6 +652,29 @@ export default function MapView({
     }, 280);
   }
 
+  /** Fades the glow around the globe in or out over `ms`, then calls `done`. */
+  function fadeGlow(from: number, to: number, ms: number, done?: () => void) {
+    const map = mapRef.current;
+    window.cancelAnimationFrame(glowFrame.current);
+    if (!map) return;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      const value = from + (to - from) * easeInOut(t);
+      map.setSky({ "atmosphere-blend": value } as never);
+      if (t < 1) {
+        glowFrame.current = window.requestAnimationFrame(step);
+        return;
+      }
+      // Fully on: hand back to the zoom-based glow of the settled globe.
+      if (to === 1) {
+        map.setSky({ "atmosphere-blend": ATMOSPHERE_BY_ZOOM } as never);
+      }
+      done?.();
+    };
+    glowFrame.current = window.requestAnimationFrame(step);
+  }
+
   /**
    * Switching between the globe and the flat map in one continuous motion.
    * The projection is tied to the zoom for a moment: as the camera zooms by
@@ -662,34 +694,45 @@ export default function MapView({
       applyView(true);
       return;
     }
-    const zoom = map.getZoom();
-    // Flat -> globe zooms out by UNFOLD_ZOOM, globe -> flat zooms in by it.
-    const low = toFlat ? zoom : zoom - UNFOLD_ZOOM;
-    const high = low + UNFOLD_ZOOM;
-    map.setProjection({
-      type: [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        low,
-        "vertical-perspective",
-        high,
-        "mercator",
-      ],
-    } as never);
-    // The glow follows the same curve: lit on the globe, gone on the flat map.
-    map.setSky({
-      "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], low, 1, high, 0],
-    } as never);
-    setFlying(true);
-    map.easeTo({
-      zoom: toFlat ? high : low,
-      duration: 1500,
-      easing: easeInOut,
-      essential: true,
-    });
-    // Then the final projection and the exact framing of the place.
-    revealTimer.current = window.setTimeout(() => applyView(true, 700), 1520);
+    const run = () => {
+      const zoom = map.getZoom();
+      // Flat -> globe zooms out by UNFOLD_ZOOM, globe -> flat zooms in by it.
+      const low = toFlat ? zoom : zoom - UNFOLD_ZOOM;
+      const high = low + UNFOLD_ZOOM;
+      map.setProjection({
+        type: [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          low,
+          "vertical-perspective",
+          high,
+          "mercator",
+        ],
+      } as never);
+      setFlying(true);
+      map.easeTo({
+        zoom: toFlat ? high : low,
+        duration: 1500,
+        easing: easeInOut,
+        essential: true,
+      });
+      // Then the final projection and the exact framing of the place.
+      revealTimer.current = window.setTimeout(
+        () => applyView(true, 700),
+        1520,
+      );
+    };
+
+    if (toFlat) {
+      // Globe -> map: the glow goes out first, then the whole movement.
+      fadeGlow(1, 0, 380, run);
+    } else {
+      // Map -> globe: the whole movement first (no glow), then the glow
+      // comes back in applyView once the globe is in place.
+      map.setSky({ "atmosphere-blend": 0 } as never);
+      run();
+    }
   }
 
   useEffect(() => {
@@ -917,6 +960,7 @@ export default function MapView({
       return () => {
         window.clearTimeout(flightTimer.current);
         window.clearTimeout(revealTimer.current);
+        window.cancelAnimationFrame(glowFrame.current);
         resize.disconnect();
         container.removeEventListener("pointerdown", onPointerDown);
         container.removeEventListener("pointermove", onPointerMove);

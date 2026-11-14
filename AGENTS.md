@@ -95,8 +95,10 @@ the visitor's own 2D/3D choice always wins. 2D is the safe default.
 - MapLibre `easeTo` stops the previous move and stopping fires `moveend`: never restart an animation from
   a `moveend` handler without a re-entrancy guard (this froze the page once).
 - Do not re-apply projection/terrain on every camera change: it interrupts flights.
-- The glow around the globe (`setSky` atmosphere) must follow the same zoom curve as the projection
-  during `unfold`, and be 0 on the flat map; otherwise the rim stays lit while the map flattens.
+- The glow around the globe (`setSky` atmosphere) is sequenced, not tied to the projection (owner asked,
+  tying it to the zoom curve still looked early): going globe -> map it fades out FIRST (380 ms) and then
+  the whole unfold runs; going map -> globe the whole unfold runs with no glow and the glow fades in
+  AFTER (900 ms). `fadeGlow` in `MapView`. It is 0 on the flat map.
 - The map is created when the browser is idle so the page paints first; the worker file is copied to
   `public/vendor` by `scripts/copy-map-worker.mjs` (not committed).
 - Browsers/Windows with "reduce animations" get *gentle* motion, not none; the in-app switch overrides the device.
