@@ -115,6 +115,14 @@ def raw_paths(scene: Scene, directory: Path):
     return target, target.with_suffix(".receipt.json"), target.with_suffix(".h5.part")
 
 
+def partial_size(scene: Scene, directory: Path) -> int:
+    """Space reclaimed when an unjournaled transfer is restarted in place."""
+    target, receipt, part = raw_paths(scene, directory)
+    if not target.exists() and not receipt.exists() and part.is_file() and not part.is_symlink():
+        return part.stat().st_size
+    return 0
+
+
 def _verify_receipt(scene, path, receipt):
     import h5py
 
@@ -144,6 +152,8 @@ def verify_download(scene: Scene, directory: Path, *, recover=False) -> dict:
         raise ValueError("Catalog file size is unknown; refresh metadata before download")
     if target.exists() or target.is_symlink():
         return _verify_receipt(scene, target, receipt)
+    if part.is_symlink():
+        raise ValueError("Temporary transfer is a symlink; preserve it for review before retrying")
     if recover and part.exists() and receipt.exists():
         value = _verify_receipt(scene, part, receipt)
         os.replace(part, target)
@@ -182,7 +192,10 @@ def download(
         return target
     except FileNotFoundError:
         pass
-    if shutil.disk_usage(directory).free < scene.size_bytes + 512 * 1024 * 1024:
+    if (
+        shutil.disk_usage(directory).free + partial_size(scene, directory)
+        < scene.size_bytes + 512 * 1024 * 1024
+    ):
         raise ValueError("Insufficient disk space with 512 MiB reserve")
     session = session or TimeoutSession()
     token = os.getenv("EARTHDATA_TOKEN")

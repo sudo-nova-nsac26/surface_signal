@@ -486,3 +486,155 @@ def test_validated_extension_reuses_existing_raw_and_pairs(tmp_path, area, monke
     assert sum(p["reused"] for p in second["pairs"]) == 3
     assert second["collections"]["NISAR_L2_GCOV_V1"]["verified_count"] == 2
     assert history.verify_history(settings, "test")["verified"]
+
+
+def test_manifest_edit_cannot_be_reanchored_by_resume(tmp_path, area, monkeypatch):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    report = history.run_history(settings, snapshot, download_fn=downloader)
+    path = tmp_path / "artifacts" / report["pairs"][0]["analysis_id"] / "manifest.json"
+    manifest = read_json(path)
+    manifest["statistics"]["mean_delta_db"] = 99999
+    write_json(path, manifest)
+    assert not history.verify_history(settings, "test")["verified"]
+    again = history.run_history(settings, snapshot, download_fn=downloader)
+    assert not again["completed"] and again["pairs"][0]["status"] == "failed"
+    assert read_json(path)["statistics"]["mean_delta_db"] == 99999
+
+
+def test_changed_dry_run_preserves_completed_report_verification(tmp_path, area, monkeypatch):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    first = history.run_history(settings, snapshot, download_fn=downloader)
+    proposed = history.run_history(
+        settings, snapshot, parameters={"delta_threshold": -4}, dry_run=True
+    )
+    assert proposed["plan_id"] != first["plan_id"]
+    assert read_json(tmp_path / "data/history/test/report.json") == first
+    assert history.verify_history(settings, "test")["verified"]
+
+
+def test_complete_resume_does_not_require_original_disk_reserve(tmp_path, area, monkeypatch):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    assert history.run_history(settings, snapshot, download_fn=downloader)["completed"]
+    monkeypatch.setattr(
+        history.shutil, "disk_usage", lambda _: type("Usage", (), {"free": 1024 * 1024})()
+    )
+    assert history.run_history(settings, snapshot, download_fn=downloader)["completed"]
+    assert history.verify_history(settings, "test")["verified"]
+
+
+def test_hard_interruption_partial_is_accounted_for_before_disk_guard(tmp_path, area, monkeypatch):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    plan = plan_history(settings, snapshot)
+    total = sum(s["size_bytes"] for s in plan["catalog"]["scenes"])
+    initial_free = total + 512 * 1024 * 1024
+    raw = tmp_path / "data/raw"
+    raw.mkdir(parents=True)
+    final_scene = plan["catalog"]["scenes"][-1]
+    partial = raw / (final_scene["scene_id"] + ".h5.part")
+    partial.write_bytes(b"x" * (final_scene["size_bytes"] // 2))
+
+    def disk_usage(_):
+        allocated = sum(
+            p.stat().st_size for p in raw.iterdir() if p.name.endswith((".h5", ".part"))
+        )
+        return type("Usage", (), {"free": initial_free - allocated})()
+
+    monkeypatch.setattr(history.shutil, "disk_usage", disk_usage)
+    result = history.run_history(settings, snapshot, download_fn=downloader)
+    assert result["completed"] and not partial.exists()
+
+
+def test_compound_channel_is_blocked_without_aborting_other_pairs(tmp_path, area, monkeypatch):
+    import h5py
+    import numpy as np
+    from test_asf import DownloadSession
+
+    import surfacesignal.processing.history as history
+    from surfacesignal.providers.asf import download
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, downloaded = prepare_batch(tmp_path, area)
+    source = tmp_path / "source-0.h5"
+    with h5py.File(source, "r+") as file:
+        group = file["/science/LSAR/GCOV/grids/frequencyA"]
+        del group["HHHH"]
+        group.create_dataset("HHHH", data=np.zeros((4, 4), dtype=[("real", "f4"), ("imag", "f4")]))
+    value = read_json(snapshot)
+    value["scenes"][0]["size_bytes"] = source.stat().st_size
+    write_json(snapshot, value)
+
+    def custom(s, directory, budget, **kwargs):
+        if s.scene_id == "synthetic-0":
+            downloaded.append(s.scene_id)
+            return download(
+                s, directory, budget, session=DownloadSession(source.read_bytes()), **kwargs
+            )
+        return downloader(s, directory, budget, **kwargs)
+
+    result = history.run_history(settings, snapshot, download_fn=custom)
+    assert result["completed"]
+    assert [p["status"] for p in result["pairs"]] == ["blocked", "completed", "completed"]
+    assert history.verify_history(settings, "test")["verified"]
+
+
+@pytest.mark.parametrize(
+    "field,incorrect", [("downloads_complete", False), ("scene_counts", {}), ("pair_counts", {})]
+)
+def test_verifier_rejects_contradictory_report_summaries(
+    tmp_path, area, monkeypatch, field, incorrect
+):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    result = history.run_history(settings, snapshot, download_fn=downloader)
+    result[field] = incorrect
+    write_json(tmp_path / "data/history/test/report.json", result)
+    assert not history.verify_history(settings, "test")["verified"]
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("before", "wrong-id"), ("status", "blocked"), ("input_sha256", ["0" * 64, "0" * 64])],
+)
+def test_corrupt_pair_cache_fields_are_not_published_in_report(
+    tmp_path, area, monkeypatch, field, value
+):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    report = history.run_history(settings, snapshot, download_fn=downloader)
+    path = tmp_path / "data/history/test/pairs" / (report["pairs"][0]["pair_key"] + ".json")
+    cached = read_json(path)
+    cached[field] = value
+    write_json(path, cached)
+    again = history.run_history(settings, snapshot, download_fn=downloader)
+    assert not again["completed"] and again["pairs"][0]["status"] == "failed"
+    assert again["pairs"][0]["before"] == "synthetic-0"
+
+
+@pytest.mark.parametrize(
+    "field,value", [("path", "wrong.h5"), ("source_url", "https://example.org/wrong")]
+)
+def test_verify_checks_recorded_raw_paths_and_sources(tmp_path, area, monkeypatch, field, value):
+    import surfacesignal.processing.history as history
+
+    monkeypatch.delenv("EARTHDATA_TOKEN", raising=False)
+    settings, snapshot, downloader, _ = prepare_batch(tmp_path, area)
+    report = history.run_history(settings, snapshot, download_fn=downloader)
+    report["scenes"][0][field] = value
+    write_json(tmp_path / "data/history/test/report.json", report)
+    assert not history.verify_history(settings, "test")["verified"]

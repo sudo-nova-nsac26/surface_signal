@@ -82,6 +82,9 @@ and reports known total/additional/remaining bytes, unknown sizes, free disk per
 expected artifact names. For the fixed snapshot, about **180 decimal GB free** is recommended.
 The automatic guard sums all still-needed raw bytes and reserves output/temp space; it also
 checks the raw and artifact volumes separately when these reside on different filesystems.
+Only unfinished pairs require output reserve on subsequent runs. An incomplete, unjournaled
+`.h5.part` is counted as space that will be reclaimed when that scene restarts; verified
+journaled transfers are recovered instead. Complete raw files are always preserved.
 The estimate is conservative and does not promise processing duration or output size.
 
 Authenticate using the operator's own [Earthdata account and ASF access](https://nisar-docs.asf.alaska.edu/earthaccess/),
@@ -109,6 +112,10 @@ Satellite product maturity does not validate the inferred candidate polygons.
 The resolved catalog, source snapshot/hash, query/access time, area, frequency, channel,
 thresholds, hydrology/hash and implementation/dependency versions are frozen in
 `data/history/vale-do-taquari/plan.json`. Identical arguments reuse that plan without ASF access.
+Immutable copies live in `plans/<plan_id>.json`; each report names and hashes its actual plan.
+A dry run with different arguments may update the proposed `plan.json` while the previously
+completed report remains verifiable against its archived plan. Per-plan checkpoints and
+inspections are retained under `reports/` and `inspections/<plan_id>/`.
 To seek later validated acquisitions, increase the date. If validated discovery fails, the
 previous valid plan remains intact; run the standard snapshot command to process the 19 first,
 then retry the extension later.
@@ -146,6 +153,10 @@ Recovery guidance:
 - **Damaged artifacts:** preserve/move the affected `artifacts/<analysis_id>/` directory outside
   `artifacts/`, then rerun. The pipeline reconstructs it from the retained HDF5; never delete
   or overwrite the only copy of the raw data to repair derived outputs.
+  A changed manifest is an integrity failure, even if the other artifact files still match;
+  the runner does not replace its expected hash with the altered manifest's hash. A malformed
+  pair-cache JSON under `data/history/vale-do-taquari/pairs/` also requires preservation for
+  review before retrying.
 
 Verify and collect results without ASF access:
 

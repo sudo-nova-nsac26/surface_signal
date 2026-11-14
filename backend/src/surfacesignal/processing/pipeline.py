@@ -77,6 +77,19 @@ def verify_artifacts(directory, *, manifest_sha256=None):
             for name, sha in analysis.artifacts.items()
         ):
             raise ValueError("Artifact hash differs")
+        if analysis.statistics != read_json(
+            directory / "statistics.json"
+        ) or analysis.evidence.model_dump(mode="json") != read_json(directory / "evidence.json"):
+            raise ValueError("Manifest statistics/evidence differ from artifacts")
+        if (
+            any(
+                s.synthetic != analysis.synthetic or s.area_id != analysis.area_id
+                for s in analysis.scenes
+            )
+            or analysis.evidence.synthetic != analysis.synthetic
+            or analysis.evidence.provenance != analysis.provenance
+        ):
+            raise ValueError("Manifest provenance fields disagree")
         return analysis
     except (OSError, ValueError, KeyError, TypeError):
         raise ArtifactIntegrityError(

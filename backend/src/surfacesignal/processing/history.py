@@ -11,7 +11,6 @@ from datetime import UTC, date, datetime, time
 from functools import partial
 from pathlib import Path
 
-import numpy as np
 from shapely.geometry import shape
 
 from surfacesignal import __version__
@@ -73,6 +72,19 @@ def implementation_fingerprint() -> str:
 
 def history_directory(settings, area_id):
     return settings.root / "data/history" / safe_id(area_id)
+
+
+def _plan_archive(directory, plan_id):
+    return directory / "plans" / (safe_id(plan_id) + ".json")
+
+
+def _archive_plan(directory, plan):
+    path = _plan_archive(directory, plan["plan_id"])
+    if path.exists():
+        if read_json(path) != plan:
+            raise ValueError("Archived history plan failed integrity check; preserve it for review")
+    else:
+        write_json(path, plan)
 
 
 def candidate_pairs(scenes):
@@ -172,6 +184,7 @@ def plan_history(
                 {k: v for k, v in previous.items() if k != "plan_id"}
             ):
                 raise ValueError("History plan failed integrity check; preserve it for review")
+            _archive_plan(directory, previous)
             return previous
     resolved = {}
     for scene in snapshot.scenes:
@@ -243,17 +256,31 @@ def plan_history(
     }
     plan["plan_id"] = fingerprint(plan)
     # Search and validation finish before publication: a failed extension leaves the old plan intact.
+    _archive_plan(directory, plan)
     write_json(plan_path, plan)
     return plan
 
 
-def disk_budget(settings, total_bytes, remaining_bytes):
-    reserve = max(
-        512 * 1024 * 1024, math.ceil(total_bytes * (180_000_000_000 / 131_386_572_800 - 1))
+def disk_budget(
+    settings, total_bytes, remaining_bytes, *, pending_pairs, total_pairs, reclaimable_bytes=0
+):
+    reserve = (
+        max(
+            512 * 1024 * 1024,
+            math.ceil(
+                total_bytes
+                * (180_000_000_000 / 131_386_572_800 - 1)
+                * pending_pairs
+                / max(1, total_pairs)
+            ),
+        )
+        if pending_pairs
+        else 0
     )
+    raw_slack = 512 * 1024 * 1024 if remaining_bytes else 0
     volumes = {}
     for label, path, need in (
-        ("raw", settings.root / "data/raw", remaining_bytes),
+        ("raw", settings.root / "data/raw", max(0, remaining_bytes - reclaimable_bytes)),
         ("artifacts", settings.artifacts_dir, reserve),
     ):
         ancestor = path
@@ -268,11 +295,15 @@ def disk_budget(settings, total_bytes, remaining_bytes):
         volume["required_bytes"] += need
     for volume in volumes.values():
         if volume["paths"] == ["raw"]:
-            volume["required_bytes"] += 512 * 1024 * 1024
+            volume["required_bytes"] += raw_slack
+        elif "raw" in volume["paths"]:
+            volume["required_bytes"] += max(0, raw_slack - reserve)
         volume["sufficient"] = volume["free_bytes"] >= volume["required_bytes"]
     return {
         "volumes": list(volumes.values()),
         "reserve_bytes": reserve,
+        "reclaimable_partial_bytes": reclaimable_bytes,
+        "pending_pairs": pending_pairs,
         "sufficient": all(v["sufficient"] for v in volumes.values()),
     }
 
@@ -350,6 +381,13 @@ def planning_summary(settings, plan, *, inventory=None):
     inventory = raw_inventory(settings, plan) if inventory is None else inventory
     total = sum(s.size_bytes or 0 for s in scenes)
     remaining = sum(s["size_bytes"] or 0 for s in inventory if s["status"] != "verified")
+    lookup = {r["scene_id"]: r for r in inventory}
+    reclaimable = sum(
+        asf.partial_size(s, settings.root / "data/raw")
+        for s in scenes
+        if lookup[s.scene_id]["status"] == "pending"
+    )
+    pending_pairs = _pending_pair_count(settings, plan, lookup)
     return {
         "area_id": plan["area_id"],
         "plan_id": plan["plan_id"],
@@ -377,7 +415,14 @@ def planning_summary(settings, plan, *, inventory=None):
         "remaining_bytes": remaining,
         "unknown_size_ids": [s.scene_id for s in scenes if s.size_bytes is None],
         "scenes": inventory,
-        "disk": disk_budget(settings, total, remaining),
+        "disk": disk_budget(
+            settings,
+            total,
+            remaining,
+            pending_pairs=pending_pairs,
+            total_pairs=len(plan["pairs"]),
+            reclaimable_bytes=reclaimable,
+        ),
         "expected_artifacts": sorted(ARTIFACT_NAMES),
         "output_directory": str(settings.artifacts_dir / "<analysis_id>"),
     }
@@ -492,7 +537,7 @@ def _inspect_inputs(settings, plan, records):
             )
             if dataset is None:
                 raise ValueError("Requested frequency/channel unavailable in HDF5")
-            if len(dataset["shape"]) != 2 or np.dtype(dataset["dtype"]).kind not in ("f", "i", "u"):
+            if len(dataset["shape"]) != 2 or dataset["dtype_kind"] not in ("f", "i", "u"):
                 raise ValueError("Covariance channel is not real two-dimensional power")
             inspected.update(
                 scene_id=record["scene_id"],
@@ -503,6 +548,7 @@ def _inspect_inputs(settings, plan, records):
             inspection_path = (
                 history_directory(settings, plan["area_id"])
                 / "inspections"
+                / plan["plan_id"]
                 / (safe_id(record["scene_id"]) + ".json")
             )
             write_json(inspection_path, inspected)
@@ -549,7 +595,12 @@ def _pair_identity(plan, pair, inventory):
 
 def _verify_pair_result(settings, plan, pair, inventory, record):
     key, identity = _pair_identity(plan, pair, inventory)
-    if record.get("pair_key") != key:
+    if (
+        record.get("pair_key") != key
+        or record.get("status") != "completed"
+        or any(record.get(k) != pair[k] for k in ("before", "after"))
+        or record.get("input_sha256") != identity["input_sha256"]
+    ):
         raise ArtifactIntegrityError("Saved pair identity failed integrity check")
     identifier = safe_id(record["analysis_id"])
     analysis = verify_artifacts(
@@ -574,6 +625,40 @@ def _verify_pair_result(settings, plan, pair, inventory, record):
             "Saved manifest does not match requested scenes, parameters or provenance"
         )
     return analysis
+
+
+def _pending_pair_count(settings, plan, inventory):
+    directory = history_directory(settings, plan["area_id"])
+    try:
+        previous = read_json(directory / "report.json")
+        blocked = {
+            (p["before"], p["after"]): p for p in previous["pairs"] if p["status"] == "blocked"
+        }
+    except (ValueError, OSError, KeyError, TypeError):
+        blocked = {}
+    pending = 0
+    for pair in plan["pairs"]:
+        if any(inventory[pair[k]]["status"] != "verified" for k in ("before", "after")):
+            pending += 1
+            continue
+        key, _ = _pair_identity(plan, pair, inventory)
+        cache_path = directory / "pairs" / (key + ".json")
+        try:
+            if cache_path.exists():
+                _verify_pair_result(settings, plan, pair, inventory, read_json(cache_path))
+                continue
+            previous = blocked.get((pair["before"], pair["after"]), {})
+            if (
+                previous.get("pair_key") == key
+                and previous.get("reason")
+                and previous.get("reason_code")
+                in ("file_incompatible", "incompatible_input_or_coverage")
+            ):
+                continue
+        except (ValueError, OSError, KeyError, TypeError):
+            pass
+        pending += 1
+    return pending
 
 
 def _process_pairs(
@@ -615,12 +700,17 @@ def _process_pairs(
             if cache_path.exists():
                 try:
                     cached = read_json(cache_path)
-                    _verify_pair_result(settings, plan, pair, inventory, cached)
+                    target = settings.artifacts_dir / safe_id(cached["analysis_id"])
+                    # A removed target can be rebuilt from the retained raw inputs.
+                    # An existing target must pass its saved manifest hash: never re-anchor it.
+                    if target.exists() or target.is_symlink():
+                        _verify_pair_result(settings, plan, pair, inventory, cached)
+                        result.update(cached | {"reused": True})
+                        continue
                 except (ValueError, OSError, KeyError, TypeError):
-                    pass  # Re-enter the pipeline; its integrity gate preserves damaged outputs.
-                else:
-                    result.update(cached | {"reused": True})
-                    continue
+                    raise ArtifactIntegrityError(
+                        "Saved pair/manifest failed integrity check; preserve the damaged artifact directory outside artifacts (or the malformed pair cache for review), then rerun"
+                    ) from None
             before, after = (scenes[pair[k]] for k in ("before", "after"))
             analysis = (analyze_fn or run_analysis)(
                 settings.root / inputs[0]["path"],
@@ -712,7 +802,14 @@ def _report(settings, plan, downloads, pairs):
         "updated_at": datetime.now(UTC).isoformat(),
         "area_id": plan["area_id"],
         "plan_id": plan["plan_id"],
-        "plan_sha256": checksum(history_directory(settings, plan["area_id"]) / "plan.json"),
+        "plan_path": str(
+            _plan_archive(
+                history_directory(settings, plan["area_id"]), plan["plan_id"]
+            ).relative_to(settings.root)
+        ),
+        "plan_sha256": checksum(
+            _plan_archive(history_directory(settings, plan["area_id"]), plan["plan_id"])
+        ),
         "snapshot": plan["snapshot"],
         "parameters": plan["parameters"],
         "validated_query": plan["validated_query"],
@@ -773,7 +870,9 @@ def run_history(
         directory = history_directory(settings, plan["area_id"])
 
         def save_downloads(downloads):
-            write_json(directory / "report.json", _report(settings, plan, downloads, pairs))
+            report = _report(settings, plan, downloads, pairs)
+            write_json(directory / "reports" / (plan["plan_id"] + ".json"), report)
+            write_json(directory / "report.json", report)
 
         downloads = download_history(
             settings,
@@ -808,11 +907,13 @@ def verify_history(settings, area_id):
     directory = history_directory(settings, area_id)
     try:
         with history_lock(settings, area_id):
-            plan = read_json(directory / "plan.json")
             report = read_json(directory / "report.json")
+            plan_path = _plan_archive(directory, report["plan_id"])
+            plan = read_json(plan_path)
             if (
                 plan["plan_id"] != fingerprint({k: v for k, v in plan.items() if k != "plan_id"})
-                or report["plan_sha256"] != checksum(directory / "plan.json")
+                or report.get("plan_path") != str(plan_path.relative_to(settings.root))
+                or report["plan_sha256"] != checksum(plan_path)
                 or report["plan_id"] != plan["plan_id"]
             ):
                 raise ValueError("Plan/report identity or hash mismatch")
@@ -855,16 +956,32 @@ def verify_history(settings, area_id):
                     recorded.get("status") != "verified"
                     or recorded.get("receipt") != actual["receipt"]
                     or recorded.get("receipt_sha256") != actual["receipt_sha256"]
+                    or any(
+                        recorded.get(k) != actual[k]
+                        for k in (
+                            "path",
+                            "receipt_path",
+                            "source_url",
+                            "collection",
+                            "mandatory",
+                            "synthetic",
+                            "size_bytes",
+                        )
+                    )
                 ):
                     errors.append(f"{actual['scene_id']}: recorded receipt differs")
                 inspection = recorded.get("inspection", {})
                 if inspection.get("status") == "compatible":
                     expected_path = (
-                        directory / "inspections" / (safe_id(actual["scene_id"]) + ".json")
+                        directory
+                        / "inspections"
+                        / plan["plan_id"]
+                        / (safe_id(actual["scene_id"]) + ".json")
                     )
                     if (
                         not expected_path.is_file()
                         or expected_path.is_symlink()
+                        or inspection.get("path") != str(expected_path.relative_to(settings.root))
                         or checksum(expected_path) != inspection.get("sha256")
                     ):
                         errors.append(f"{actual['scene_id']}: inspection integrity failed")
@@ -891,6 +1008,18 @@ def verify_history(settings, area_id):
                     errors.append(f"{label}: analysis/manifest integrity failed")
             if report["collections"] != collection_summary(plan, records):
                 errors.append("Collection totals differ from verified inventory")
+            if report.get("downloads_complete") != all(r["status"] == "verified" for r in records):
+                errors.append("Download completion flag differs from verified inventory")
+            if report.get("scene_counts") != {
+                status: sum(r["status"] == status for r in records)
+                for status in ("verified", "pending", "unknown_size", "needs_review", "failed")
+            }:
+                errors.append("Scene counts differ from verified inventory")
+            if report.get("pair_counts") != {
+                status: sum(p["status"] == status for p in report["pairs"])
+                for status in ("completed", "blocked", "pending", "failed")
+            }:
+                errors.append("Pair counts differ from verified inventory")
             expected_complete = (
                 all(r["status"] == "verified" for r in records)
                 and all(p["status"] in ("completed", "blocked") for p in report["pairs"])
