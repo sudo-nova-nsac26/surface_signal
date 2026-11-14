@@ -77,29 +77,30 @@ Unmeasured values are `null`, never zero.
 Everyday names for areas live in [`src/data/area-labels.ts`](src/data/area-labels.ts);
 the backend stays technical.
 
-## The guided map
+## The map is the page
 
-The journey from the whole planet to Lajeado and Estrela lives in
-`src/components/map`. It uses [MapLibre GL JS](https://maplibre.org/) with
+The first screen is a map that fills the window
+([`MapStage.tsx`](src/components/map/MapStage.tsx)). It opens behind an
+introduction; "Start" clears the screen and leaves the map with a few quiet
+controls around its edges. It uses [MapLibre GL JS](https://maplibre.org/) with
 services that need no key or account.
 
 - **Places are a tree** ([`places.ts`](src/components/map/places.ts)): world,
-  continent, region of the country, state, valley. Each place shows a dot for
-  its children; tapping a dot flies the camera there. Only the path to the
-  Taquari Valley exists for now; adding a place is one entry in that file plus
-  its name in the dictionaries.
+  continent, region of the country, state, valley. Each place shows a bright
+  dot for every place that can be opened; tapping it flies the camera there.
+- **Places still to come** are listed in `UPCOMING` and shown as dark dots
+  that cannot be opened. Moving one into `buildPlaces` opens it.
 - Dots are real buttons laid over the map, so they work with keyboard and
-  screen readers. The same moves are offered as large buttons beside the map,
+  screen readers. The same moves are offered as buttons in the info card,
   with a breadcrumb to go back up.
-- **2D is the default**: a flat map, light on slow devices. A large 2D / 3D
-  switch above the map turns on the globe and the 3D relief.
-- **3D relief**: terrain is exaggerated and tinted by elevation. At the
-  close-up the visitor can rotate and tilt freely (buttons, two-finger drag,
-  or right-button drag). Everywhere else rotation is off, so nobody loses
-  their bearings.
+- **2D is the default**: a flat map, light on slow devices. A 2D / 3D switch
+  at the top turns on the globe and the 3D relief.
+- **Mouse**: scrolling over the map zooms it. At the 3D close-up, holding the
+  mouse wheel (or the right button) and dragging rotates and tilts, as in a
+  CAD viewer; Shift + scroll rotates. Small buttons on the right edge do the
+  same. Elsewhere rotation is off, so nobody loses their bearings.
+- **Touch**: one finger keeps scrolling the page; two fingers move the map.
 - With "reduce motion" the camera jumps between places instead of flying.
-- The map library is downloaded only when the visitor reaches that section.
-- The page keeps scrolling normally: zooming needs Ctrl + scroll or two fingers.
 - The outline of the analysed area comes from the data layer.
 
 `npm run dev` and `npm run build` first copy the MapLibre worker file into
