@@ -84,12 +84,8 @@ the backend stays technical.
   The device's own "reduce motion" setting is respected automatically.
 - Everything is sized in `rem`, so the text-size control scales the whole page.
 - Touch targets are at least 48 px; keyboard focus is always visible.
-- The look follows the Sudo Nova team palette (space navy, cyan, white and
-  amber). White text on the navy background has a contrast above 17:1.
 - Colour is never the only signal: layers also have an icon and a name. Layer
   colours follow the Okabe-Ito colour-blind-safe palette.
-- Built for slow phones: pages are prerendered, drawings are plain SVG, and
-  only `transform` and `opacity` are animated.
 - Each page declares its language so screen readers use the right voice.
 
 ## Credits

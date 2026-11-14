@@ -7,33 +7,25 @@ function BrandMark() {
   return (
     <svg
       viewBox="0 0 40 40"
-      className="size-11 shrink-0"
+      className="size-10 shrink-0"
       aria-hidden="true"
       focusable="false"
     >
-      <rect
-        x="1"
-        y="1"
-        width="38"
-        height="38"
-        rx="11"
-        fill="var(--bg-raised)"
-        stroke="var(--brand)"
-        strokeWidth="2"
-      />
+      <rect width="40" height="40" rx="10" fill="var(--ink)" />
       <path
-        d="M8 15.500c4-3.500 8-3.500 12 0s8 3.500 12 0"
+        d="M6 16c4.700-4 9.300-4 14 0s9.300 4 14 0"
         fill="none"
-        stroke="var(--brand)"
-        strokeWidth="3.200"
+        stroke="var(--bg)"
+        strokeWidth="3"
         strokeLinecap="round"
       />
       <path
-        d="M8 25c4-3.500 8-3.500 12 0s8 3.500 12 0"
+        d="M6 25c4.700-4 9.300-4 14 0s9.300 4 14 0"
         fill="none"
-        stroke="var(--ink)"
-        strokeWidth="3.200"
+        stroke="var(--bg)"
+        strokeWidth="3"
         strokeLinecap="round"
+        opacity="0.55"
       />
     </svg>
   );
@@ -47,14 +39,12 @@ export function SiteHeader({
   dict: Dictionary;
 }) {
   return (
-    <header className="relative border-b border-line bg-bg-raised hc:border-b-2">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <header className="relative border-b-2 border-ink bg-surface">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <BrandMark />
           <div className="leading-tight">
-            <p className="text-2xl font-bold tracking-tight">
-              Surface<span className="text-brand-text">Signal</span>
-            </p>
+            <p className="text-xl font-bold">{dict.brand.name}</p>
             <p className="hidden text-base text-ink-soft sm:block">
               {dict.brand.tagline}
             </p>

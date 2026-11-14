@@ -1,7 +1,8 @@
 import argparse
 import json
 import sys
-from datetime import UTC, datetime
+import time
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import rasterio
@@ -11,6 +12,7 @@ from surfacesignal.config import Settings
 from surfacesignal.domain import Scene, shortlist
 from surfacesignal.main import load_areas, load_scenes
 from surfacesignal.processing.gcov import crop, inspect_gcov
+from surfacesignal.processing.history import run_history, verify_history
 from surfacesignal.processing.pipeline import run_analysis
 from surfacesignal.providers.asf import ProviderError, download, search
 from surfacesignal.providers.hydro import read_records
@@ -62,6 +64,32 @@ def parser():
     analysis.add_argument("--edge-pixels", type=int, default=1)
     analysis.add_argument("--min-looks", type=float, default=1)
     analysis.add_argument("--hydro-csv", type=Path)
+    history = groups.add_parser("history").add_subparsers(dest="command", required=True)
+    run = history.add_parser("run", help="Download, retain and compare the snapshot history")
+    run.add_argument("--snapshot", type=Path, default=Path("docs/evidence/asf-catalog.json"))
+    run.add_argument("--with-validated-through", type=date.fromisoformat)
+    run.add_argument("--dry-run", action="store_true")
+    verify = history.add_parser(
+        "verify", help="Verify local raw files, report and artifact hashes offline"
+    )
+    verify.add_argument("--area", required=True)
+    for action in analysis._actions:
+        if action.dest in {
+            "frequency",
+            "channel",
+            "delta_threshold",
+            "water_threshold",
+            "min_component_pixels",
+            "edge_pixels",
+            "min_looks",
+            "hydro_csv",
+        }:
+            run.add_argument(
+                *action.option_strings,
+                type=action.type,
+                default=action.default,
+                choices=action.choices,
+            )
     return root
 
 
@@ -88,9 +116,59 @@ def main(argv=None):
 
     try:
         selected_area = area(args.area) if hasattr(args, "area") else None
-        if hasattr(args, "area") and selected_area is None:
+        if hasattr(args, "area") and selected_area is None and args.group != "history":
             raise ValueError("Area not found in configuration")
-        if args.group == "scenes":
+        if args.group == "history":
+            if args.command == "verify":
+                result = verify_history(settings, args.area)
+                print(json.dumps(result, indent=2, allow_nan=False))
+                return 0 if result["verified"] and result["completed"] else 3
+            from surfacesignal.processing.history import DEFAULT_PARAMETERS
+
+            last_progress = 0.0
+
+            def progress(event):
+                nonlocal last_progress
+                if event["event"] == "pair":
+                    print(
+                        f"Pair [{event['pair']}/{event['pairs']}]: {event['status']}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    return
+                now = time.monotonic()
+                if event["event"] != "bytes" or now - last_progress >= 2:
+                    print(
+                        f"[{event['file']}/{event['files']}] {event['scene_id']}: {event['bytes']:,}/{event['total_bytes']:,} bytes ({event['event']})",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    last_progress = now
+
+            result = run_history(
+                settings,
+                args.snapshot,
+                validated_through=args.with_validated_through,
+                parameters={k: getattr(args, k) for k in DEFAULT_PARAMETERS},
+                hydro_csv=args.hydro_csv,
+                dry_run=args.dry_run,
+                progress=progress,
+            )
+            if not args.dry_run:
+                result = {
+                    k: result[k]
+                    for k in (
+                        "area_id",
+                        "completed",
+                        "downloads_complete",
+                        "scene_counts",
+                        "pair_counts",
+                        "collections",
+                        "report_path",
+                        "error",
+                    )
+                }
+        elif args.group == "scenes":
             if args.command == "search":
                 start, end = datetime.fromisoformat(args.start), datetime.fromisoformat(args.end)
                 if start > end:
@@ -179,10 +257,18 @@ def main(argv=None):
                 hydro_records=read_records(args.hydro_csv) if args.hydro_csv else [],
             ).model_dump(mode="json")
         print(json.dumps(result, indent=2, allow_nan=False))
+        if args.group == "history" and not args.dry_run and not result["completed"]:
+            return 3
         return 0
     except ProviderError as exc:
         print(f"External provider unavailable: {exc}", file=sys.stderr)
         return 3
+    except KeyboardInterrupt:
+        print(
+            "Interrupted; completed raw files and checkpoints were retained. Rerun the same history command to resume.",
+            file=sys.stderr,
+        )
+        return 130
     except (ValueError, KeyError, OSError) as exc:
         # Never print arbitrary file content, URLs containing credentials, or provider bodies.
         message = (

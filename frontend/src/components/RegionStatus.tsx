@@ -75,7 +75,7 @@ export function RegionStatus({
     <section
       aria-labelledby="region-title"
       aria-busy={state.status === "loading"}
-      className="mt-8 rounded-3xl border border-line bg-surface p-5 hc:border-2"
+      className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-sm hc:border-2"
     >
       <h3 id="region-title" className="text-2xl font-bold">
         {labels.title}

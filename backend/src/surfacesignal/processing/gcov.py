@@ -54,6 +54,7 @@ def inspect_gcov(path: Path) -> dict:
                 report["datasets"]["/" + name] = {
                     "shape": list(obj.shape),
                     "dtype": str(obj.dtype),
+                    "dtype_kind": obj.dtype.kind,
                     "attrs": {k: scalar(v, file) for k, v in obj.attrs.items()},
                 }
                 if obj.size <= 4:

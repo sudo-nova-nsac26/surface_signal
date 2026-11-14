@@ -37,19 +37,9 @@ const en: Dictionary = {
     lead: "A radar in space can see water at night and through clouds. Here you can see, in plain colors, what changed in Lajeado and Estrela during the July 2026 flood.",
     start: "Start",
     startHint: "Takes about 2 minutes",
-    facts: [
-      { label: "Where", value: "Lajeado and Estrela, on the Taquari River" },
-      { label: "When", value: "July 11 and 23, 2026" },
-      { label: "Who observed", value: "NISAR satellite, by NASA and ISRO" },
-    ],
   },
   how: {
     title: "How it works",
-    next: "Next step",
-    sceneNote: "Explanatory drawing. Not the real map.",
-    before: "Before",
-    after: "After",
-    newWater: "New water",
     steps: [
       {
         title: "The satellite passes over",
