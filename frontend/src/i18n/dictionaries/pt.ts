@@ -98,6 +98,28 @@ const pt = {
       "Vale do Taquari: Lajeado e Estrela",
     ],
   },
+  region: {
+    title: "O que temos para esta região",
+    loading: "Carregando os dados…",
+    error: "Não conseguimos carregar os dados agora.",
+    retry: "Tentar de novo",
+    availability: {
+      analysis: "Comparação pronta",
+      catalog: "Imagens disponíveis",
+      "no-pair": "Ainda sem comparação",
+    },
+    analysisBody: "Temos a comparação entre {before} e {after}.",
+    catalogBody:
+      "O satélite já passou {count} vezes por aqui. As passagens de {before} e {after} podem ser comparadas, mas essa comparação ainda não foi preparada.",
+    noPairBody:
+      "O satélite ainda não fez duas passagens que possam ser comparadas neste lugar.",
+    river:
+      "O Serviço Geológico do Brasil informou a situação do rio em {stations} cerca de {hours} horas antes de o satélite passar.",
+    source: "Ver a fonte",
+    illustrativeBody:
+      "Os desenhos no mapa ainda são exemplos. Eles serão trocados pela medida real do satélite.",
+    and: "e",
+  },
   illustrative: "Dado ilustrativo",
   footer: {
     data: "Dados",
