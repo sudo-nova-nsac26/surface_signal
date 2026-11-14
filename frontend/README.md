@@ -68,13 +68,8 @@ Each region is in one of three states:
   The device's own "reduce motion" setting is respected automatically.
 - Everything is sized in `rem`, so the text-size control scales the whole page.
 - Touch targets are at least 48 px; keyboard focus is always visible.
-- The brand uses the green, red and yellow of the Rio Grande do Sul flag, for
-  identity only. They never encode data, because red and green are the pair
-  most often confused by people with colour blindness.
 - Colour is never the only signal: layers also have an icon and a name. Layer
   colours follow the Okabe-Ito colour-blind-safe palette.
-- Built for slow phones: pages are prerendered, drawings are plain SVG, and
-  only `transform` and `opacity` are animated.
 - Each page declares its language so screen readers use the right voice.
 
 ## Credits

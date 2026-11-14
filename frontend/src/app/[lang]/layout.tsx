@@ -50,7 +50,6 @@ export default async function RootLayout({
     <html
       lang={htmlLang[lang]}
       className={`${atkinson.variable} h-full antialiased`}
-      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
@@ -59,7 +58,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         <a
           href="#content"
-          className="sr-only z-30 rounded-xl bg-highlight px-4 py-3 font-bold text-highlight-ink focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
+          className="sr-only z-30 rounded-xl bg-accent px-4 py-3 font-bold text-accent-ink focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
         >
           {dict.skipToContent}
         </a>
@@ -67,18 +66,17 @@ export default async function RootLayout({
         <main id="content" className="flex-1">
           {children}
         </main>
-        <footer className="bg-brand-deep text-brand-ink hc:border-t-2 hc:border-ink">
-          <div className="flag-stripe h-2" aria-hidden="true" />
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-base sm:grid-cols-2">
+        <footer className="border-t-2 border-ink bg-surface">
+          <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 text-base sm:grid-cols-2">
             <div>
-              <h2 className="text-lg font-bold">{dict.footer.data}</h2>
-              <p className="opacity-90">{dict.footer.dataBody}</p>
+              <h2 className="font-bold">{dict.footer.data}</h2>
+              <p className="text-ink-soft">{dict.footer.dataBody}</p>
             </div>
             <div>
-              <h2 className="text-lg font-bold">{dict.footer.team}</h2>
-              <p className="opacity-90">{dict.footer.teamBody}</p>
+              <h2 className="font-bold">{dict.footer.team}</h2>
+              <p className="text-ink-soft">{dict.footer.teamBody}</p>
             </div>
-            <p className="opacity-90 sm:col-span-2">{dict.footer.ai}</p>
+            <p className="text-ink-soft sm:col-span-2">{dict.footer.ai}</p>
           </div>
         </footer>
       </body>
