@@ -79,6 +79,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         lang={lang}
         labels={dict.map}
         hero={dict.hero}
+        layers={dict.layers}
         illustrative={dict.illustrative}
       />
 

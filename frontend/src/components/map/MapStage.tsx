@@ -11,7 +11,7 @@ import {
   type TimelineStep,
   type TimelineView,
 } from "@/data/region";
-import { artifactUrl, listAreas } from "@/data/source";
+import { artifactUrl, getArtifactJson, listAreas } from "@/data/source";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useMotionLevel } from "@/preferences/store";
@@ -31,6 +31,7 @@ import {
   upcomingOf,
   type PlaceId,
 } from "./places";
+import { ComparePanel } from "./ComparePanel";
 import { Timeline } from "./Timeline";
 
 // The map library is large, so it is kept out of the first download and
@@ -79,11 +80,13 @@ export function MapStage({
   lang,
   labels,
   hero,
+  layers,
   illustrative,
 }: {
   lang: Locale;
   labels: Labels;
   hero: Dictionary["hero"];
+  layers: Dictionary["layers"];
   illustrative: string;
 }) {
   // intro: a turning globe behind the introduction. leaving: the introduction
@@ -98,6 +101,10 @@ export function MapStage({
   const viewChosen = useRef(false);
   const [timeline, setTimeline] = useState<TimelineView | null>(null);
   const [selectedStep, setSelectedStep] = useState<TimelineStep | null>(null);
+  // Before/after: 0 shows the map as it was, 1 shows what appeared.
+  const [compare, setCompare] = useState(1);
+  const [waterOn, setWaterOn] = useState(true);
+  const [shapeCount, setShapeCount] = useState<number | null>(null);
   const mapHandle = useRef<MapViewHandle>(null);
   const motion = useMotionLevel();
 
@@ -176,6 +183,29 @@ export function MapStage({
     ? artifactUrl(chosen.analysisId, CHANGE_CANDIDATES_ARTIFACT)
     : null;
 
+  // How many change shapes the chosen comparison has (0 for the sample).
+  useEffect(() => {
+    const controller = new AbortController();
+    const analysis = selectedStep?.analysis;
+    if (!analysis?.hasChangeShapes) {
+      // Nothing to count for a comparison that has no shapes file.
+      queueMicrotask(() => {
+        if (!controller.signal.aborted) setShapeCount(null);
+      });
+      return () => controller.abort();
+    }
+    getArtifactJson<{ features?: unknown[] }>(
+      analysis.analysisId,
+      CHANGE_CANDIDATES_ARTIFACT,
+      controller.signal,
+    )
+      .then((collection) => setShapeCount(collection.features?.length ?? 0))
+      .catch(() => {
+        if (!controller.signal.aborted) setShapeCount(null);
+      });
+    return () => controller.abort();
+  }, [selectedStep]);
+
   const go = (id: string) => setPlaceId(id as PlaceId);
 
   // Look at the device while the introduction is on screen. A device that
@@ -239,6 +269,7 @@ export function MapStage({
           motion={motion}
           intro={phase === "intro"}
           changes={changesUrl}
+          changeOpacity={waterOn ? compare : 0}
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -429,7 +460,18 @@ export function MapStage({
               </p>
             )}
             {closeUp && timeline && (
-              <div className="border-t border-line pt-3 lg:hidden">
+              <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
+                <ComparePanel
+                  labels={labels.compare}
+                  layers={layers}
+                  lang={lang}
+                  step={selectedStep}
+                  shapeCount={shapeCount}
+                  value={compare}
+                  onValue={setCompare}
+                  waterOn={waterOn}
+                  onWaterOn={setWaterOn}
+                />
                 <Timeline
                   data={timeline}
                   lang={lang}
@@ -475,6 +517,23 @@ export function MapStage({
                 illustrativeLabel={illustrative}
                 selectedId={selectedStep?.id ?? null}
                 onSelect={setSelectedStep}
+              />
+            </div>
+          )}
+
+          {/* Right: before/after and the layers (wide screens). */}
+          {closeUp && timeline && (
+            <div className="glass rise-in pointer-events-auto absolute right-16 top-20 hidden max-h-[calc(100%-6rem)] w-80 overflow-y-auto rounded-3xl p-4 lg:block">
+              <ComparePanel
+                labels={labels.compare}
+                layers={layers}
+                lang={lang}
+                step={selectedStep}
+                shapeCount={shapeCount}
+                value={compare}
+                onValue={setCompare}
+                waterOn={waterOn}
+                onWaterOn={setWaterOn}
               />
             </div>
           )}

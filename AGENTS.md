@@ -119,8 +119,10 @@ Done: scaffold, PT/EN, accessibility panel, data layer with API/static switch, S
 guided map (intro, 2D/3D unfold, dots, outlines, locked places), hardware-based start view, timeline
 stepper (17 steps from the real catalog), logo/wordmark/header buttons.
 
-Not done: before/after view, layer switches, landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp,
-weak-phone and mobile checks, anything that needs real data.
+Also done (not yet pushed when written): before/after control and layer switches (`ComparePanel`).
+
+Not done: landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, weak-phone and mobile checks,
+anything that needs real data.
 
 **Who does what now (owner decision 2026-11-14):** the front-end stays ours until it is 100% and ready
 for the real data. Deploy, public repo and licence, submission texts and the 7-slide demo are with the
@@ -169,11 +171,15 @@ code change (data comes through `src/data/source.ts`).
    "map + method + real catalog" with the sample labelled illustrative. When data arrives: check the
    timeline against real analyses, show real numbers (area changed) with `null` handled, make the
    timeline read as a story in plain words.
-2. **Before/after on the valley (next task).** A slider that compares the two passes of the chosen
-   timeline step, plus the 3 layer switches (water available, vegetation exploratory, slopes
-   unavailable with the reason). Works with the sample now (no shapes yet, say so) and with
-   `change-candidates.geojson` later. Radar previews (`before-preview.png`, `after-preview.png`) are
-   artifacts of each analysis and can feed the slider when present.
+2. **Before/after on the valley (done, waits for data).** `ComparePanel` at the valley close-up: "Antes" /
+   "Depois" buttons and a slider that fade the chosen comparison's change shapes in (0 = map as it was,
+   1 = what appeared), plus the 3 layer switches. Only water is interactive (the backend's
+   `change-candidates.geojson`); vegetation and slopes are listed with their honest status and a "not
+   available yet" note until their data exists. It is a fade of the shapes, not a swipe: a swipe would need
+   a second map (heavy on weak phones). Tested with temporary shapes (reverted): the sample file stays empty
+   on purpose, and the panel then disables the controls and says why. Not wired yet: the radar previews
+   (`before-preview.png` / `after-preview.png`) of each analysis; they are raw grey radar and not
+   georeferenced, so decide with the owner whether to show them at all.
 3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centres the map
    only, never sent anywhere).
 4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud (browser speech), WhatsApp share.

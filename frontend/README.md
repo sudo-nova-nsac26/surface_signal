@@ -125,6 +125,10 @@ services that need no key or account.
 - **The world is framed on Brazil** (`focus` in `places.ts`), so the country of
   the story is in front in both 2D and 3D; other continents stay visible at
   the edges with dark locked dots.
+- **Before and after** ([`ComparePanel.tsx`](src/components/map/ComparePanel.tsx)): at the valley
+  close-up, "Antes" / "Depois" buttons and a slider fade the chosen comparison's change shapes in. Layer
+  switches list water (the only one with data), vegetation and slopes with their honest status.
+  With no shapes (the bundled sample) the controls are disabled and a note says why.
 - **Timeline** ([`Timeline.tsx`](src/components/map/Timeline.tsx)): a stepper over the
   comparisons the catalog allows (each pass against the previous pass of the
   same kind). Buttons, a slider and play move forward and back. A step with a

@@ -128,6 +128,26 @@ const pt = {
     explore: "Explorar o mapa",
     more: "Como funciona",
     mouseHint: "Role para aproximar. No 3D, segure a rodinha do mouse (ou o botão direito) e arraste para girar.",
+    compare: {
+      title: "Antes e depois",
+      lead: "Deslize para ver o que apareceu no mapa entre as duas datas.",
+      before: "Antes",
+      after: "Depois",
+      slider: "Mover entre antes e depois",
+      showing: "Mostrando: {state}",
+      stateBefore: "antes",
+      stateAfter: "depois",
+      stateBetween: "passando de antes para depois",
+      legendWater: "Água que apareceu",
+      layersTitle: "O que mostrar",
+      switchOn: "ligado",
+      switchOff: "desligado",
+      noShapes:
+        "Este exemplo ainda não tem as manchas medidas pelo satélite. Elas aparecem aqui quando os dados reais chegarem.",
+      notPrepared:
+        "Esta comparação ainda não foi preparada, por isso não há manchas para mostrar.",
+      locked: "Ainda não disponível",
+    },
     timeline: {
       title: "Linha do tempo",
       lead: "Passe de uma comparação para a outra. Cada uma mostra o que mudou entre duas passagens do satélite.",

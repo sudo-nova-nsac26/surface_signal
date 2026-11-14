@@ -125,6 +125,26 @@ const en: Dictionary = {
     explore: "Explore the map",
     more: "How it works",
     mouseHint: "Scroll to zoom. In 3D, hold the mouse wheel (or the right button) and drag to rotate.",
+    compare: {
+      title: "Before and after",
+      lead: "Slide to see what appeared on the map between the two dates.",
+      before: "Before",
+      after: "After",
+      slider: "Move between before and after",
+      showing: "Showing: {state}",
+      stateBefore: "before",
+      stateAfter: "after",
+      stateBetween: "moving from before to after",
+      legendWater: "Water that appeared",
+      layersTitle: "What to show",
+      switchOn: "on",
+      switchOff: "off",
+      noShapes:
+        "This example does not have the shapes measured by the satellite yet. They appear here when the real data arrives.",
+      notPrepared:
+        "This comparison has not been prepared yet, so there are no shapes to show.",
+      locked: "Not available yet",
+    },
     timeline: {
       title: "Timeline",
       lead: "Move from one comparison to the next. Each one shows what changed between two satellite passes.",

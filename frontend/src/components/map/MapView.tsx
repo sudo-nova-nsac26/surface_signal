@@ -42,6 +42,8 @@ export interface MapViewProps {
   intro: boolean;
   /** Change shapes (GeoJSON URL) of the selected comparison, if any. */
   changes: string | null;
+  /** How much of the change shapes shows: 0 = before, 1 = after. */
+  changeOpacity: number;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -185,6 +187,7 @@ function setChangeLayers(
   map: MapLibreMap,
   url: string | null,
   visible: boolean,
+  opacity: number,
 ) {
   const source = map.getSource(CHANGES_SOURCE) as
     { setData: (data: string) => void } | undefined;
@@ -194,16 +197,24 @@ function setChangeLayers(
       id: "changes-fill",
       type: "fill",
       source: CHANGES_SOURCE,
-      paint: { "fill-color": WATER_COLOR, "fill-opacity": 0.55 },
+      paint: { "fill-color": WATER_COLOR, "fill-opacity": 0.55 * opacity },
     });
     map.addLayer({
       id: "changes-line",
       type: "line",
       source: CHANGES_SOURCE,
-      paint: { "line-color": "#d9f3ff", "line-width": 1.2 },
+      paint: {
+        "line-color": "#d9f3ff",
+        "line-width": 1.2,
+        "line-opacity": opacity,
+      },
     });
   } else if (url && source) {
     source.setData(url);
+  }
+  if (map.getLayer("changes-fill")) {
+    map.setPaintProperty("changes-fill", "fill-opacity", 0.55 * opacity);
+    map.setPaintProperty("changes-line", "line-opacity", opacity);
   }
   for (const layer of ["changes-fill", "changes-line"]) {
     if (map.getLayer(layer)) {
@@ -305,6 +316,7 @@ export default function MapView({
   motion,
   intro,
   changes,
+  changeOpacity,
   area,
   label,
   dotHint,
@@ -334,9 +346,27 @@ export default function MapView({
   }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
-  const latest = useRef({ place, markers, view, motion, intro, changes, area });
+  const latest = useRef({
+    place,
+    markers,
+    view,
+    motion,
+    intro,
+    changes,
+    changeOpacity,
+    area,
+  });
   useEffect(() => {
-    latest.current = { place, markers, view, motion, intro, changes, area };
+    latest.current = {
+      place,
+      markers,
+      view,
+      motion,
+      intro,
+      changes,
+      changeOpacity,
+      area,
+    };
   });
   const callbacks = useRef({ onReady, onError });
   useEffect(() => {
@@ -472,7 +502,12 @@ export default function MapView({
     }
 
     ensureAreaLayers(map, area);
-    setChangeLayers(map, latest.current.changes, Boolean(detail));
+    setChangeLayers(
+      map,
+      latest.current.changes,
+      Boolean(detail),
+      latest.current.changeOpacity,
+    );
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
@@ -979,7 +1014,16 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    latest.current = { place, markers, view, motion, intro, changes, area };
+    latest.current = {
+      place,
+      markers,
+      view,
+      motion,
+      intro,
+      changes,
+      changeOpacity,
+      area,
+    };
     const viewChanged = lastView.current !== view;
     lastView.current = view;
     if (intro) introView();
@@ -992,12 +1036,17 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id, view, area, intro]);
 
-  // A different comparison picked on the timeline.
+  // A different comparison picked on the timeline, or the before/after slider.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
-    setChangeLayers(map, changes, Boolean(latest.current.place.detail));
-  }, [changes]);
+    setChangeLayers(
+      map,
+      changes,
+      Boolean(latest.current.place.detail),
+      changeOpacity,
+    );
+  }, [changes, changeOpacity]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
