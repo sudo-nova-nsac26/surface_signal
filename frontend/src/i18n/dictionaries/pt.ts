@@ -12,6 +12,7 @@ const pt = {
   skipToContent: "Pular para o conteúdo",
   brand: {
     name: "SurfaceSignal",
+    home: "voltar ao início",
     tagline: "Mudanças na superfície, explicadas para todos",
   },
   language: {
@@ -49,6 +50,7 @@ const pt = {
   how: {
     title: "Como funciona",
     next: "Próximo passo",
+    continue: "Continuar",
     sceneNote: "Desenho explicativo. Não é o mapa real.",
     before: "Antes",
     after: "Depois",
@@ -128,16 +130,27 @@ const pt = {
     mouseHint: "Role para aproximar. No 3D, segure a rodinha do mouse (ou o botão direito) e arraste para girar.",
     timeline: {
       title: "Linha do tempo",
-      lead: "Cada ponto é uma passagem do satélite sobre o vale. As faixas mostram as comparações prontas.",
-      pass: "Passagem do satélite em {date}",
-      pair: "Comparação de {before} a {after}",
-      event: "Boletim do rio em {date}: {stations}",
-      eventShort: "Boletim do rio",
+      lead: "Passe de uma comparação para a outra. Cada uma mostra o que mudou entre duas passagens do satélite.",
+      counter: "Comparação {current} de {total}",
+      compared: "{after} comparada com {before}",
+      slider: "Escolha a comparação",
+      prev: "Anterior",
+      next: "Próxima",
+      play: "Reproduzir",
+      pause: "Pausar",
+      ready: "Comparação pronta",
+      readyBody: "O mapa mostra o que mudou entre as duas datas.",
+      notReady: "Ainda não preparada",
+      notReadyBody:
+        "O satélite passou nessas datas, mas esses dados são muito grandes e ainda estão sendo preparados.",
+      illustrativeBody:
+        "Este é um exemplo para montar a tela, não a medida real do satélite.",
+      morning: "Passagem da manhã",
+      evening: "Passagem do fim da tarde",
+      river: "Boletim do rio nesse dia ({stations})",
+      source: "Ver a fonte",
       legendPass: "Passagem do satélite",
-      legendPair: "Comparação pronta",
-      legendEvent: "Boletim do rio (SGB)",
-      showing: "Mostrando a comparação de {before} a {after}.",
-      none: "Ainda não há comparação pronta. As passagens já estão no catálogo da NASA.",
+      legendPair: "Comparação escolhida",
       empty: "Ainda não há passagens registradas para este lugar.",
     },
     places: {

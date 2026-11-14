@@ -371,7 +371,7 @@ export default function MapView({
     }
   }
 
-  function applyView(animate: boolean) {
+  function applyView(animate: boolean, flightMs = FLIGHT_MS) {
     const map = mapRef.current;
     const container = containerRef.current;
     if (!map || !container || !loadedRef.current) return;
@@ -468,7 +468,7 @@ export default function MapView({
       if (motion === "full") {
         map.flyTo({
           ...camera,
-          duration: FLIGHT_MS,
+          duration: flightMs,
           curve: 1.5,
           essential: true,
         });
@@ -578,8 +578,8 @@ export default function MapView({
   }
 
   /**
-   * Changes the view behind a short fade, so a switch of projection (globe
-   * to flat map or back) is never seen as a jump.
+   * Fades the view in (used when the intro hands over to the flat map): the
+   * change of projection happens while the map is hidden.
    */
   function crossfade() {
     const fade = fadeRef.current;
@@ -595,6 +595,32 @@ export default function MapView({
       fade.style.transition = "opacity 650ms ease-out";
       fade.style.opacity = "1";
     }, 280);
+  }
+
+  /**
+   * Switching between the globe and the flat map. The camera first pulls back
+   * a little, the projection changes while it is moving (so no frame stands
+   * still on the change), and the camera then closes in on the new view.
+   */
+  function morph() {
+    const map = mapRef.current;
+    window.clearTimeout(revealTimer.current);
+    if (!map || latest.current.motion === "none") {
+      applyView(false);
+      return;
+    }
+    if (latest.current.motion === "gentle") {
+      applyView(true);
+      return;
+    }
+    setFlying(true);
+    map.easeTo({
+      zoom: Math.max(map.getZoom() - 0.9, 0.6),
+      duration: 450,
+      easing: (t) => t * t,
+      essential: true,
+    });
+    revealTimer.current = window.setTimeout(() => applyView(true, 1700), 440);
   }
 
   useEffect(() => {
@@ -843,7 +869,7 @@ export default function MapView({
     else if (wasIntro.current) reveal();
     // With the whole globe or a country on screen, 2D <-> 3D goes through a
     // fade. At the close-up the tilt animation already reads well.
-    else if (viewChanged && !place.detail) crossfade();
+    else if (viewChanged && !place.detail) morph();
     else applyView(true);
     wasIntro.current = intro;
     // eslint-disable-next-line react-hooks/exhaustive-deps

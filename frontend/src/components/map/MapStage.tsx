@@ -8,7 +8,7 @@ import {
   boundsOf,
   loadTimeline,
   type LngLat,
-  type TimelinePair,
+  type TimelineStep,
   type TimelineView,
 } from "@/data/region";
 import { artifactUrl, listAreas } from "@/data/source";
@@ -97,7 +97,7 @@ export function MapStage({
   const [tier, setTier] = useState<GraphicsTier | null>(null);
   const viewChosen = useRef(false);
   const [timeline, setTimeline] = useState<TimelineView | null>(null);
-  const [selectedPair, setSelectedPair] = useState<TimelinePair | null>(null);
+  const [selectedStep, setSelectedStep] = useState<TimelineStep | null>(null);
   const mapHandle = useRef<MapViewHandle>(null);
   const motion = useMotionLevel();
 
@@ -156,11 +156,14 @@ export function MapStage({
     loadTimeline(STORY_AREA_ID, controller.signal)
       .then((data) => {
         setTimeline(data);
+        // Start on the July flood: the pair that ends on 23 July if there is
+        // one, otherwise the latest prepared comparison, otherwise the last.
         const pick =
-          [...data.pairs].reverse().find((pair) => !pair.illustrative) ??
-          data.pairs[data.pairs.length - 1] ??
+          data.steps.find((step) => step.afterAt.startsWith("2026-07-23")) ??
+          [...data.steps].reverse().find((step) => step.analysis) ??
+          data.steps[data.steps.length - 1] ??
           null;
-        setSelectedPair(pick);
+        setSelectedStep(pick);
       })
       .catch(() => {
         // The map works without the timeline.
@@ -168,8 +171,9 @@ export function MapStage({
     return () => controller.abort();
   }, []);
 
-  const changesUrl = selectedPair?.hasChangeShapes
-    ? artifactUrl(selectedPair.analysisId, CHANGE_CANDIDATES_ARTIFACT)
+  const chosen = selectedStep?.analysis ?? null;
+  const changesUrl = chosen?.hasChangeShapes
+    ? artifactUrl(chosen.analysisId, CHANGE_CANDIDATES_ARTIFACT)
     : null;
 
   const go = (id: string) => setPlaceId(id as PlaceId);
@@ -431,8 +435,8 @@ export function MapStage({
                   lang={lang}
                   labels={labels.timeline}
                   illustrativeLabel={illustrative}
-                  selectedId={selectedPair?.analysisId ?? null}
-                  onSelect={setSelectedPair}
+                  selectedId={selectedStep?.id ?? null}
+                  onSelect={setSelectedStep}
                 />
               </div>
             )}
@@ -469,8 +473,8 @@ export function MapStage({
                 lang={lang}
                 labels={labels.timeline}
                 illustrativeLabel={illustrative}
-                selectedId={selectedPair?.analysisId ?? null}
-                onSelect={setSelectedPair}
+                selectedId={selectedStep?.id ?? null}
+                onSelect={setSelectedStep}
               />
             </div>
           )}

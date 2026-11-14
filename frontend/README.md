@@ -121,13 +121,12 @@ services that need no key or account.
 - **The world is framed on Brazil** (`focus` in `places.ts`), so the country of
   the story is in front in both 2D and 3D; other continents stay visible at
   the edges with dark locked dots.
-- **Timeline** ([`Timeline.tsx`](src/components/map/Timeline.tsx)): at the valley
-  close-up, every satellite pass from the catalog is a dot on a line of time,
-  every analysis the backend has published is a bar from its before date to
-  its after date, and river bulletins found in the analyses are marked. Picking
-  a bar draws that analysis's `change-candidates.geojson` on the map. The
-  history batch in the backend produces one analysis per consecutive pair, so
-  real results appear here with no code change.
+- **Timeline** ([`Timeline.tsx`](src/components/map/Timeline.tsx)): a stepper over the
+  comparisons the catalog allows (each pass against the previous pass of the
+  same kind). Buttons, a slider and play move forward and back. A step with a
+  prepared analysis draws that analysis' `change-candidates.geojson` on the map;
+  the others say they are not prepared yet. River bulletins from the analyses
+  are shown on the matching day. Real results appear with no code change.
 - **Opening**: the map is created only when the browser is idle, so the page
   paints first. On "Start" the introduction sinks back and blurs while the
   globe moves to the centre and grows, then the view settles into the map.

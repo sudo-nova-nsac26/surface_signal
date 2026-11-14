@@ -178,6 +178,71 @@ body {
   border-color: var(--ink);
 }
 
+/*
+ * Language switch: a track with a sliding thumb. The lit side is the
+ * language in use; the thumb glides to the other side when pressed.
+ */
+.lang-switch {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  width: 6.5rem;
+  height: 2.75rem;
+  padding: 0.2rem;
+  border: 1.5px solid var(--line);
+  border-radius: 9999px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.lang-switch:hover {
+  border-color: var(--brand);
+}
+
+.lang-thumb {
+  position: absolute;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  left: 0.2rem;
+  width: calc(50% - 0.2rem);
+  border-radius: 9999px;
+  background: var(--brand);
+  box-shadow: 0 0 16px -2px var(--brand-glow);
+  transition: transform 240ms cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.lang-switch[data-position="right"] .lang-thumb {
+  transform: translateX(calc(100% + 0.2rem - 0.2rem));
+}
+
+.lang-option {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: color 240ms ease-out;
+}
+
+.lang-option[data-on="true"] {
+  color: var(--brand-ink);
+}
+
+:root[data-contrast="high"] .lang-switch {
+  border-width: 2px;
+  border-color: var(--ink);
+}
+
+:root[data-contrast="high"] .lang-option {
+  color: var(--ink);
+}
+
+:root[data-contrast="high"] .lang-option[data-on="true"] {
+  color: var(--brand-ink);
+}
+
 /* A white ring with a dark halo stays visible on navy and on cyan alike. */
 :focus-visible {
   outline: 0.1875rem solid var(--focus);
@@ -530,6 +595,46 @@ body {
 
 .stagger > *:nth-child(5) {
   animation-delay: 560ms;
+}
+
+/* The timeline slider, in the site colours. */
+.timeline-range {
+  height: 2.75rem;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.timeline-range::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--line);
+}
+
+.timeline-range::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--line);
+}
+
+.timeline-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.625rem;
+  border: 3px solid var(--bg);
+  border-radius: 9999px;
+  background: var(--brand);
+  box-shadow: 0 0 14px 2px var(--brand-glow);
+}
+
+.timeline-range::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid var(--bg);
+  border-radius: 9999px;
+  background: var(--brand);
+  box-shadow: 0 0 14px 2px var(--brand-glow);
 }
 
 /* Dots fade out while the camera is flying. */

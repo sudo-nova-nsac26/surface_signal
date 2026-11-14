@@ -13,7 +13,12 @@ export function SiteHeader({
   return (
     <header className="relative border-b border-line bg-bg-raised hc:border-b-2">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-3">
+        {/* A plain link on purpose: a full page load, as if reloading the site. */}
+        <a
+          href={`/${lang}`}
+          aria-label={`${dict.brand.name} — ${dict.brand.home}`}
+          className="flex items-center gap-3 rounded-xl"
+        >
           {/* The symbol of the SurfaceSignal logo; the name beside it is text. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -31,7 +36,7 @@ export function SiteHeader({
               {dict.brand.tagline}
             </p>
           </div>
-        </div>
+        </a>
         <div className="flex items-center gap-1">
           <LanguageSwitch current={lang} />
           <AccessibilityMenu labels={dict.a11y} />

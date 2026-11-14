@@ -123,10 +123,19 @@ eligibility of the backend, the root README still describes the frontend as Vite
   live in `places.ts` (both languages).
 - After "Start" the globe **zooms in on Brazil and stays there** (no zoom-out). The world view
   uses one fixed zoom for globe and flat map (`worldZoom`), so the two match in scale.
-- **2D <-> 3D** at world/country/state level goes through a short fade (`crossfade`); at the
-  close-up the tilt animation is kept.
-- Header: SurfaceSignal logo symbol + name in Poppins Bold; language and accessibility are
-  framed buttons (the owner found frameless ones did not read as buttons).
+- **2D <-> 3D** is NOT a fade (owner rejected it): the camera pulls back a little, the projection
+  changes while it moves, and the camera closes in on the new view (`morph` in `MapView`). At the
+  close-up the plain tilt animation is kept. `crossfade` is used only when the intro hands over to
+  the flat map.
+- Header: SurfaceSignal logo symbol + name in Poppins Bold. The logo is a plain link to `/<lang>`
+  (full reload, like F5). Language is a sliding switch (PT left, EN right, lit side = current
+  language); accessibility is a framed button. Frameless buttons were rejected as not looking like buttons.
+- "How it works": after the 3rd step the button becomes "Continue" and scrolls to the next section
+  (`#layers`); it never loops back to step 1.
+- **Timeline** is a stepper: each step compares one pass with the previous pass of the same kind
+  (17 steps for the real catalog). Prev/next buttons, a slider and play move through them; the map
+  draws the chosen step's change shapes when the backend has them. Steps without an analysis say
+  they are not prepared yet. It becomes the story once Mateus publishes real pairs.
 
 ## Roadmap
 

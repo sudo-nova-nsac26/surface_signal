@@ -100,6 +100,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
       </section>
 
       <section
+        id="layers"
         aria-labelledby="layers-title"
         className="border-y border-line bg-bg-raised hc:border-y-2 hc:border-ink"
       >

@@ -9,6 +9,7 @@ const en: Dictionary = {
   skipToContent: "Skip to content",
   brand: {
     name: "SurfaceSignal",
+    home: "back to the start",
     tagline: "Surface change, explained for everyone",
   },
   language: {
@@ -46,6 +47,7 @@ const en: Dictionary = {
   how: {
     title: "How it works",
     next: "Next step",
+    continue: "Continue",
     sceneNote: "Explanatory drawing. Not the real map.",
     before: "Before",
     after: "After",
@@ -125,16 +127,27 @@ const en: Dictionary = {
     mouseHint: "Scroll to zoom. In 3D, hold the mouse wheel (or the right button) and drag to rotate.",
     timeline: {
       title: "Timeline",
-      lead: "Each dot is a satellite pass over the valley. The bars show the comparisons that are ready.",
-      pass: "Satellite pass on {date}",
-      pair: "Comparison from {before} to {after}",
-      event: "River bulletin on {date}: {stations}",
-      eventShort: "River bulletin",
+      lead: "Move from one comparison to the next. Each one shows what changed between two satellite passes.",
+      counter: "Comparison {current} of {total}",
+      compared: "{after} compared with {before}",
+      slider: "Choose the comparison",
+      prev: "Previous",
+      next: "Next",
+      play: "Play",
+      pause: "Pause",
+      ready: "Comparison ready",
+      readyBody: "The map shows what changed between the two dates.",
+      notReady: "Not prepared yet",
+      notReadyBody:
+        "The satellite passed on these dates, but this data is very large and is still being prepared.",
+      illustrativeBody:
+        "This is an example used to build the screen, not the satellite's real measurement.",
+      morning: "Morning pass",
+      evening: "Late-afternoon pass",
+      river: "River bulletin on that day ({stations})",
+      source: "See the source",
       legendPass: "Satellite pass",
-      legendPair: "Comparison ready",
-      legendEvent: "River bulletin (SGB)",
-      showing: "Showing the comparison from {before} to {after}.",
-      none: "No comparison is ready yet. The passes are already in NASA's catalog.",
+      legendPair: "Chosen comparison",
       empty: "No passes are recorded for this place yet.",
     },
     places: {
