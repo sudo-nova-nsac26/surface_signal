@@ -23,6 +23,9 @@ still apply to everything under `backend/`. This section is the front-end's memo
 what the project is, how the app is built, and what comes next. **Keep it current:**
 when you finish or change something listed here, update this file in the same change.
 
+> **Taking over?** Read [`docs/frontend-handoff.md`](docs/frontend-handoff.md) after this file: current state,
+> decisions already made, pitfalls, how to test, and the ordered next tasks (written 2026-11-14 at a hand-off).
+
 ## What we are building
 
 **SurfaceSignal**, the Sudo Nova team's entry for the NASA Space Apps Challenge 2026,
@@ -119,10 +122,11 @@ Done: scaffold, PT/EN, accessibility panel, data layer with API/static switch, S
 guided map (intro, 2D/3D unfold, dots, outlines, locked places), hardware-based start view, timeline
 stepper (17 steps from the real catalog), logo/wordmark/header buttons.
 
-Also done (not yet pushed when written): before/after control and layer switches (`ComparePanel`).
+Also done: before/after control and layer switches (`ComparePanel`), on PR #6.
 
-Not done: landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, weak-phone and mobile checks,
-anything that needs real data.
+Not done (in this order): landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, mobile and weak-phone checks,
+anything that needs real data. Stepping the timeline does not change the map yet because no step has real shapes:
+expected, see the handoff doc.
 
 **Who does what now (owner decision 2026-11-14):** the front-end stays ours until it is 100% and ready
 for the real data. Deploy, public repo and licence, submission texts and the 7-slide demo are with the
