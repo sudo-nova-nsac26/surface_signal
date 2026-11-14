@@ -44,7 +44,17 @@ export type UpcomingId =
   | "brazil-central-west"
   | "brazil-southeast"
   | "parana"
-  | "santa-catarina";
+  | "santa-catarina"
+  | "rs-serra"
+  | "rs-metropolitana"
+  | "rs-litoral"
+  | "rs-sul"
+  | "rs-campanha"
+  | "rs-fronteira-oeste"
+  | "rs-missoes"
+  | "rs-planalto"
+  | "rs-central"
+  | "rs-rio-pardo";
 
 export interface UpcomingPlace {
   id: UpcomingId;
@@ -64,6 +74,16 @@ export const UPCOMING: UpcomingPlace[] = [
   { id: "brazil-southeast", parent: "south-america", point: [-45, -20.5] },
   { id: "parana", parent: "brazil-south", point: [-51.6, -24.7] },
   { id: "santa-catarina", parent: "brazil-south", point: [-50.6, -27.3] },
+  { id: "rs-serra", parent: "rio-grande-do-sul", point: [-51.18, -29.17] },
+  { id: "rs-metropolitana", parent: "rio-grande-do-sul", point: [-51.2, -30.03] },
+  { id: "rs-litoral", parent: "rio-grande-do-sul", point: [-50.27, -29.8] },
+  { id: "rs-sul", parent: "rio-grande-do-sul", point: [-52.34, -31.77] },
+  { id: "rs-campanha", parent: "rio-grande-do-sul", point: [-54.1, -31.3] },
+  { id: "rs-fronteira-oeste", parent: "rio-grande-do-sul", point: [-56.6, -29.75] },
+  { id: "rs-missoes", parent: "rio-grande-do-sul", point: [-54.26, -28.3] },
+  { id: "rs-planalto", parent: "rio-grande-do-sul", point: [-52.4, -28.26] },
+  { id: "rs-central", parent: "rio-grande-do-sul", point: [-53.8, -29.68] },
+  { id: "rs-rio-pardo", parent: "rio-grande-do-sul", point: [-52.6, -29.95] },
 ];
 
 export function buildPlaces(valleyCenter: LngLat): Place[] {
