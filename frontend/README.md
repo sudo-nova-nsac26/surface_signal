@@ -112,6 +112,10 @@ services that need no key or account.
   A device that passes opens in 3D; any other opens in 2D, and a line under
   "Start" says which and why in plain words. The visitor's own choice on the
   2D / 3D switch always wins. Nothing about the device is stored or sent.
+- **2D <-> 3D** is one continuous zoom: the projection is tied to the zoom for a
+  moment, so the globe flattens into the map (or curves back) while the camera
+  moves half a zoom step. Both views frame each place with the same formula, so
+  nothing zooms a second time afterwards.
 - **Opening**: a slowly turning globe sits behind the introduction. "Start"
   fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.

@@ -123,10 +123,14 @@ eligibility of the backend, the root README still describes the frontend as Vite
   live in `places.ts` (both languages).
 - After "Start" the globe **zooms in on Brazil and stays there** (no zoom-out). The world view
   uses one fixed zoom for globe and flat map (`worldZoom`), so the two match in scale.
-- **2D <-> 3D** is NOT a fade (owner rejected it): the camera pulls back a little, the projection
-  changes while it moves, and the camera closes in on the new view (`morph` in `MapView`). At the
-  close-up the plain tilt animation is kept. `crossfade` is used only when the intro hands over to
-  the flat map.
+- **2D <-> 3D** is NOT a fade, and must never zoom out and in again (owner rejected both). At world/
+  country/state level it is `unfold` in `MapView`: the projection is tied to the zoom for 1.5 s
+  (`interpolate` on `["zoom"]` from `vertical-perspective` to `mercator`), so the globe flattens in
+  one continuous half-step of zoom, exactly as it already looks on the way into the valley. For this
+  to end on the final view, the flat map sits `UNFOLD_ZOOM` (0.5) closer than the globe and every
+  place is framed by one formula (`frameBounds`, not `cameraForBounds`, which differs per projection).
+  The intro also ends with `unfold` when the visitor starts in 2D. At the close-up the plain tilt
+  animation is kept. `crossfade` remains only for the gentle-motion hand-over.
 - Header: SurfaceSignal logo symbol + name in Poppins Bold. The logo is a plain link to `/<lang>`
   (full reload, like F5). Language is a sliding switch (PT left, EN right, lit side = current
   language); accessibility is a framed button. Frameless buttons were rejected as not looking like buttons.

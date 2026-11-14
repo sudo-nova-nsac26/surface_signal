@@ -76,7 +76,43 @@ const SPOTLIGHT: LngLat = [-52, -14];
  * Zoom of the world view. The globe and the flat map use the same value, so
  * switching between them (and arriving from the intro) never changes scale.
  */
-const worldZoom = (width: number) => (width >= 1000 ? 2.6 : 2);
+/**
+ * The flat world sits slightly closer than the globe. Going from one to the
+ * other is one smooth zoom of this size, while the globe unfolds (or folds).
+ */
+const UNFOLD_ZOOM = 0.5;
+
+const worldZoom = (width: number, flat = false) =>
+  (width >= 1000 ? 2.6 : 2) + (flat ? UNFOLD_ZOOM : 0);
+
+/**
+ * The camera that frames an area, the same way for the globe and the flat
+ * map. MapLibre's own fit gives different zooms for the two projections,
+ * which would make the switch between them end with a second zoom. The globe
+ * then sits UNFOLD_ZOOM further out than the flat map, as in the world view.
+ */
+function frameBounds(
+  bounds: [LngLat, LngLat],
+  width: number,
+  height: number,
+  padding: { top: number; bottom: number; left: number; right: number },
+): { center: LngLat; zoom: number } {
+  const [[west, south], [east, north]] = bounds;
+  const availableWidth = Math.max(width - padding.left - padding.right, 200);
+  const availableHeight = Math.max(height - padding.top - padding.bottom, 200);
+  const rad = Math.PI / 180;
+  const mercator = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * rad) / 2));
+  const ySpan = Math.abs(mercator(north) - mercator(south));
+  const zoomX = Math.log2((availableWidth * 360) / (512 * (east - west)));
+  const zoomY = Math.log2((availableHeight * 2 * Math.PI) / (512 * ySpan));
+  const middle = (mercator(north) + mercator(south)) / 2;
+  const centerLat = (2 * Math.atan(Math.exp(middle)) - Math.PI / 2) / rad;
+  return {
+    center: [(west + east) / 2, centerLat],
+    // A little air around the area, and never closer than a city.
+    zoom: Math.min(zoomX, zoomY, 9.5) - 0.35,
+  };
+}
 
 const easeInOut = (t: number) =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -440,19 +476,18 @@ export default function MapView({
       // globe. The intro ends at this exact view, so nothing zooms back out.
       target = {
         center: place.focus.center,
-        zoom: worldZoom(container.clientWidth),
+        zoom: worldZoom(container.clientWidth, !is3d),
       };
     } else {
-      const fitted = map.cameraForBounds(place.bounds, { padding, maxZoom: 9 });
-      const center = fitted?.center as { lng: number; lat: number } | undefined;
+      const fitted = frameBounds(
+        place.bounds,
+        container.clientWidth,
+        container.clientHeight,
+        padding,
+      );
       target = {
-        center: center
-          ? [center.lng, center.lat]
-          : [
-              (place.bounds[0][0] + place.bounds[1][0]) / 2,
-              (place.bounds[0][1] + place.bounds[1][1]) / 2,
-            ],
-        zoom: Math.max(fitted?.zoom ?? 1.2, 0.9),
+        center: fitted.center,
+        zoom: Math.max(fitted.zoom - (is3d ? UNFOLD_ZOOM : 0), 0.8),
       };
     }
     const camera = {
@@ -555,10 +590,11 @@ export default function MapView({
     }
 
     // The globe comes forward and stops at the world view. In 3D that is the
-    // end. In 2D the flat map then fades in at the same place and scale.
+    // end. In 2D the globe then unfolds into the flat map in one more smooth
+    // zoom, so the change of projection is never a jump.
     const settle = () => {
       if (latest.current.view === "3d") applyView(false);
-      else crossfade();
+      else unfold(true);
     };
 
     if (motion === "gentle") {
@@ -598,29 +634,48 @@ export default function MapView({
   }
 
   /**
-   * Switching between the globe and the flat map. The camera first pulls back
-   * a little, the projection changes while it is moving (so no frame stands
-   * still on the change), and the camera then closes in on the new view.
+   * Switching between the globe and the flat map in one continuous motion.
+   * The projection is tied to the zoom for a moment: as the camera zooms by
+   * half a step, the globe flattens into the map (or curves back into the
+   * globe), the same way it already happens on the way into the valley. The
+   * camera never pulls back and then closes in again.
    */
-  function morph() {
+  function unfold(toFlat: boolean) {
     const map = mapRef.current;
     window.clearTimeout(revealTimer.current);
-    if (!map || latest.current.motion === "none") {
+    const { motion } = latest.current;
+    if (!map || motion === "none") {
       applyView(false);
       return;
     }
-    if (latest.current.motion === "gentle") {
+    if (motion === "gentle") {
       applyView(true);
       return;
     }
+    const zoom = map.getZoom();
+    // Flat -> globe zooms out by UNFOLD_ZOOM, globe -> flat zooms in by it.
+    const low = toFlat ? zoom : zoom - UNFOLD_ZOOM;
+    const high = low + UNFOLD_ZOOM;
+    map.setProjection({
+      type: [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        low,
+        "vertical-perspective",
+        high,
+        "mercator",
+      ],
+    } as never);
     setFlying(true);
     map.easeTo({
-      zoom: Math.max(map.getZoom() - 0.9, 0.6),
-      duration: 450,
-      easing: (t) => t * t,
+      zoom: toFlat ? high : low,
+      duration: 1500,
+      easing: easeInOut,
       essential: true,
     });
-    revealTimer.current = window.setTimeout(() => applyView(true, 1700), 440);
+    // Then the final projection and the exact framing of the place.
+    revealTimer.current = window.setTimeout(() => applyView(true, 700), 1520);
   }
 
   useEffect(() => {
@@ -678,6 +733,10 @@ export default function MapView({
         return;
       }
       mapRef.current = map;
+      // Handy when debugging the camera in the browser console (dev only).
+      if (process.env.NODE_ENV !== "production") {
+        (window as unknown as { __map?: MapLibreMap }).__map = map;
+      }
       setFreeCamera(map, false);
 
       map.on("render", updateDots);
@@ -867,9 +926,9 @@ export default function MapView({
     lastView.current = view;
     if (intro) introView();
     else if (wasIntro.current) reveal();
-    // With the whole globe or a country on screen, 2D <-> 3D goes through a
-    // fade. At the close-up the tilt animation already reads well.
-    else if (viewChanged && !place.detail) morph();
+    // With the whole globe or a country on screen, 2D <-> 3D unfolds the
+    // globe in one smooth zoom. At the close-up the tilt already reads well.
+    else if (viewChanged && !place.detail) unfold(view === "2d");
     else applyView(true);
     wasIntro.current = intro;
     // eslint-disable-next-line react-hooks/exhaustive-deps
