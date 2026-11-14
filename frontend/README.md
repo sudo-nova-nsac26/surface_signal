@@ -84,9 +84,8 @@ the backend stays technical.
   The device's own "reduce motion" setting is respected automatically.
 - Everything is sized in `rem`, so the text-size control scales the whole page.
 - Touch targets are at least 48 px; keyboard focus is always visible.
-- The brand uses the green, red and yellow of the Rio Grande do Sul flag, for
-  identity only. They never encode data, because red and green are the pair
-  most often confused by people with colour blindness.
+- The look follows the Sudo Nova team palette (space navy, cyan, white and
+  amber). White text on the navy background has a contrast above 17:1.
 - Colour is never the only signal: layers also have an icon and a name. Layer
   colours follow the Okabe-Ito colour-blind-safe palette.
 - Built for slow phones: pages are prerendered, drawings are plain SVG, and
@@ -95,6 +94,7 @@ the backend stays technical.
 
 ## Credits
 
+- Team logo: `public/sudo-nova-logo.jpeg`, from the Sudo Nova organisation profile.
 - Typeface: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
   by the Braille Institute (SIL Open Font License).
 - Radar data: NISAR (NASA / ISRO), distributed by the Alaska Satellite Facility DAAC.
