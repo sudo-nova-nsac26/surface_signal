@@ -40,9 +40,19 @@ const pt = {
     lead: "Um radar no espaço enxerga a água mesmo de noite e com nuvens. Aqui você vê, em cores simples, o que mudou em Lajeado e Estrela na cheia de julho de 2026.",
     start: "Começar",
     startHint: "Leva cerca de 2 minutos",
+    facts: [
+      { label: "Onde", value: "Lajeado e Estrela, no Rio Taquari" },
+      { label: "Quando", value: "11 e 23 de julho de 2026" },
+      { label: "Quem observou", value: "Satélite NISAR, da NASA e da ISRO" },
+    ],
   },
   how: {
     title: "Como funciona",
+    next: "Próximo passo",
+    sceneNote: "Desenho explicativo. Não é o mapa real.",
+    before: "Antes",
+    after: "Depois",
+    newWater: "Água nova",
     steps: [
       {
         title: "O satélite passa",
