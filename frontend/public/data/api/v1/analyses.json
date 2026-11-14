@@ -1,0 +1,178 @@
+{
+ "items": [
+  {
+   "analysis_id": "sample-lajeado-estrela-2026-07",
+   "area_id": "vale-do-taquari",
+   "status": "completed",
+   "synthetic": true,
+   "scenes": [
+    {
+     "area_id": "vale-do-taquari",
+     "direction": "DESCENDING",
+     "frame": 103,
+     "geometry": {
+      "coordinates": [
+       [
+        [
+         -53.00335,
+         -27.77153
+        ],
+        [
+         -53.48987,
+         -29.90819
+        ],
+        [
+         -50.86351,
+         -30.31915
+        ],
+        [
+         -50.43313,
+         -28.18676
+        ],
+        [
+         -53.00335,
+         -27.77153
+        ]
+       ]
+      ],
+      "type": "Polygon"
+     },
+     "maturity": "PROVISIONAL",
+     "metadata": {},
+     "mode": "4005",
+     "polarization": "DHDH",
+     "release": "P05023",
+     "scene_id": "NISAR_L2_PR_GCOV_025_053_D_103_4005_DHDH_A_20260711T213351_20260711T213426_P05023_N_F_J_001",
+     "size_bytes": 6996099072,
+     "start_time": "2026-07-11T21:33:51Z",
+     "synthetic": true,
+     "track": 53,
+     "url": "https://nisar.asf.earthdatacloud.nasa.gov/NISAR/NISAR_L2_GCOV_PROVISIONAL_V1/NISAR_L2_PR_GCOV_025_053_D_103_4005_DHDH_A_20260711T213351_20260711T213426_P05023_N_F_J_001/NISAR_L2_PR_GCOV_025_053_D_103_4005_DHDH_A_20260711T213351_20260711T213426_P05023_N_F_J_001.h5"
+    },
+    {
+     "area_id": "vale-do-taquari",
+     "direction": "DESCENDING",
+     "frame": 103,
+     "geometry": {
+      "coordinates": [
+       [
+        [
+         -52.99887,
+         -27.75004
+        ],
+        [
+         -53.48535,
+         -29.88671
+        ],
+        [
+         -50.8593,
+         -30.29778
+        ],
+        [
+         -50.42869,
+         -28.16541
+        ],
+        [
+         -52.99887,
+         -27.75004
+        ]
+       ]
+      ],
+      "type": "Polygon"
+     },
+     "maturity": "PROVISIONAL",
+     "metadata": {},
+     "mode": "4005",
+     "polarization": "DHDH",
+     "release": "P05023",
+     "scene_id": "NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P05023_N_F_J_001",
+     "size_bytes": 7004487680,
+     "start_time": "2026-07-23T21:33:50Z",
+     "synthetic": true,
+     "track": 53,
+     "url": "https://nisar.asf.earthdatacloud.nasa.gov/NISAR/NISAR_L2_GCOV_PROVISIONAL_V1/NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P05023_N_F_J_001/NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P05023_N_F_J_001.h5"
+    }
+   ],
+   "parameters": {},
+   "statistics": {
+    "valid_pixels": null,
+    "candidate_pixels": null,
+    "valid_area_km2": null,
+    "candidate_area_km2": null,
+    "candidate_percent": null,
+    "classification": "open_water_change_candidates_not_confirmed_flood"
+   },
+   "provenance": {
+    "algorithm": "frontend-sample",
+    "note": "Hand-made sample used to build the interface. Not produced by the processing pipeline.",
+    "hydrological_context": [
+     {
+      "station": "Estrela",
+      "observed_at": "2026-07-23T19:00:00Z",
+      "level_m": null,
+      "source_url": "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia",
+      "note": "Qualitative bulletin: above flood threshold and declining; numeric gauge reading unavailable in article text",
+      "time_offset_hours": -2.5639,
+      "role": "hydrological_context_not_spatial_validation"
+     },
+     {
+      "station": "Lajeado",
+      "observed_at": "2026-07-23T19:00:00Z",
+      "level_m": null,
+      "source_url": "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia",
+      "note": "Qualitative bulletin: above flood threshold and declining; numeric gauge reading unavailable in article text",
+      "time_offset_hours": -2.5639,
+      "role": "hydrological_context_not_spatial_validation"
+     }
+    ]
+   },
+   "artifacts": {
+    "change-candidates.geojson": "sample"
+   },
+   "evidence": {
+    "observation": "Sample only: no radar measurement was compared.",
+    "interpretation": "Sample only. Shapes are illustrative and do not represent observed change.",
+    "confidence_level": "not_established",
+    "validation_status": "not_validated",
+    "reason": "No contemporaneous independent spatial reference was aligned.",
+    "references_attempted": [],
+    "alternative_explanations": [],
+    "limitations": [
+     "Illustrative sample, not a measurement"
+    ],
+    "sources": [
+     "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia"
+    ],
+    "provenance": {
+     "algorithm": "frontend-sample",
+     "note": "Hand-made sample used to build the interface. Not produced by the processing pipeline.",
+     "hydrological_context": [
+      {
+       "station": "Estrela",
+       "observed_at": "2026-07-23T19:00:00Z",
+       "level_m": null,
+       "source_url": "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia",
+       "note": "Qualitative bulletin: above flood threshold and declining; numeric gauge reading unavailable in article text",
+       "time_offset_hours": -2.5639,
+       "role": "hydrological_context_not_spatial_validation"
+      },
+      {
+       "station": "Lajeado",
+       "observed_at": "2026-07-23T19:00:00Z",
+       "level_m": null,
+       "source_url": "https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia",
+       "note": "Qualitative bulletin: above flood threshold and declining; numeric gauge reading unavailable in article text",
+       "time_offset_hours": -2.5639,
+       "role": "hydrological_context_not_spatial_validation"
+      }
+     ]
+    },
+    "is_operational_alert": false,
+    "synthetic": true
+   }
+  }
+ ],
+ "total": 1,
+ "offset": 0,
+ "limit": 200
+}
