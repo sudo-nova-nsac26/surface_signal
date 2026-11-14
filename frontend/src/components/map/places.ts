@@ -3,10 +3,14 @@ import type { LngLat } from "@/data/region";
 /**
  * The places the visitor can travel to, as a tree: world, continent, region
  * of the country, state, and finally the analysed valley. Only the path to
- * the Taquari Valley exists for now; other continents, regions and states
- * are added here later and appear on the map with no other change.
+ * the Taquari Valley exists for now.
  *
- * Names and descriptions live in the dictionaries under `map.places`.
+ * Places that are not ready yet are listed in UPCOMING: they appear on the
+ * map as dark dots that cannot be opened. Moving one from UPCOMING into
+ * buildPlaces (with its bounds) is all it takes to open it.
+ *
+ * Names and descriptions live in the dictionaries under `map.places` and
+ * `map.upcoming`.
  */
 export type PlaceId =
   | "world"
@@ -29,6 +33,39 @@ export interface Place {
   detail?: { center: LngLat; zoom: number };
 }
 
+export type UpcomingId =
+  | "north-america"
+  | "europe"
+  | "africa"
+  | "asia"
+  | "oceania"
+  | "brazil-north"
+  | "brazil-northeast"
+  | "brazil-central-west"
+  | "brazil-southeast"
+  | "parana"
+  | "santa-catarina";
+
+export interface UpcomingPlace {
+  id: UpcomingId;
+  parent: PlaceId;
+  point: LngLat;
+}
+
+export const UPCOMING: UpcomingPlace[] = [
+  { id: "north-america", parent: "world", point: [-100, 44] },
+  { id: "europe", parent: "world", point: [14, 50] },
+  { id: "africa", parent: "world", point: [21, 4] },
+  { id: "asia", parent: "world", point: [92, 42] },
+  { id: "oceania", parent: "world", point: [134, -25] },
+  { id: "brazil-north", parent: "south-america", point: [-61, -4] },
+  { id: "brazil-northeast", parent: "south-america", point: [-41, -9] },
+  { id: "brazil-central-west", parent: "south-america", point: [-55, -15] },
+  { id: "brazil-southeast", parent: "south-america", point: [-45, -20.5] },
+  { id: "parana", parent: "brazil-south", point: [-51.6, -24.7] },
+  { id: "santa-catarina", parent: "brazil-south", point: [-50.6, -27.3] },
+];
+
 export function buildPlaces(valleyCenter: LngLat): Place[] {
   return [
     {
@@ -36,8 +73,8 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
       parent: null,
       point: [0, 0],
       bounds: [
-        [-175, -58],
-        [175, 72],
+        [-170, -56],
+        [178, 74],
       ],
     },
     {
@@ -52,7 +89,7 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
     {
       id: "brazil-south",
       parent: "south-america",
-      point: [-52, -26],
+      point: [-52.5, -28],
       bounds: [
         [-58.5, -34.5],
         [-47, -22],
@@ -82,6 +119,10 @@ export function buildPlaces(valleyCenter: LngLat): Place[] {
 
 export function childrenOf(places: Place[], id: PlaceId): Place[] {
   return places.filter((place) => place.parent === id);
+}
+
+export function upcomingOf(id: PlaceId): UpcomingPlace[] {
+  return UPCOMING.filter((place) => place.parent === id);
 }
 
 /** From the world down to the given place. */

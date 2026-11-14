@@ -313,6 +313,111 @@ body {
   transform: scale(1.25);
 }
 
+/* Places that are not ready yet: dark, quiet, and not clickable. */
+.map-dot-off {
+  cursor: not-allowed;
+}
+
+.map-dot-off .map-dot-core {
+  width: 1rem;
+  height: 1rem;
+  background: #02060c;
+  border: 2px solid #5b6f85;
+  box-shadow: none;
+}
+
+.map-dot-off .map-dot-label {
+  border-color: var(--line);
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.map-dot-off:hover .map-dot-label,
+.map-dot-off:focus-visible .map-dot-label {
+  opacity: 1;
+}
+
+.map-dot-off:hover .map-dot-core,
+.map-dot-off:focus-visible .map-dot-core {
+  transform: none;
+  border-color: var(--ink);
+}
+
+.map-dot-note {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* Panels laid over the full-screen map. */
+.glass {
+  background: rgb(8 18 31 / 0.82);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-contrast="high"] .glass {
+  background: #000000;
+  border: 2px solid #ffffff;
+  backdrop-filter: none;
+}
+
+/* Controls that stay out of the way until they are needed. */
+.quiet {
+  opacity: 0.45;
+  transition: opacity 180ms ease-out;
+}
+
+.quiet:hover,
+.quiet:focus-within {
+  opacity: 1;
+}
+
+:root[data-contrast="high"] .quiet {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .quiet {
+    opacity: 0.85;
+  }
+}
+
+.intro-scrim {
+  background:
+    linear-gradient(
+      90deg,
+      rgb(5 11 20 / 0.94) 0%,
+      rgb(5 11 20 / 0.78) 45%,
+      rgb(5 11 20 / 0.35) 100%
+    ),
+    radial-gradient(
+      ellipse 60% 70% at 85% 20%,
+      rgb(25 227 255 / 0.16),
+      transparent 70%
+    );
+}
+
+:root[data-contrast="high"] .intro-scrim {
+  background: #000000;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: rise-in 500ms ease-out both;
+}
+
 /* Dots fade out while the camera is flying. */
 .map-dots {
   transition: opacity 200ms ease-out;

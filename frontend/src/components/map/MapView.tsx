@@ -24,12 +24,14 @@ export interface MapMarker {
   id: string;
   name: string;
   point: LngLat;
+  /** False for places that are shown but cannot be opened yet. */
+  available: boolean;
 }
 
 export interface MapViewProps {
   ref?: Ref<MapViewHandle>;
   place: Place;
-  /** Dots the visitor can tap to travel to the next place. */
+  /** Dots on the map: places to travel to, and places still to come. */
   markers: MapMarker[];
   /** 2D is a flat map. 3D is a globe with relief and a tilted close-up. */
   view: ViewMode;
@@ -39,6 +41,7 @@ export interface MapViewProps {
   area: GeoJsonPolygon | null;
   label: string;
   dotHint: string;
+  upcomingLabel: string;
   gestureText: { desktop: string; mac: string; mobile: string };
   onSelect: (id: string) => void;
   onReady: () => void;
@@ -51,9 +54,9 @@ setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
 const AREA_SOURCE = "analysed-area";
 const TERRAIN_SOURCE = "terrain";
 const RELIEF_SOURCE = "relief";
-const FLIGHT_MS = 2800;
+const FLIGHT_MS = 3200;
 const DETAIL_PITCH = 62;
-const MAX_PITCH = 75;
+const MAX_PITCH = 78;
 const RELIEF_EXAGGERATION = 2.8;
 
 /**
@@ -133,6 +136,13 @@ function angularDistance(a: LngLat, b: LngLat) {
   return Math.acos(Math.min(1, Math.max(-1, cos))) / rad;
 }
 
+/** Room left for the panels laid over the map, so places are not hidden. */
+function framePadding(width: number) {
+  return width >= 900
+    ? { top: 96, bottom: 72, left: 440, right: 96 }
+    : { top: 84, bottom: 260, left: 28, right: 28 };
+}
+
 /**
  * The map itself. It only follows orders: the parent says which place to
  * show and in which view, and the camera goes there. Dots are real buttons
@@ -147,6 +157,7 @@ export default function MapView({
   area,
   label,
   dotHint,
+  upcomingLabel,
   gestureText,
   onSelect,
   onReady,
@@ -158,6 +169,8 @@ export default function MapView({
   const loadedRef = useRef(false);
   const dotRefs = useRef(new Map<string, HTMLButtonElement>());
   const flightTimer = useRef<number | undefined>(undefined);
+  const freeRef = useRef(false);
+  const applied = useRef<{ globe?: boolean; relief?: boolean }>({});
 
   // Latest values for the map callbacks, without re-creating the map.
   const latest = useRef({ place, markers, view, reducedMotion, area });
@@ -224,7 +237,7 @@ export default function MapView({
         point.y < height + 24;
       element.style.visibility = !hidden && inside ? "visible" : "hidden";
       element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
-      element.dataset.side = point.x > width * 0.6 ? "left" : "right";
+      element.dataset.side = point.x > width * 0.62 ? "left" : "right";
     }
   }
 
@@ -244,27 +257,41 @@ export default function MapView({
 
   function applyView(animate: boolean) {
     const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
+    const container = containerRef.current;
+    if (!map || !container || !loadedRef.current) return;
     const { place, view, reducedMotion, area } = latest.current;
     const is3d = view === "3d";
     const detail = place.detail;
     const relief = is3d && Boolean(detail);
 
-    map.setProjection({ type: is3d ? "globe" : "mercator" });
-    map.setTerrain(
-      relief
-        ? { source: TERRAIN_SOURCE, exaggeration: RELIEF_EXAGGERATION }
-        : null,
-    );
-    map.setPaintProperty(
-      "relief-shade",
-      "hillshade-exaggeration",
-      relief ? 0.95 : 0.22,
-    );
-    if (map.getLayer("relief-color")) {
-      map.setPaintProperty("relief-color", "color-relief-opacity", relief ? 0.7 : 0);
+    // These are only touched when they change: setting them again would
+    // interrupt a flight that is already under way.
+    if (applied.current.globe !== is3d) {
+      applied.current.globe = is3d;
+      map.setProjection({ type: is3d ? "globe" : "mercator" });
     }
-    setFreeCamera(map, relief);
+    if (applied.current.relief !== relief) {
+      applied.current.relief = relief;
+      map.setTerrain(
+        relief
+          ? { source: TERRAIN_SOURCE, exaggeration: RELIEF_EXAGGERATION }
+          : null,
+      );
+      map.setPaintProperty(
+        "relief-shade",
+        "hillshade-exaggeration",
+        relief ? 0.95 : 0.22,
+      );
+      if (map.getLayer("relief-color")) {
+        map.setPaintProperty(
+          "relief-color",
+          "color-relief-opacity",
+          relief ? 0.7 : 0,
+        );
+      }
+      setFreeCamera(map, relief);
+      freeRef.current = relief;
+    }
 
     ensureAreaLayers(map, area);
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
@@ -277,26 +304,44 @@ export default function MapView({
       }
     }
 
-    const duration = animate && !reducedMotion ? FLIGHT_MS : 0;
-    if (duration > 0) setFlying(true);
+    const padding = framePadding(container.clientWidth);
+    let target: { center: LngLat; zoom: number };
     if (detail) {
-      map.flyTo({
+      target = {
         center: detail.center,
         zoom: is3d ? detail.zoom : detail.zoom - 0.3,
-        pitch: is3d ? DETAIL_PITCH : 0,
-        bearing: 0,
-        duration,
+      };
+    } else {
+      const fitted = map.cameraForBounds(place.bounds, { padding, maxZoom: 9 });
+      const center = fitted?.center as { lng: number; lat: number } | undefined;
+      target = {
+        center: center
+          ? [center.lng, center.lat]
+          : [
+              (place.bounds[0][0] + place.bounds[1][0]) / 2,
+              (place.bounds[0][1] + place.bounds[1][1]) / 2,
+            ],
+        zoom: Math.max(fitted?.zoom ?? 1.2, 0.9),
+      };
+    }
+    const camera = {
+      ...target,
+      pitch: relief ? DETAIL_PITCH : 0,
+      bearing: 0,
+      // Keeps the place clear of the panels laid over the map.
+      padding,
+    };
+
+    if (animate && !reducedMotion) {
+      setFlying(true);
+      map.flyTo({
+        ...camera,
+        duration: FLIGHT_MS,
+        curve: 1.5,
         essential: true,
       });
     } else {
-      map.fitBounds(place.bounds, {
-        padding: 48,
-        maxZoom: 9,
-        pitch: 0,
-        bearing: 0,
-        duration,
-        essential: true,
-      });
+      map.jumpTo(camera);
     }
     updateDots();
   }
@@ -304,6 +349,10 @@ export default function MapView({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    // With a mouse, scrolling over the map zooms it straight away. On touch
+    // screens one finger keeps scrolling the page and two fingers move the map.
+    const touch = window.matchMedia("(pointer: coarse)").matches;
 
     let map: MapLibreMap;
     try {
@@ -313,8 +362,7 @@ export default function MapView({
         center: [-52, -14],
         zoom: 1,
         attributionControl: { compact: true },
-        // The page keeps scrolling normally; zooming needs a deliberate gesture.
-        cooperativeGestures: true,
+        cooperativeGestures: touch,
         // Rotation and tilt start off; they are switched on at the 3D close-up.
         dragRotate: false,
         touchPitch: false,
@@ -336,6 +384,54 @@ export default function MapView({
 
     map.on("render", updateDots);
     map.on("moveend", () => setFlying(false));
+
+    // Orbit like a CAD viewer: hold the mouse wheel and drag to rotate and
+    // tilt, or hold Shift while scrolling to rotate.
+    let orbit: { x: number; y: number; id: number } | null = null;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 1 || !freeRef.current) return;
+      event.preventDefault();
+      map.stop();
+      orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      container.setPointerCapture(event.pointerId);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!orbit || event.pointerId !== orbit.id) return;
+      const dx = event.clientX - orbit.x;
+      const dy = event.clientY - orbit.y;
+      orbit.x = event.clientX;
+      orbit.y = event.clientY;
+      map.jumpTo({
+        bearing: map.getBearing() + dx * 0.4,
+        pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() - dy * 0.3)),
+      });
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      if (!orbit || event.pointerId !== orbit.id) return;
+      orbit = null;
+      container.releasePointerCapture(event.pointerId);
+    };
+    // Stops the browser's own "auto-scroll" on a middle click.
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button === 1) event.preventDefault();
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (!event.shiftKey || !freeRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      map.setBearing(
+        map.getBearing() + (event.deltaY || event.deltaX) * 0.12,
+      );
+    };
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("pointercancel", onPointerUp);
+    container.addEventListener("mousedown", onMouseDown);
+    container.addEventListener("wheel", onWheel, {
+      capture: true,
+      passive: false,
+    });
 
     // "style.load" fires as soon as the map can be drawn, before every tile arrives.
     map.once("style.load", () => {
@@ -397,7 +493,7 @@ export default function MapView({
           source: RELIEF_SOURCE,
           minzoom: 7,
           paint: {
-            "hillshade-exaggeration": 0.5,
+            "hillshade-exaggeration": 0.22,
             "hillshade-method": "multidirectional",
             "hillshade-shadow-color": "#020810",
             "hillshade-highlight-color": "#6fc9e0",
@@ -421,7 +517,14 @@ export default function MapView({
     return () => {
       window.clearTimeout(flightTimer.current);
       resize.disconnect();
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("pointercancel", onPointerUp);
+      container.removeEventListener("mousedown", onMouseDown);
+      container.removeEventListener("wheel", onWheel, { capture: true });
       loadedRef.current = false;
+      applied.current = {};
       mapRef.current = null;
       map.remove();
     };
@@ -433,7 +536,7 @@ export default function MapView({
     latest.current = { place, markers, view, reducedMotion, area };
     applyView(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place, view, area]);
+  }, [place.id, view, area]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
@@ -463,14 +566,28 @@ export default function MapView({
               else dotRefs.current.delete(marker.id);
             }}
             type="button"
-            aria-label={`${marker.name}. ${dotHint}`}
-            onClick={() => onSelect(marker.id)}
-            className="map-dot pointer-events-auto invisible absolute left-0 top-0"
+            aria-disabled={marker.available ? undefined : true}
+            aria-label={
+              marker.available
+                ? `${marker.name}. ${dotHint}`
+                : `${marker.name}. ${upcomingLabel}`
+            }
+            onClick={() => {
+              if (marker.available) onSelect(marker.id);
+            }}
+            className={`map-dot pointer-events-auto invisible absolute left-0 top-0 ${
+              marker.available ? "" : "map-dot-off"
+            }`}
           >
-            <span aria-hidden="true" className="map-dot-ring" />
+            {marker.available && (
+              <span aria-hidden="true" className="map-dot-ring" />
+            )}
             <span aria-hidden="true" className="map-dot-core" />
             <span aria-hidden="true" className="map-dot-label">
               {marker.name}
+              {!marker.available && (
+                <span className="map-dot-note">{upcomingLabel}</span>
+              )}
             </span>
           </button>
         ))}
