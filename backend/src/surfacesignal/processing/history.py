@@ -11,12 +11,24 @@ from datetime import UTC, date, datetime, time
 from functools import partial
 from pathlib import Path
 
+import numpy as np
 from shapely.geometry import shape
 
-from surfacesignal.domain import CatalogSnapshot, comparable
-from surfacesignal.processing.gcov import DIAGONALS
-from surfacesignal.processing.pipeline import ARTIFACT_NAMES
+from surfacesignal import __version__
+from surfacesignal.domain import AreaConfig, CatalogSnapshot, comparable
+from surfacesignal.processing.gcov import DIAGONALS, ROOT, inspect_gcov, verify_scene
+from surfacesignal.processing.pipeline import (
+    ARTIFACT_NAMES,
+    ArtifactIntegrityError,
+    run_analysis,
+    runtime_versions,
+    verify_artifacts,
+)
+from surfacesignal.processing.pipeline import (
+    implementation_fingerprint as analysis_implementation_fingerprint,
+)
 from surfacesignal.providers import asf
+from surfacesignal.providers.hydro import HydroRecord, context_for
 from surfacesignal.storage import checksum, read_json, safe_id, write_json
 
 VALIDATED_COLLECTION = "NISAR_L2_GCOV_V1"
@@ -129,6 +141,7 @@ def plan_history(
             not math.isfinite(params[k])
             for k in ("delta_threshold", "water_threshold", "min_looks")
         )
+        or params["delta_threshold"] >= 0
         or params["min_looks"] < 0
         or params["min_component_pixels"] < 1
         or params["edge_pixels"] < 0
@@ -146,6 +159,9 @@ def plan_history(
         "parameters": params,
         "hydro_sha256": checksum(hydro_csv) if hydro_csv else None,
         "implementation_sha256": implementation_fingerprint(),
+        "analysis_implementation_sha256": analysis_implementation_fingerprint(),
+        "runtime_versions": runtime_versions(),
+        "package_version": __version__,
     }
     directory = history_directory(settings, snapshot.area_id)
     plan_path = directory / "plan.json"
@@ -340,7 +356,18 @@ def planning_summary(settings, plan, *, inventory=None):
         "scene_count": len(scenes),
         "mandatory_scene_count": len(plan["mandatory_ids"]),
         "candidate_pairs": len(plan["pairs"]),
-        "catalog": plan["catalog"],
+        "catalog": [
+            {
+                "scene_id": s.scene_id,
+                "start_time": s.start_time.isoformat(),
+                "collection": s.metadata.get("collection", "unknown"),
+                "size_bytes": s.size_bytes,
+                "mandatory": s.scene_id in plan["mandatory_ids"],
+                "synthetic": s.synthetic,
+            }
+            for s in scenes
+        ],
+        "parameters": plan["parameters"],
         "pairs": plan["pairs"],
         "groups": plan["groups"],
         "total_bytes": total,
@@ -451,6 +478,270 @@ def download_history(settings, plan, *, download_fn=None, progress=None, state_c
     return result
 
 
+def _inspect_inputs(settings, plan, records):
+    scenes = {s.scene_id: s for s in CatalogSnapshot.model_validate(plan["catalog"]).scenes}
+    for record in records:
+        if record["status"] != "verified":
+            continue
+        path = settings.root / record["path"]
+        try:
+            verify_scene(path, scenes[record["scene_id"]])
+            inspected = inspect_gcov(path)
+            dataset = inspected["datasets"].get(
+                f"{ROOT}/frequency{plan['parameters']['frequency']}/{plan['parameters']['channel']}"
+            )
+            if dataset is None:
+                raise ValueError("Requested frequency/channel unavailable in HDF5")
+            if len(dataset["shape"]) != 2 or np.dtype(dataset["dtype"]).kind not in ("f", "i", "u"):
+                raise ValueError("Covariance channel is not real two-dimensional power")
+            inspected.update(
+                scene_id=record["scene_id"],
+                source_url=record["source_url"],
+                input_sha256=record["receipt"]["sha256"],
+                parameters=plan["parameters"],
+            )
+            inspection_path = (
+                history_directory(settings, plan["area_id"])
+                / "inspections"
+                / (safe_id(record["scene_id"]) + ".json")
+            )
+            write_json(inspection_path, inspected)
+            record["inspection"] = {
+                "status": "compatible",
+                "path": str(inspection_path.relative_to(settings.root)),
+                "sha256": checksum(inspection_path),
+                "selected_dataset": dataset,
+            }
+        except (ValueError, KeyError) as exc:
+            record["inspection"] = {
+                "status": "blocked",
+                "reason": str(exc)
+                if type(exc) is ValueError
+                else "Required GCOV identification/grid metadata missing",
+            }
+        except OSError:
+            record["inspection"] = {
+                "status": "failed",
+                "reason": "Cannot inspect local HDF5; check file accessibility and rerun",
+            }
+
+
+def _pair_identity(plan, pair, inventory):
+    scenes = {s.scene_id: s for s in CatalogSnapshot.model_validate(plan["catalog"]).scenes}
+    selected = [scenes[pair[k]] for k in ("before", "after")]
+    inputs = [inventory[s.scene_id]["receipt"]["sha256"] for s in selected]
+    context = context_for(
+        [HydroRecord.model_validate(r) for r in plan["hydrology"]["records"]],
+        selected[1].start_time,
+    )
+    identity = {
+        "scenes": [s.model_dump(mode="json") for s in selected],
+        "input_sha256": inputs,
+        "parameters": plan["parameters"],
+        "area": plan["area"],
+        "hydrological_context": context,
+        "implementation_sha256": plan["request"]["analysis_implementation_sha256"],
+        "package_version": plan["request"]["package_version"],
+        "versions": plan["request"]["runtime_versions"],
+    }
+    return fingerprint(identity), identity
+
+
+def _verify_pair_result(settings, plan, pair, inventory, record):
+    key, identity = _pair_identity(plan, pair, inventory)
+    if record.get("pair_key") != key:
+        raise ArtifactIntegrityError("Saved pair identity failed integrity check")
+    identifier = safe_id(record["analysis_id"])
+    analysis = verify_artifacts(
+        settings.artifacts_dir / identifier, manifest_sha256=record["manifest_sha256"]
+    )
+    if (
+        analysis.parameters != identity["parameters"]
+        or [s.model_dump(mode="json") for s in analysis.scenes] != identity["scenes"]
+        or any(
+            analysis.provenance.get(k) != identity[k]
+            for k in (
+                "area",
+                "input_sha256",
+                "hydrological_context",
+                "implementation_sha256",
+                "package_version",
+                "versions",
+            )
+        )
+    ):
+        raise ArtifactIntegrityError(
+            "Saved manifest does not match requested scenes, parameters or provenance"
+        )
+    return analysis
+
+
+def _process_pairs(
+    settings, plan, records, pairs, *, analyze_fn=None, checkpoint=None, progress=None
+):
+    inventory = {r["scene_id"]: r for r in records}
+    scenes = {s.scene_id: s for s in CatalogSnapshot.model_validate(plan["catalog"]).scenes}
+    area = AreaConfig.model_validate(plan["area"])
+    hydro = [HydroRecord.model_validate(r) for r in plan["hydrology"]["records"]]
+    _inspect_inputs(settings, plan, records)
+    if checkpoint:
+        checkpoint()
+    for index, result in enumerate(pairs):
+        result.pop("reason", None)
+        pair = plan["pairs"][index]
+        inputs = [inventory[pair[k]] for k in ("before", "after")]
+        if any(r["status"] != "verified" for r in inputs):
+            result.update(
+                status="pending",
+                reason="Required raw HDF5 is not verified; resolve scene status and rerun",
+            )
+            continue
+        key, identity = _pair_identity(plan, pair, inventory)
+        result.update(pair_key=key, input_sha256=identity["input_sha256"])
+        blocked = next((r for r in inputs if r["inspection"]["status"] != "compatible"), None)
+        if blocked:
+            result.update(
+                status=blocked["inspection"]["status"],
+                reason=blocked["inspection"]["reason"],
+                reason_code="file_incompatible"
+                if blocked["inspection"]["status"] == "blocked"
+                else "inspection_failed",
+            )
+            if checkpoint:
+                checkpoint()
+            continue
+        cache_path = history_directory(settings, plan["area_id"]) / "pairs" / (key + ".json")
+        try:
+            if cache_path.exists():
+                try:
+                    cached = read_json(cache_path)
+                    _verify_pair_result(settings, plan, pair, inventory, cached)
+                except (ValueError, OSError, KeyError, TypeError):
+                    pass  # Re-enter the pipeline; its integrity gate preserves damaged outputs.
+                else:
+                    result.update(cached | {"reused": True})
+                    continue
+            before, after = (scenes[pair[k]] for k in ("before", "after"))
+            analysis = (analyze_fn or run_analysis)(
+                settings.root / inputs[0]["path"],
+                settings.root / inputs[1]["path"],
+                before,
+                after,
+                area,
+                settings.artifacts_dir,
+                **plan["parameters"],
+                hydro_records=hydro,
+                verified_input_sha256=identity["input_sha256"],
+            )
+            result.update(
+                status="completed",
+                analysis_id=analysis.analysis_id,
+                manifest_sha256=checksum(
+                    settings.artifacts_dir / analysis.analysis_id / "manifest.json"
+                ),
+                reused=False,
+            )
+            _verify_pair_result(settings, plan, pair, inventory, result)
+            write_json(cache_path, result)
+        except ArtifactIntegrityError as exc:
+            result.update(status="failed", reason=str(exc), reason_code="artifact_integrity")
+        except (ValueError, KeyError) as exc:
+            result.update(
+                status="blocked",
+                reason=str(exc)
+                if type(exc) is ValueError
+                else "Required GCOV grid metadata missing",
+                reason_code="incompatible_input_or_coverage",
+            )
+        except OSError:
+            result.update(
+                status="failed",
+                reason="Local analysis I/O failed; check output disk/permissions and rerun",
+                reason_code="local_io",
+            )
+        finally:
+            if progress:
+                progress(
+                    {
+                        "event": "pair",
+                        "pair": index + 1,
+                        "pairs": len(pairs),
+                        "status": result["status"],
+                    }
+                )
+            if checkpoint:
+                checkpoint()
+
+
+def collection_summary(plan, records):
+    collections = {}
+    inventory = {r["scene_id"]: r for r in records}
+    for scene in CatalogSnapshot.model_validate(plan["catalog"]).scenes:
+        record = inventory[scene.scene_id]
+        summary = collections.setdefault(
+            scene.metadata.get("collection", "unknown"),
+            {
+                "scene_count": 0,
+                "mandatory_count": 0,
+                "known_bytes": 0,
+                "unknown_size_count": 0,
+                "verified_count": 0,
+                "verified_bytes": 0,
+            },
+        )
+        summary["scene_count"] += 1
+        summary["mandatory_count"] += int(scene.scene_id in plan["mandatory_ids"])
+        summary["known_bytes"] += scene.size_bytes or 0
+        summary["unknown_size_count"] += int(scene.size_bytes is None)
+        if record["status"] == "verified":
+            summary["verified_count"] += 1
+            summary["verified_bytes"] += scene.size_bytes or 0
+    return collections
+
+
+def _report(settings, plan, downloads, pairs):
+    records = downloads["scenes"]
+    complete_downloads = bool(records) and all(r["status"] == "verified" for r in records)
+    completed = (
+        complete_downloads
+        and not downloads["error"]
+        and all(p["status"] in ("completed", "blocked") for p in pairs)
+    )
+    return {
+        "schema_version": 1,
+        "updated_at": datetime.now(UTC).isoformat(),
+        "area_id": plan["area_id"],
+        "plan_id": plan["plan_id"],
+        "plan_sha256": checksum(history_directory(settings, plan["area_id"]) / "plan.json"),
+        "snapshot": plan["snapshot"],
+        "parameters": plan["parameters"],
+        "validated_query": plan["validated_query"],
+        "groups": plan["groups"],
+        "collections": collection_summary(plan, records),
+        "scenes": records,
+        "scene_counts": {
+            status: sum(r["status"] == status for r in records)
+            for status in ("verified", "pending", "unknown_size", "needs_review", "failed")
+        },
+        "pairs": pairs,
+        "pair_counts": {
+            status: sum(r["status"] == status for r in pairs)
+            for status in ("completed", "blocked", "pending", "failed")
+        },
+        "downloads_complete": complete_downloads,
+        "completed": completed,
+        "disk": downloads["disk"],
+        "error": downloads["error"],
+        "validation_status": "not_validated",
+        "interpretation": "Exploratory open-water change candidates; no independent spatial validation; not confirmed flooding",
+        "report_path": str(
+            (history_directory(settings, plan["area_id"]) / "report.json").relative_to(
+                settings.root
+            )
+        ),
+    }
+
+
 def run_history(
     settings,
     snapshot_path,
@@ -460,6 +751,8 @@ def run_history(
     hydro_csv=None,
     dry_run=False,
     progress=None,
+    download_fn=None,
+    analyze_fn=None,
 ):
     snapshot = CatalogSnapshot.model_validate(read_json(snapshot_path))
     with history_lock(settings, snapshot.area_id):
@@ -472,4 +765,153 @@ def run_history(
         )
         if dry_run:
             return planning_summary(settings, plan)
-        return download_history(settings, plan, progress=progress)
+        write_json(settings.catalog_dir / (safe_id(plan["area_id"]) + ".json"), plan["catalog"])
+        pairs = [
+            pair | {"status": "pending", "reason": "Processing not yet attempted"}
+            for pair in plan["pairs"]
+        ]
+        directory = history_directory(settings, plan["area_id"])
+
+        def save_downloads(downloads):
+            write_json(directory / "report.json", _report(settings, plan, downloads, pairs))
+
+        downloads = download_history(
+            settings,
+            plan,
+            download_fn=download_fn,
+            progress=progress,
+            state_callback=save_downloads,
+        )
+
+        def checkpoint():
+            save_downloads(downloads)
+
+        try:
+            if not downloads["error"]:
+                _process_pairs(
+                    settings,
+                    plan,
+                    downloads["scenes"],
+                    pairs,
+                    analyze_fn=analyze_fn,
+                    checkpoint=checkpoint,
+                    progress=progress,
+                )
+        finally:
+            checkpoint()
+        return read_json(directory / "report.json")
+
+
+def verify_history(settings, area_id):
+    """Verify the recorded local batch without consulting a provider or rerunning science."""
+    errors = []
+    directory = history_directory(settings, area_id)
+    try:
+        with history_lock(settings, area_id):
+            plan = read_json(directory / "plan.json")
+            report = read_json(directory / "report.json")
+            if (
+                plan["plan_id"] != fingerprint({k: v for k, v in plan.items() if k != "plan_id"})
+                or report["plan_sha256"] != checksum(directory / "plan.json")
+                or report["plan_id"] != plan["plan_id"]
+            ):
+                raise ValueError("Plan/report identity or hash mismatch")
+            catalog = CatalogSnapshot.model_validate(plan["catalog"])
+            snapshot = CatalogSnapshot.model_validate(plan["snapshot"]["catalog"])
+            expected_pairs, expected_groups = candidate_pairs(catalog.scenes)
+            expected_ids = [s.scene_id for s in catalog.scenes]
+            if (
+                catalog.area_id != area_id
+                or plan["area_id"] != area_id
+                or report["area_id"] != area_id
+                or any(s.area_id != area_id for s in catalog.scenes)
+            ):
+                raise ValueError("History area mismatch")
+            if (
+                len(expected_ids) != len(set(expected_ids))
+                or set(plan["mandatory_ids"]) != {s.scene_id for s in snapshot.scenes}
+                or not set(plan["mandatory_ids"]) <= set(expected_ids)
+            ):
+                raise ValueError("Mandatory/catalog inventory mismatch")
+            if (
+                plan["pairs"] != expected_pairs
+                or plan["groups"] != expected_groups
+                or report["groups"] != expected_groups
+                or report["parameters"] != plan["parameters"]
+                or report["snapshot"] != plan["snapshot"]
+            ):
+                raise ValueError("Plan/report specification mismatch")
+            if [r["scene_id"] for r in report["scenes"]] != expected_ids or [
+                {k: p[k] for k in ("before", "after")} for p in report["pairs"]
+            ] != expected_pairs:
+                raise ValueError("Report omitted or duplicated required scenes/pairs")
+            records = raw_inventory(settings, plan)
+            inventory = {r["scene_id"]: r for r in records}
+            for recorded, actual in zip(report["scenes"], records, strict=True):
+                if actual["status"] != "verified":
+                    errors.append(f"{actual['scene_id']}: raw/receipt {actual['status']}")
+                    continue
+                if (
+                    recorded.get("status") != "verified"
+                    or recorded.get("receipt") != actual["receipt"]
+                    or recorded.get("receipt_sha256") != actual["receipt_sha256"]
+                ):
+                    errors.append(f"{actual['scene_id']}: recorded receipt differs")
+                inspection = recorded.get("inspection", {})
+                if inspection.get("status") == "compatible":
+                    expected_path = (
+                        directory / "inspections" / (safe_id(actual["scene_id"]) + ".json")
+                    )
+                    if (
+                        not expected_path.is_file()
+                        or expected_path.is_symlink()
+                        or checksum(expected_path) != inspection.get("sha256")
+                    ):
+                        errors.append(f"{actual['scene_id']}: inspection integrity failed")
+            for pair, recorded in zip(expected_pairs, report["pairs"], strict=True):
+                label = f"{pair['before']} -> {pair['after']}"
+                if any(inventory[pair[k]]["status"] != "verified" for k in ("before", "after")):
+                    errors.append(f"{label}: unverified inputs")
+                    continue
+                try:
+                    if recorded["status"] == "completed":
+                        _verify_pair_result(settings, plan, pair, inventory, recorded)
+                    elif recorded["status"] == "blocked":
+                        key, _ = _pair_identity(plan, pair, inventory)
+                        if (
+                            not recorded.get("reason")
+                            or recorded.get("pair_key") != key
+                            or recorded.get("reason_code")
+                            not in ("file_incompatible", "incompatible_input_or_coverage")
+                        ):
+                            raise ValueError("Invalid blocked pair record")
+                    else:
+                        errors.append(f"{label}: {recorded['status']}; rerun history")
+                except (ValueError, OSError, KeyError, TypeError):
+                    errors.append(f"{label}: analysis/manifest integrity failed")
+            if report["collections"] != collection_summary(plan, records):
+                errors.append("Collection totals differ from verified inventory")
+            expected_complete = (
+                all(r["status"] == "verified" for r in records)
+                and all(p["status"] in ("completed", "blocked") for p in report["pairs"])
+                and not report.get("error")
+            )
+            if report["completed"] != expected_complete or not report["completed"]:
+                errors.append("Batch is incomplete; resolve recorded reasons and rerun history")
+            return {
+                "verified": not errors,
+                "completed": report["completed"] and not errors,
+                "area_id": area_id,
+                "scene_count": len(records),
+                "pair_count": len(expected_pairs),
+                "errors": errors,
+            }
+    except (ValueError, OSError, KeyError, TypeError):
+        return {
+            "verified": False,
+            "completed": False,
+            "area_id": area_id,
+            "errors": [
+                "Local plan/report unavailable, inconsistent or locked; inspect the history files and rerun history"
+            ],
+        }

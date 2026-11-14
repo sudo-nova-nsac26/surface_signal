@@ -12,7 +12,7 @@ from surfacesignal.config import Settings
 from surfacesignal.domain import Scene, shortlist
 from surfacesignal.main import load_areas, load_scenes
 from surfacesignal.processing.gcov import crop, inspect_gcov
-from surfacesignal.processing.history import run_history
+from surfacesignal.processing.history import run_history, verify_history
 from surfacesignal.processing.pipeline import run_analysis
 from surfacesignal.providers.asf import ProviderError, download, search
 from surfacesignal.providers.hydro import read_records
@@ -69,6 +69,10 @@ def parser():
     run.add_argument("--snapshot", type=Path, default=Path("docs/evidence/asf-catalog.json"))
     run.add_argument("--with-validated-through", type=date.fromisoformat)
     run.add_argument("--dry-run", action="store_true")
+    verify = history.add_parser(
+        "verify", help="Verify local raw files, report and artifact hashes offline"
+    )
+    verify.add_argument("--area", required=True)
     for action in analysis._actions:
         if action.dest in {
             "frequency",
@@ -112,15 +116,26 @@ def main(argv=None):
 
     try:
         selected_area = area(args.area) if hasattr(args, "area") else None
-        if hasattr(args, "area") and selected_area is None:
+        if hasattr(args, "area") and selected_area is None and args.group != "history":
             raise ValueError("Area not found in configuration")
         if args.group == "history":
+            if args.command == "verify":
+                result = verify_history(settings, args.area)
+                print(json.dumps(result, indent=2, allow_nan=False))
+                return 0 if result["verified"] and result["completed"] else 3
             from surfacesignal.processing.history import DEFAULT_PARAMETERS
 
             last_progress = 0.0
 
             def progress(event):
                 nonlocal last_progress
+                if event["event"] == "pair":
+                    print(
+                        f"Pair [{event['pair']}/{event['pairs']}]: {event['status']}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    return
                 now = time.monotonic()
                 if event["event"] != "bytes" or now - last_progress >= 2:
                     print(
@@ -139,6 +154,20 @@ def main(argv=None):
                 dry_run=args.dry_run,
                 progress=progress,
             )
+            if not args.dry_run:
+                result = {
+                    k: result[k]
+                    for k in (
+                        "area_id",
+                        "completed",
+                        "downloads_complete",
+                        "scene_counts",
+                        "pair_counts",
+                        "collections",
+                        "report_path",
+                        "error",
+                    )
+                }
         elif args.group == "scenes":
             if args.command == "search":
                 start, end = datetime.fromisoformat(args.start), datetime.fromisoformat(args.end)
@@ -228,12 +257,18 @@ def main(argv=None):
                 hydro_records=read_records(args.hydro_csv) if args.hydro_csv else [],
             ).model_dump(mode="json")
         print(json.dumps(result, indent=2, allow_nan=False))
-        if args.group == "history" and not args.dry_run and not result["downloads_complete"]:
+        if args.group == "history" and not args.dry_run and not result["completed"]:
             return 3
         return 0
     except ProviderError as exc:
         print(f"External provider unavailable: {exc}", file=sys.stderr)
         return 3
+    except KeyboardInterrupt:
+        print(
+            "Interrupted; completed raw files and checkpoints were retained. Rerun the same history command to resume.",
+            file=sys.stderr,
+        )
+        return 130
     except (ValueError, KeyError, OSError) as exc:
         # Never print arbitrary file content, URLs containing credentials, or provider bodies.
         message = (
