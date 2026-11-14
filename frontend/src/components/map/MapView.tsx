@@ -437,7 +437,7 @@ export default function MapView({
         if (motion === "none") {
           map.setSky({ "atmosphere-blend": ATMOSPHERE_BY_ZOOM } as never);
         } else {
-          fadeGlow(0, 1, 900);
+          fadeGlow(0, 1, 450);
         }
       }
     }
@@ -726,7 +726,7 @@ export default function MapView({
 
     if (toFlat) {
       // Globe -> map: the glow goes out first, then the whole movement.
-      fadeGlow(1, 0, 380, run);
+      fadeGlow(1, 0, 200, run);
     } else {
       // Map -> globe: the whole movement first (no glow), then the glow
       // comes back in applyView once the globe is in place.
