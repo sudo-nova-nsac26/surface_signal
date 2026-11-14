@@ -1,47 +1,32 @@
 import { htmlLang, locales, type Locale } from "@/i18n/config";
+import { LanguagesIcon } from "./icons";
 
-const names: Record<Locale, { short: string; full: string }> = {
-  pt: { short: "PT", full: "Português" },
-  en: { short: "EN", full: "English" },
+/** Shown on the button: the language you will switch to. */
+const names: Record<Locale, { short: string; action: string }> = {
+  pt: { short: "PT", action: "Ler em português" },
+  en: { short: "EN", action: "Read in English" },
 };
 
 /**
- * Language names are shown in their own language on purpose, so a visitor who
- * landed on the wrong one can still recognise theirs.
- *
- * These are plain links on purpose: changing language reloads the page, so the
- * document language and the pre-paint preferences script are applied cleanly.
+ * One quiet button that shows the other language, like the team site: a
+ * translate icon and the code of the language you will get ("EN" while you
+ * read Portuguese). It is a plain link on purpose: changing language reloads
+ * the page, so the document language and the pre-paint preferences script
+ * are applied cleanly.
  */
-export function LanguageSwitch({
-  current,
-  label,
-}: {
-  current: Locale;
-  label: string;
-}) {
+export function LanguageSwitch({ current }: { current: Locale }) {
+  const target = locales.find((locale) => locale !== current) ?? current;
   return (
-    <nav aria-label={label}>
-      <ul className="flex overflow-hidden rounded-xl border-2 border-ink">
-        {locales.map((locale) => {
-          const active = locale === current;
-          return (
-            <li key={locale}>
-              <a
-                href={`/${locale}`}
-                hrefLang={htmlLang[locale]}
-                lang={htmlLang[locale]}
-                aria-current={active ? "true" : undefined}
-                className={`flex min-h-12 min-w-14 items-center justify-center px-3 font-bold ${
-                  active ? "bg-ink text-surface" : "bg-surface text-ink underline"
-                }`}
-              >
-                <span aria-hidden="true">{names[locale].short}</span>
-                <span className="sr-only">{names[locale].full}</span>
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <a
+      href={`/${target}`}
+      hrefLang={htmlLang[target]}
+      lang={htmlLang[target]}
+      title={names[target].action}
+      aria-label={names[target].action}
+      className="tool-button"
+    >
+      <LanguagesIcon width="1.15em" height="1.15em" />
+      <span aria-hidden="true">{names[target].short}</span>
+    </a>
   );
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible } from "next/font/google";
+import { Atkinson_Hyperlegible, Poppins } from "next/font/google";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
@@ -12,6 +12,13 @@ import "../globals.css";
 const atkinson = Atkinson_Hyperlegible({
   variable: "--font-atkinson",
   weight: ["400", "700"],
+  subsets: ["latin"],
+});
+
+// The geometric sans of the SurfaceSignal logo, used only for the name.
+const brandFont = Poppins({
+  variable: "--font-brand",
+  weight: ["700"],
   subsets: ["latin"],
 });
 
@@ -49,7 +56,7 @@ export default async function RootLayout({
     // which is the one mismatch suppressHydrationWarning is meant for.
     <html
       lang={htmlLang[lang]}
-      className={`${atkinson.variable} h-full antialiased`}
+      className={`${atkinson.variable} ${brandFont.variable} h-full antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

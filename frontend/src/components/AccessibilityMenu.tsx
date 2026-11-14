@@ -87,10 +87,12 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="pressable flex min-h-12 items-center gap-2 rounded-xl border-2 border-transparent bg-brand px-4 font-bold text-brand-ink hc:border-ink"
+        aria-label={labels.open}
+        title={labels.open}
+        className="tool-button"
       >
-        <AccessibilityIcon />
-        <span>{labels.open}</span>
+        <AccessibilityIcon width="1.3em" height="1.3em" />
+        <span className="hidden sm:inline">{labels.open}</span>
       </button>
 
       <div

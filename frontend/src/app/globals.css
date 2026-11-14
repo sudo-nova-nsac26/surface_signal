@@ -128,6 +128,44 @@ body {
   line-height: 1.6;
 }
 
+/* The wordmark uses the logo typeface. */
+.brand-name {
+  font-family: var(--font-brand), var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/*
+ * Quiet header buttons, in the pattern of the team site: no fill and no
+ * border until the pointer arrives, an icon with a short label.
+ */
+.tool-button {
+  display: inline-flex;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.3125rem;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+.tool-button:hover,
+.tool-button[aria-expanded="true"] {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
 /* A white ring with a dark halo stays visible on navy and on cyan alike. */
 :focus-visible {
   outline: 0.1875rem solid var(--focus);
