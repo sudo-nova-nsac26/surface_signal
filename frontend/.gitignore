@@ -42,3 +42,4 @@ next-env.d.ts
 
 # prepared sample data is part of the site (the repository root ignores "data/")
 !/public/data/
+!/src/data/
