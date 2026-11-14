@@ -108,6 +108,17 @@ services that need no key or account.
 - **Opening**: a slowly turning globe sits behind the introduction. "Start"
   fades the introduction while the camera pulls back to the flat map.
 - The outline of the analysed area comes from the data layer.
+- **Timeline** ([`Timeline.tsx`](src/components/map/Timeline.tsx)): at the valley
+  close-up, every satellite pass from the catalog is a dot on a line of time,
+  every analysis the backend has published is a bar from its before date to
+  its after date, and river bulletins found in the analyses are marked. Picking
+  a bar draws that analysis's `change-candidates.geojson` on the map. The
+  history batch in the backend produces one analysis per consecutive pair, so
+  real results appear here with no code change.
+- **Opening**: the map is created only when the browser is idle, so the page
+  paints first. On "Start" the introduction sinks back and blurs while the
+  globe moves to the centre and grows, then the view settles into the map.
+- Sections below the map rise into view as they are reached.
 
 `npm run dev` and `npm run build` first copy the MapLibre worker file into
 `public/vendor` (not committed).

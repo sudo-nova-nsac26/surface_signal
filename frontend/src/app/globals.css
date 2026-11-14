@@ -418,6 +418,43 @@ body {
   animation: rise-in 500ms ease-out both;
 }
 
+/*
+ * Leaving the introduction: the text sinks back and blurs while the globe
+ * behind it comes forward; the dark veil lifts a moment later.
+ */
+.intro-scrim {
+  transition: opacity 900ms ease-out 350ms;
+}
+
+.intro-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-leaving .stagger {
+  opacity: 0;
+  transform: scale(0.88) translateY(-0.5rem);
+  filter: blur(8px);
+  transition:
+    opacity 650ms ease-in,
+    transform 800ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 800ms ease-in;
+}
+
+/* Sections below the map rise into view as they are reached. */
+[data-js] .reveal {
+  opacity: 0;
+  transform: translateY(2.5rem);
+  transition:
+    opacity 700ms ease-out,
+    transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-js] .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
 /* The children of an introduction arrive one after another. */
 .stagger > * {
   animation: rise-in 800ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
