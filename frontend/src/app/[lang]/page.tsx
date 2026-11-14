@@ -8,6 +8,7 @@ import {
   PlantIcon,
   WaterIcon,
 } from "@/components/icons";
+import { GuidedStory } from "@/components/map/GuidedStory";
 import { RegionStatus } from "@/components/RegionStatus";
 import type { LayerId, LayerStatus } from "@/data/region";
 import { hasLocale } from "@/i18n/config";
@@ -182,22 +183,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             {dict.story.title}
           </h2>
           <p className="mt-2 max-w-2xl text-ink-soft">{dict.story.lead}</p>
-          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {dict.story.steps.map((step, index) => (
-              <li
-                key={step}
-                className="card flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 font-bold hc:border-2"
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-xl text-brand-ink hc:bg-highlight hc:text-highlight-ink"
-                >
-                  {index + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
+          <GuidedStory steps={dict.story.steps} labels={dict.map} />
           <RegionStatus lang={lang} labels={dict.region} badge={dict.illustrative} />
         </div>
       </section>
