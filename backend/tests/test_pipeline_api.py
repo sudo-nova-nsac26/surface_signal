@@ -46,6 +46,19 @@ def test_pipeline_reproducible_and_honest(prepared):
     assert -180 < geo["features"][0]["geometry"]["coordinates"][0][0][0] < 180
 
 
+def test_pipeline_rejects_incomplete_artifact_hash_inventory(prepared):
+    from surfacesignal.processing.pipeline import ArtifactIntegrityError
+    from surfacesignal.storage import read_json
+
+    result, args, root = prepared
+    path = root / "artifacts" / result.analysis_id / "manifest.json"
+    manifest = read_json(path)
+    manifest["artifacts"] = {}
+    write_json(path, manifest)
+    with pytest.raises(ArtifactIntegrityError, match="integrity"):
+        run_analysis(*args, root / "artifacts", min_component_pixels=1, edge_pixels=0)
+
+
 def client_for(root, area):
     write_json(
         root / "config/areas/test.geojson",
