@@ -1,0 +1,48 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop, 'poc/**', 'feature/**', 'fix/**', 'docs/**', 'ci/**']
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-quality:
+    name: backend-quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: '0.13.6'
+
+      - run: uv sync --frozen --extra dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q --cov=surfacesignal --cov-report=term-missing
+      - run: uv run python -c "from surfacesignal.main import app; assert app.openapi()['paths']['/health']"
+
+      - name: Build and smoke test the Docker Compose API
+        working-directory: .
+        run: |
+          mkdir -p data artifacts
+          docker compose up --build --wait --wait-timeout 90
+          sh scripts/smoke-test.sh
+
+      - name: Show Docker Compose logs on failure
+        if: failure()
+        working-directory: .
+        run: docker compose logs --no-color api
