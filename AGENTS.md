@@ -112,12 +112,24 @@ public: check what you stage.
 
 ## Status (update as you go)
 
-Done: scaffold, PT/EN, accessibility panel, data layer with API/static switch, Sudo Nova theme,
-full-screen guided map (2D/3D, dots, outlines, timeline component), hardware-based start view.
+Front-end is about **70%** (owner estimate, 2026-11-14). Draft PR #6 (`feature/frontend-guided-map`) holds the
+whole map; it is **map only, no real NISAR results yet**.
+
+Done: scaffold, PT/EN, accessibility panel, data layer with API/static switch, Sudo Nova theme, full-screen
+guided map (intro, 2D/3D unfold, dots, outlines, locked places), hardware-based start view, timeline
+stepper (17 steps from the real catalog), logo/wordmark/header buttons.
+
+Not done: before/after view, layer switches, landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp,
+weak-phone and mobile checks, anything that needs real data.
+
+**Who does what now (owner decision 2026-11-14):** the front-end stays ours until it is 100% and ready
+for the real data. Deploy, public repo and licence, submission texts and the 7-slide demo are with the
+other team members for now; do not spend time on them unless asked.
 
 Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-hosting` assumes a static
-`frontend/dist` that Next.js does not produce), license (Apache-2.0 suggested, not applied), pre-event
-eligibility of the backend, the root README still describes the frontend as Vite on port 5173.
+`frontend/dist` that Next.js does not produce), licence (Apache-2.0 suggested, not applied), pre-event
+eligibility of the backend, the root README still describes the frontend as Vite on port 5173, and a
+**deadline with Mateus** for the real data (see roadmap 1).
 
 ## Owner decisions on the map (2026-11-14, done)
 
@@ -147,16 +159,30 @@ eligibility of the backend, the root README still describes the frontend as Vite
 
 ## Roadmap
 
-1. **Real data.** The timeline is not useful yet: it only shows catalog passes and one synthetic
-   sample. Mateus must run `history run` on a machine with an Earthdata account and ~180 GB free; each of
-   the 17 consecutive pairs becomes an analysis served by the API. Then: make the timeline the story
-   (what happened when, in plain words), draw each pair's `change-candidates.geojson`, fix the July 11->23
-   pair as the anchor, show real numbers (area changed) with `null` handled.
-2. **Before/after** slider on the valley, with the 3 layer switches (water / vegetation / slopes status).
-3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centre only).
-4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud, WhatsApp share.
-5. **Explorer:** the 3 availability states (analysis / catalog / no pair) for other regions; 2nd cut in the
-   same NISAR pair (Muçum / Roca Sales / Encantado, or Arroio do Meio / Cruzeiro do Sul).
-6. **Delivery:** deploy, public repo + license, 7-slide English demo, English submission texts, AI-use
-   declaration, FortiGuard classification of the site. Submission closes Sunday 2026-11-15 23:59 (owner's time).
-7. **Measure** performance on a real weak phone (the 40 fps threshold in `hardware.ts` is an estimate).
+Order agreed with the owner on 2026-11-14. The goal is a front-end that is 100% finished and only waits for
+data: every piece below must work with the synthetic sample today and with real analyses later, with no
+code change (data comes through `src/data/source.ts`).
+
+1. **Real data (Mateus).** Needs an Earthdata account and a machine with ~180 GB free (`history run`, see
+   `docs/real-data-execution.md`). Ask for the **11 Jul -> 23 Jul pair first**: it is enough for the story.
+   Agree a deadline with Mateus. If real data does not arrive in time, the project is delivered honestly as
+   "map + method + real catalog" with the sample labelled illustrative. When data arrives: check the
+   timeline against real analyses, show real numbers (area changed) with `null` handled, make the
+   timeline read as a story in plain words.
+2. **Before/after on the valley (next task).** A slider that compares the two passes of the chosen
+   timeline step, plus the 3 layer switches (water available, vegetation exploratory, slopes
+   unavailable with the reason). Works with the sample now (no shapes yet, say so) and with
+   `change-candidates.geojson` later. Radar previews (`before-preview.png`, `after-preview.png`) are
+   artifacts of each analysis and can feed the slider when present.
+3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centres the map
+   only, never sent anywhere).
+4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud (browser speech), WhatsApp share.
+5. **Polish and checks:** phone-sized screens, high contrast, English, keyboard and screen reader on the new
+   map controls and timeline, a real weak phone (the 40 fps threshold in `hardware.ts` is an estimate),
+   the 2D fallback on a weak device.
+6. **Explorer (only if time is left):** the 3 availability states (analysis / catalog / no pair) for other
+   regions; a 2nd cut in the same NISAR pair (Muçum / Roca Sales / Encantado, or Arroio do Meio /
+   Cruzeiro do Sul).
+7. **Delivery (others for now):** deploy, public repo + licence, 7-slide English demo, English submission
+   texts, AI-use declaration, FortiGuard classification of the site. Submission closes Sunday 2026-11-15
+   23:59 (owner's time).
