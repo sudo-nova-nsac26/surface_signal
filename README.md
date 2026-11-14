@@ -11,8 +11,8 @@ A candidate is **not a confirmed flood**. There is no frontend, chatbot or HTTP 
 
 ## What is verified
 
-- Real ASF discovery: **19 PROVISIONAL GCOV scenes**, 2026-06-17 through 2026-10-31,
-  queried with the configured 5 km pilot AOI. Snapshot and query are in
+- Real ASF discovery: **19 PROVISIONAL GCOV scenes**, acquired 2026-06-17 through
+  2026-10-19 (query window through 2026-10-31), with the configured 5 km pilot AOI. Snapshot and query are in
   [docs/evidence/asf-catalog.json](docs/evidence/asf-catalog.json).
 - Mathematical/geospatial processing, deterministic exports and offline API are tested with
   explicitly synthetic HDF5. No actual GCOV measurement has been processed in this execution.
@@ -76,6 +76,50 @@ See the [API contract](docs/api-contract.md) for endpoints and response shapes.
 
 ## Search, download, inspect, compare
 
+To retain and process the complete catalog history, run from the repository root:
+
+```bash
+uv sync --project backend --frozen
+uv run --project backend --frozen surfacesignal --root "$PWD" history run \
+  --snapshot docs/evidence/asf-catalog.json \
+  --hydro-csv config/hydrology/sgb-2026-07-23.csv --dry-run
+
+# Configure your own Earthdata token or official .netrc with ASF access locally.
+# Token entry does not echo or put the secret in shell history.
+read -rsp 'Earthdata token: ' EARTHDATA_TOKEN
+printf '\n'
+export EARTHDATA_TOKEN
+uv run --project backend --frozen surfacesignal --root "$PWD" history run \
+  --snapshot docs/evidence/asf-catalog.json \
+  --hydro-csv config/hydrology/sgb-2026-07-23.csv
+uv run --project backend --frozen surfacesignal --root "$PWD" history verify \
+  --area vale-do-taquari
+unset EARTHDATA_TOKEN
+```
+
+The fixed snapshot contains **131,386,572,800 bytes** (131.39 decimal GB), with
+**9 descending and 8 ascending consecutive candidate pairs**. Start with about **180 GB
+free** on the raw/output volume. All 19 HDF5 files and SHA256 receipts remain in `data/raw/`,
+including scenes without usable pairs. Results use the existing `artifacts/<analysis_id>/`
+format and read-only API. The atomic plan/report live in `data/history/vale-do-taquari/`.
+
+Add `--with-validated-through 2026-11-14` to include the validated collection over the
+same polygon and inclusive UTC date range; use `--dry-run` to see its additional bytes.
+Validated satellite products still require independent spatial validation of change candidates.
+Frequency `A`, diagonal channel `HHHH` and the `analyze` thresholds are defaults; all are
+explicit CLI options recorded in the plan and manifests. Only real diagonal power is converted
+with `10*log10`.
+
+Repeat exactly the same command after interruption. Verified raw files and complete pairs
+with matching parameters, code, context and artifact hashes are reused. Partial downloads
+may restart for that scene. Unknown byte sizes, corrupt inputs/outputs and authentication
+failures prevent completion and produce a nonzero exit status. Incompatible files/coverage
+are reported per pair and other pairs continue. A completed batch can contain explicitly
+blocked pairs; it does not imply 17 successful analyses or confirmed flooding.
+
+See [operator instructions and recovery](docs/real-data-execution.md#complete-history-runner--2026-11-14).
+The following commands also remain available for individual scenes and nonconsecutive pairs.
+
 From `backend`:
 
 ```sh
@@ -133,6 +177,6 @@ Code licensing remains **pending owner authorization**; no open-source license i
 by this project. Repository visibility remains private. Dataset and dependency terms are
 independent of the code license. No merge or public release is performed.
 
-Implementation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
+Original foundation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
 clean. See [review fixes and acceptance status](docs/implementation-status.md) and
 [GitHub Actions](https://github.com/matbforge/nsac26-dancing-with-the-sars/actions/workflows/backend-ci.yml).

@@ -2,6 +2,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -28,6 +29,72 @@ ARTIFACT_NAMES = {
     "evidence.json",
     "manifest.json",
 }
+
+
+class ArtifactIntegrityError(ValueError):
+    pass
+
+
+def runtime_versions():
+    return {
+        p: importlib.metadata.version(p)
+        for p in ("numpy", "rasterio", "h5py", "pyproj", "scipy", "pillow")
+    }
+
+
+def implementation_fingerprint():
+    package = Path(__file__).resolve().parents[1]
+    sources = {
+        name: checksum(package / name)
+        for name in (
+            "domain.py",
+            "processing/gcov.py",
+            "processing/change.py",
+            "processing/pipeline.py",
+            "providers/hydro.py",
+        )
+    }
+    return hashlib.sha256(json.dumps(sources, sort_keys=True).encode()).hexdigest()
+
+
+def verify_artifacts(directory, *, manifest_sha256=None):
+    directory = Path(directory)
+    try:
+        manifest = directory / "manifest.json"
+        if directory.is_symlink() or manifest.is_symlink():
+            raise ValueError("Symlinked analysis")
+        if manifest_sha256 is not None and checksum(manifest) != manifest_sha256:
+            raise ValueError("Manifest hash differs")
+        analysis = Analysis.model_validate(read_json(manifest))
+        if analysis.analysis_id != directory.name or set(analysis.artifacts) != ARTIFACT_NAMES - {
+            "manifest.json"
+        }:
+            raise ValueError("Incomplete artifact inventory")
+        if not all(
+            (directory / name).is_file()
+            and not (directory / name).is_symlink()
+            and checksum(directory / name) == sha
+            for name, sha in analysis.artifacts.items()
+        ):
+            raise ValueError("Artifact hash differs")
+        if analysis.statistics != read_json(
+            directory / "statistics.json"
+        ) or analysis.evidence.model_dump(mode="json") != read_json(directory / "evidence.json"):
+            raise ValueError("Manifest statistics/evidence differ from artifacts")
+        if (
+            any(
+                s.synthetic != analysis.synthetic or s.area_id != analysis.area_id
+                for s in analysis.scenes
+            )
+            or analysis.evidence.synthetic != analysis.synthetic
+            or analysis.evidence.provenance != analysis.provenance
+        ):
+            raise ValueError("Manifest provenance fields disagree")
+        return analysis
+    except (OSError, ValueError, KeyError, TypeError):
+        raise ArtifactIntegrityError(
+            "Existing analysis failed integrity check; preserve the damaged directory outside artifacts and rerun"
+        ) from None
 
 
 def preview(array, path, synthetic):
@@ -63,6 +130,7 @@ def run_analysis(
     edge_pixels=1,
     min_looks=1.0,
     hydro_records=None,
+    verified_input_sha256=None,
 ):
     if not comparable(before_scene, after_scene):
         raise ValueError(
@@ -81,16 +149,25 @@ def run_analysis(
         edge_pixels=edge_pixels,
         min_looks=min_looks,
     )
-    versions = {
-        p: importlib.metadata.version(p)
-        for p in ("numpy", "rasterio", "h5py", "pyproj", "scipy", "pillow")
-    }
+    versions = runtime_versions()
+    # History already checks every raw file against its receipt once per execution.
+    # Standalone analyze continues to hash its own inputs.
+    input_hashes = (
+        verified_input_sha256
+        if verified_input_sha256 is not None
+        else [checksum(before_path), checksum(after_path)]
+    )
+    if len(input_hashes) != 2 or not all(
+        isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) for digest in input_hashes
+    ):
+        raise ValueError("Two verified SHA256 input hashes required")
     context = context_for(hydro_records or [], after_scene.start_time)
     provenance = {
         "algorithm": "open-water-change-v2",
         "package_version": __version__,
         "versions": versions,
-        "input_sha256": [checksum(before_path), checksum(after_path)],
+        "implementation_sha256": implementation_fingerprint(),
+        "input_sha256": list(input_hashes),
         "area": area.model_dump(mode="json"),
         "hydrological_context": context,
     }
@@ -104,14 +181,15 @@ def run_analysis(
     output_dir.mkdir(parents=True, exist_ok=True)
     target = output_dir / identifier
     if target.exists():
-        previous = Analysis.model_validate(read_json(target / "manifest.json"))
-        if all(
-            (target / name).is_file() and checksum(target / name) == sha
-            for name, sha in previous.artifacts.items()
+        previous = verify_artifacts(target)
+        if (
+            previous.parameters == parameters
+            and previous.scenes == [before_scene, after_scene]
+            and all(previous.provenance.get(key) == value for key, value in provenance.items())
         ):
             return previous
-        raise ValueError(
-            "Existing analysis artifacts failed integrity check; move damaged directory aside"
+        raise ArtifactIntegrityError(
+            "Existing analysis identity failed integrity check; preserve the damaged directory outside artifacts and rerun"
         )
     b = crop(before_path, area, frequency=frequency, channel=channel, min_looks=min_looks)
     a = crop(after_path, area, frequency=frequency, channel=channel, min_looks=min_looks)
