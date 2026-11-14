@@ -77,6 +77,25 @@ Unmeasured values are `null`, never zero.
 Everyday names for areas live in [`src/data/area-labels.ts`](src/data/area-labels.ts);
 the backend stays technical.
 
+## The guided map
+
+The journey from the whole planet to Lajeado and Estrela lives in
+`src/components/map`. It uses [MapLibre GL JS](https://maplibre.org/) with
+services that need no key or account.
+
+- The visitor moves between four fixed stops with large buttons. North is
+  always up; rotation and free tilt are switched off, so nobody gets lost.
+- The last stop tilts the camera and adds relief. "Simple view" switches to a
+  flat map seen from above; it starts on by itself when "reduce motion" is on
+  or the device has little memory.
+- With "reduce motion" the camera jumps between stops instead of flying.
+- The map library is downloaded only when the visitor reaches that section.
+- The page keeps scrolling normally: zooming needs Ctrl + scroll or two fingers.
+- The outline of the analysed area comes from the data layer.
+
+`npm run dev` and `npm run build` first copy the MapLibre worker file into
+`public/vendor` (not committed).
+
 ## Accessibility
 
 - Plain-language text; no radar jargon in the interface.
@@ -95,6 +114,8 @@ the backend stays technical.
 ## Credits
 
 - Team logo: `public/sudo-nova-logo.jpeg`, from the Sudo Nova organisation profile.
+- Base map: [OpenFreeMap](https://openfreemap.org/), © OpenMapTiles, data from OpenStreetMap.
+- Terrain: Mapzen terrain tiles on AWS Open Data.
 - Typeface: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
   by the Braille Institute (SIL Open Font License).
 - Radar data: NISAR (NASA / ISRO), distributed by the Alaska Satellite Facility DAAC.
