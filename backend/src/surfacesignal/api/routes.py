@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 
 from surfacesignal.api.examples import example
 from surfacesignal.api.schemas import LayerIndex, Overview, Statistics, Timeline
@@ -106,5 +107,40 @@ def router(repo):
     )
     def story(analysis_id: str, lang: Language = "pt"):
         return repo.story(repo.analysis(analysis_id), lang)
+
+    from surfacesignal.preparation.models import Audience, LocalReport, PreparationPlan
+    from surfacesignal.preparation.store import PreparationNotPrepared, load_preparation
+
+    def prepared(area_id, name):
+        try:
+            return load_preparation(repo.settings, area_id)["payloads"][name]
+        except PreparationNotPrepared:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": {
+                        "code": "preparation_not_prepared",
+                        "message": "Run preparation build offline for this area",
+                    }
+                },
+            )
+
+    @routes.get(
+        "/areas/{area_id}/local-analysis",
+        response_model=LocalReport,
+        tags=["Areas"],
+        summary="Prepared historical local observations; no processing in HTTP",
+    )
+    def local_analysis(area_id: str, lang: Language = "pt"):
+        return prepared(area_id, f"local-analysis.{lang}.json")
+
+    @routes.get(
+        "/areas/{area_id}/preparation",
+        response_model=PreparationPlan,
+        tags=["Areas"],
+        summary="Sourced preparation proposals requiring human review",
+    )
+    def preparation(area_id: str, audience: Audience = "residents", lang: Language = "pt"):
+        return prepared(area_id, f"preparation.{audience}.{lang}.json")
 
     return routes
