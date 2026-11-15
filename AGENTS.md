@@ -162,6 +162,25 @@ Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-
 eligibility of the backend, the root README still describes the frontend as Vite on port 5173, and a
 **deadline with Mateus** for the real data (see roadmap 1).
 
+## Real data integration (started 2026-11-15)
+
+Mateus's backend MVP (PRs #7 and #9) publishes 17 real comparisons. The static bundle (~142 MB, 68 GeoJSON)
+stays OUT of Git: unpack the `.tar.gz` the team shares (check its `.sha256` first) so that its `api/v1/`
+folder becomes `frontend/public/data/api/v1/` (git-ignored). The synthetic sample lives in
+`public/data/demo/api/v1/` and must NOT be used as an automatic fallback (backend decision).
+Plan to follow: the backend team's 10-step integration plan (data/types -> timeline -> general layers ->
+statistics and stories -> regional view -> accessibility, performance, deploy).
+
+Done so far: MVP types in `api-types.ts` and `source.ts` functions (overview, timeline, statistics, layers,
+story, static `.pt/.en.json` paths). A dev-only **data lab** at `/pt/lab` (404 in production) shows one
+comparison at a time on the map with increase/decrease/possible water, the numbers, the PT/EN story, sizes and
+timings. Findings: valid area 78.1 km2 in all 17; every comparison has water candidates (2 to 72 groups);
+all `not_validated`; general-change.geojson already holds increase + decrease (use one source with two
+filtered layers, never fetch the three files); raw sizes 0.6 to 11 MB, but gzip shrinks them about 7x (the
+heaviest transfers ~1.5 MB, ~3,800 polygons, ~1.5 s to draw on a desktop); polygons are 10 m pixel blocks,
+so they look blocky beyond zoom ~14; fast clicking never showed an old answer (AbortController per pick).
+The host must serve GeoJSON compressed. Phone performance not measured yet.
+
 ## Owner decisions on the map (2026-11-14, done)
 
 - Place tree is **World > Country > State > Region of the state**. No continent or
