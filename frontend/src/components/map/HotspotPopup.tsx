@@ -21,6 +21,148 @@ function lngLatToTile(lng: number, lat: number, z: number): { x: number; y: numb
   return { x, y, z };
 }
 
+/**
+ * Renders a tailored SVG radar-change overlay for the "After (Jul 23)" side of the
+ * interactive Before/After comparator inside each inspection square.
+ */
+function RadarAfterOverlay({ kind }: { kind: MapHotspot["kind"] }) {
+  if (kind === "hillslope") {
+    return (
+      <svg viewBox="0 0 320 150" className="h-full w-full" preserveAspectRatio="none">
+        {/* Subtle terrain contour lines on hillslope */}
+        <path
+          d="M 10,30 Q 90,15 180,35 T 310,25"
+          fill="none"
+          stroke="#fde047"
+          strokeOpacity="0.45"
+          strokeWidth="1.2"
+          strokeDasharray="4 3"
+        />
+        <path
+          d="M 5,70 Q 100,50 195,75 T 315,65"
+          fill="none"
+          stroke="#fde047"
+          strokeOpacity="0.45"
+          strokeWidth="1.2"
+          strokeDasharray="4 3"
+        />
+        {/* Roughness increase / exposed hillslope patches (orange/amber) */}
+        <polygon
+          points="55,38 112,32 128,62 94,76 48,60"
+          fill="#f97316"
+          fillOpacity="0.58"
+          stroke="#fdba74"
+          strokeWidth="1.6"
+        />
+        <polygon
+          points="158,46 226,38 244,74 198,92 148,72"
+          fill="#f97316"
+          fillOpacity="0.62"
+          stroke="#fde047"
+          strokeWidth="1.8"
+        />
+        {/* Wet thalweg / drainage line at the foot of the slope */}
+        <polygon
+          points="90,98 165,92 255,108 242,126 150,118 82,112"
+          fill="#1d4ed8"
+          fillOpacity="0.6"
+          stroke="#60a5fa"
+          strokeWidth="1.5"
+        />
+      </svg>
+    );
+  }
+
+  if (kind === "river_corridor") {
+    return (
+      <svg viewBox="0 0 320 150" className="h-full w-full" preserveAspectRatio="none">
+        {/* Expanded river channel / open water sheet */}
+        <path
+          d="M 0,48 Q 95,28 175,58 T 320,44 L 320,104 Q 185,118 95,88 T 0,98 Z"
+          fill="#0284c7"
+          fillOpacity="0.58"
+          stroke="#38bdf8"
+          strokeWidth="1.8"
+        />
+        {/* Specular new water pockets along low banks */}
+        <polygon
+          points="42,26 98,22 112,46 58,52"
+          fill="#38bdf8"
+          fillOpacity="0.72"
+          stroke="#e0f2fe"
+          strokeWidth="1.5"
+        />
+        <polygon
+          points="182,32 248,28 262,56 196,60"
+          fill="#38bdf8"
+          fillOpacity="0.72"
+          stroke="#e0f2fe"
+          strokeWidth="1.5"
+        />
+        {/* Double-bounce in riverside trees & urban structures (orange) */}
+        <polygon
+          points="65,86 142,82 154,108 78,112"
+          fill="#f97316"
+          fillOpacity="0.65"
+          stroke="#fdba74"
+          strokeWidth="1.5"
+        />
+        <polygon
+          points="204,88 278,80 292,106 218,114"
+          fill="#f97316"
+          fillOpacity="0.65"
+          stroke="#fdba74"
+          strokeWidth="1.5"
+        />
+      </svg>
+    );
+  }
+
+  // Default: floodplain & agricultural fields (Q1, Q3, Q4)
+  return (
+    <svg viewBox="0 0 320 150" className="h-full w-full" preserveAspectRatio="none">
+      {/* Broad signal-drop wet soil / shallow water sheet */}
+      <polygon
+        points="24,28 148,22 166,78 112,96 28,82"
+        fill="#1d4ed8"
+        fillOpacity="0.56"
+        stroke="#60a5fa"
+        strokeWidth="1.5"
+      />
+      <polygon
+        points="162,32 292,26 302,88 214,104 156,78"
+        fill="#1d4ed8"
+        fillOpacity="0.56"
+        stroke="#60a5fa"
+        strokeWidth="1.5"
+      />
+      {/* High-confidence open water patches (cyan) */}
+      <polygon
+        points="48,40 122,36 134,68 62,74"
+        fill="#38bdf8"
+        fillOpacity="0.78"
+        stroke="#e0f2fe"
+        strokeWidth="1.8"
+      />
+      <polygon
+        points="186,44 268,38 278,74 198,82"
+        fill="#38bdf8"
+        fillOpacity="0.78"
+        stroke="#e0f2fe"
+        strokeWidth="1.8"
+      />
+      {/* Flooded crop / riparian vegetation double-bounce (orange) */}
+      <polygon
+        points="88,88 188,82 204,112 96,116"
+        fill="#f97316"
+        fillOpacity="0.64"
+        stroke="#fdba74"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
 export function HotspotPopup({
   spot,
   stats,
@@ -47,6 +189,9 @@ export function HotspotPopup({
     spotId: spot.id,
     section: "beforeAfter",
   });
+  // Before/After split percentage (0 = full After, 50 = split, 100 = full Before)
+  const [splitPct, setSplitPct] = useState(45);
+
   const openSection: SectionId | null =
     openState.spotId === spot.id ? openState.section : "beforeAfter";
 
@@ -98,7 +243,7 @@ export function HotspotPopup({
       role="dialog"
       aria-modal="false"
       aria-label={spot.title[lang]}
-      className="rise-in pointer-events-auto absolute inset-x-3 bottom-3 z-20 flex max-h-[68svh] flex-col overflow-hidden rounded-3xl border-2 border-cyan-400/75 bg-slate-950/95 text-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.88)] backdrop-blur-md sm:inset-x-auto sm:left-4 sm:bottom-6 sm:w-[23.5rem] lg:bottom-auto lg:left-4 lg:top-16 lg:max-h-[calc(100svh-13.5rem)]"
+      className="rise-in pointer-events-auto absolute inset-x-3 bottom-3 z-20 flex max-h-[68svh] flex-col overflow-hidden rounded-3xl border-2 border-cyan-400/75 bg-slate-950/95 text-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.88)] backdrop-blur-md sm:inset-x-auto sm:left-4 sm:bottom-6 sm:w-[24rem] lg:bottom-auto lg:left-4 lg:top-16 lg:max-h-[calc(100svh-13.5rem)]"
     >
       {/* Quick switcher between Q1..Q6 + Close button */}
       <div className="flex items-center justify-between gap-1.5 border-b border-slate-800/90 bg-slate-900/80 px-3.5 py-2">
@@ -157,51 +302,128 @@ export function HotspotPopup({
 
       {/* Scrollable Body */}
       <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-3">
-        {/* Large Real Satellite Banner + Live Metrics Overlay */}
-        <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-2xl border border-slate-700/90 bg-slate-900 sm:h-36">
-          <div className="grid h-full w-full grid-cols-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={satUrlLeft}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={satUrlRight}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+        {/* Interactive Before vs. After Satellite + Radar Comparator */}
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-slate-700/90 bg-slate-900/90 p-2">
+          <div className="relative h-36 w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 select-none">
+            {/* Base optical satellite imagery (Before - Jul 11) */}
+            <div className="grid h-full w-full grid-cols-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={satUrlLeft}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={satUrlRight}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+            </div>
 
-          {/* Top-left badge */}
-          <span className="absolute left-2.5 top-2 rounded-lg bg-slate-950/85 px-2 py-0.5 text-[11px] font-bold text-cyan-200 backdrop-blur-sm">
-            🛰️ {lang === "pt" ? "Imagem real de satélite (Esri)" : "Real satellite imagery (Esri)"}
-          </span>
+            {/* Clipped "After (Jul 23 + NISAR Radar)" overlay on the right side of splitPct */}
+            <div
+              aria-hidden="true"
+              style={{ clipPath: `inset(0 0 0 ${splitPct}%)` }}
+              className="pointer-events-none absolute inset-0 bg-sky-950/35"
+            >
+              <RadarAfterOverlay kind={spot.kind} />
+            </div>
 
-          {/* Bottom live metrics inside the satellite card */}
-          <div className="absolute inset-x-2.5 bottom-2 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <p className="text-[11px] font-medium text-slate-300">{spot.subtitle[lang]}</p>
-              <p className="text-sm font-extrabold text-cyan-300">
+            {/* Vertical Divider Line + Handle */}
+            <div
+              aria-hidden="true"
+              style={{ left: `${splitPct}%` }}
+              className="pointer-events-none absolute inset-y-0 z-10 w-0.5 -translate-x-1/2 bg-cyan-300 shadow-[0_0_10px_#22d3ee]"
+            >
+              <span className="absolute left-1/2 top-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-950 bg-cyan-300 text-[10px] font-extrabold text-slate-950 shadow">
+                ↔
+              </span>
+            </div>
+
+            {/* Invisible full-area range slider for smooth dragging */}
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={splitPct}
+              onChange={(e) => setSplitPct(Number(e.target.value))}
+              aria-label={
+                lang === "pt"
+                  ? "Comparador Antes e Depois neste quadradinho"
+                  : "Before and After comparator in this square"
+              }
+              className="absolute inset-0 z-20 h-full w-full cursor-ew-resize opacity-0"
+            />
+
+            {/* Top corner Before / After badges */}
+            <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-md bg-slate-950/85 px-2 py-0.5 text-[10px] font-extrabold text-slate-200">
+              {lang === "pt" ? "Antes · 11 jul (Seco)" : "Before · Jul 11 (Dry)"}
+            </span>
+            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-md bg-cyan-950/90 border border-cyan-400/50 px-2 py-0.5 text-[10px] font-extrabold text-cyan-200">
+              {lang === "pt" ? "Depois · 23 jul (+ Radar)" : "After · Jul 23 (+ Radar)"}
+            </span>
+
+            {/* Bottom live metrics bar */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 bg-gradient-to-t from-slate-950 via-slate-950/85 to-transparent px-2.5 pb-1.5 pt-5">
+              <span className="text-xs font-extrabold text-cyan-300">
                 {stats
                   ? lang === "pt"
-                    ? `${totalPatches} manchas detectadas no ponto`
-                    : `${totalPatches} patches detected in spot`
+                    ? `${totalPatches} manchas no ponto`
+                    : `${totalPatches} patches in spot`
                   : "—"}
-              </p>
+              </span>
+              <span className="text-xs font-extrabold text-white">
+                {fmtNum(areaM2)} m²{" "}
+                {pitches > 0 && (
+                  <span className="font-normal text-slate-300">
+                    (≈ {fmtNum(Number(pitches.toFixed(1)))}{" "}
+                    {lang === "pt" ? "campos" : "fields"})
+                  </span>
+                )}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-700/80 bg-slate-950/90 px-2.5 py-1 text-right">
-              <p className="text-xs font-extrabold text-white">{fmtNum(areaM2)} m²</p>
-              {pitches > 0 && (
-                <p className="text-[10px] text-slate-300">
-                  ≈ {fmtNum(Number(pitches.toFixed(1)))}{" "}
-                  {lang === "pt" ? "campos de futebol" : "soccer fields"}
-                </p>
-              )}
+          </div>
+
+          {/* Accessible 1-click buttons + Symbol Legend (colorblind-safe icons: ● ▼ ▲) */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 px-0.5 text-[11px]">
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="inline-flex items-center gap-1">
+                <span className="text-sky-300">●</span>
+                {lang === "pt" ? "Água" : "Water"}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-blue-400">▼</span>
+                {lang === "pt" ? "Queda" : "Drop"}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-orange-400">▲</span>
+                {lang === "pt" ? "Aumento" : "Increase"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {(
+                [
+                  [100, lang === "pt" ? "Só Antes" : "Before"],
+                  [45, "50/50"],
+                  [0, lang === "pt" ? "Só Depois" : "After"],
+                ] as const
+              ).map(([val, txt]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSplitPct(val)}
+                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold transition ${
+                    Math.abs(splitPct - val) <= 10
+                      ? "border-cyan-400 bg-cyan-400/20 text-cyan-200"
+                      : "border-slate-700 bg-slate-950 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {txt}
+                </button>
+              ))}
             </div>
           </div>
         </div>
