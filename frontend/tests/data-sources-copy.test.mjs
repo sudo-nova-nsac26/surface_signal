@@ -52,14 +52,14 @@ test("PT/EN clearly credit exactly the seven science sources used in the public 
 
 test("reviewer source section lists only pilot inputs; future integrations stay in code/docs", () => {
   const page = fs.readFileSync("src/app/[lang]/page.tsx", "utf8");
-  assert.match(page, /dict\\.sources\\.items\\.map/);
-  assert.match(page, /dict\\.sources\\.tools\\.map/);
+  assert.ok(page.includes("dict.sources.items.map"));
+  assert.ok(page.includes("dict.sources.tools.map"));
   // Do not repeat the registry: it includes unacquired ANA, IMERG, MapBiomas,
   // Sentinel and RCM sources, which must not look like published inputs.
   assert.doesNotMatch(page, /EnvironmentalSources|listContextSources|otherSources/);
   assert.doesNotMatch(page, /Import supported; use depends on data|Access unavailable/);
   const roadmap = fs.readFileSync("../docs/future-work.md", "utf8");
-  assert.match(roadmap, /GPM\\/IMERG/);
+  assert.ok(roadmap.includes("GPM/IMERG"));
   assert.match(roadmap, /MapBiomas/);
   assert.match(roadmap, /RCM/);
 });
