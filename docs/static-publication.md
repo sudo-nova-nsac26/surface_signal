@@ -66,3 +66,13 @@ analysis IDs must match; real-only exports reject illustrative preparation build
 All files participate in export identity, hashes and byte ceiling. Publication cannot
 replace its `data/preparation` inputs. No new snapshot is written to `frontend/` by
 this backend delivery. See [preparation operations](local-analysis-preparation.md).
+
+## Optional environmental context — 2026-11-15
+
+`publish build --include-environmental-context` adds verified prepared context,
+validation, area events, reference metadata and `context-sources.json`. It can be
+combined with `--include-preparation`. Missing contexts stay absent (static 404);
+corrupt/unlicensed contexts fail the build. Real-only export also excludes synthetic
+contextual inputs independently from SAR synthetic status. No raw rasters are copied.
+The byte ceiling and manifest hashes cover these files; `data/context` is protected
+against publication output replacement. See the [route table](environmental-data-integration.md).

@@ -215,6 +215,15 @@ export interface TimelinePass {
   groupId: string | null;
 }
 
+/** What the environmental panel needs to know about the comparison's analysis. */
+export interface TimelineAnalysis {
+  analysisId: string;
+  illustrative: boolean;
+  hasChangeShapes: boolean;
+  candidateAreaKm2: number | null;
+  validAreaKm2: number | null;
+}
+
 export interface TimelineStep {
   /** The backend comparison_id. */
   id: string;
@@ -227,6 +236,8 @@ export interface TimelineStep {
   validation: string;
   /** Short backend summary in both languages, when present. */
   summary: Localized | null;
+  /** The analysis behind this comparison, for the environmental panel. */
+  analysis: TimelineAnalysis | null;
 }
 
 export interface TimelineEvent {
@@ -264,6 +275,19 @@ export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
       reason: pick.reason,
       validation: c.validation_status,
       summary: analysisId ? (c.summaries[analysisId] ?? null) : null,
+      analysis: analysisId
+        ? {
+            analysisId,
+            illustrative: timeline.data_status !== "real",
+            hasChangeShapes: true,
+            candidateAreaKm2:
+              c.statistics?.[analysisId]?.open_water?.statistics?.candidate_area_km2 ?? null,
+            validAreaKm2:
+              c.statistics?.[analysisId]?.general_change?.statistics?.valid_area_km2 ??
+              c.statistics?.[analysisId]?.open_water?.statistics?.valid_area_km2 ??
+              null,
+          }
+        : null,
     });
   }
   // The passes of the comparisons the story shows, as dots on the ruler.

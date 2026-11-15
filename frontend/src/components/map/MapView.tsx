@@ -3,6 +3,7 @@
 import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
+import type { FeatureCollection } from "geojson";
 import type { GeoJsonPolygon } from "@/data/api-types";
 import type { LngLat } from "@/data/region";
 import {
@@ -42,6 +43,8 @@ export interface MapViewProps {
   intro: boolean;
   /** Change layers of the selected comparison (URLs and switches). */
   changes: ChangeLayers;
+  /** Optional bounded reference outline (independent of the change layers). */
+  reference?: FeatureCollection | null;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -411,6 +414,7 @@ export default function MapView({
   motion,
   intro,
   changes,
+  reference,
   area,
   label,
   dotHint,
@@ -1221,6 +1225,28 @@ export default function MapView({
     if (!map || !loadedRef.current) return;
     syncRiver(map, Boolean(latest.current.place.detail));
   }, [waterMotion]);
+
+  // Reference outlines are independent of the SAR before/after opacity and camera.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      if (!map.isStyleLoaded()) return;
+      const id = "env-reference";
+      if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(id)) map.removeSource(id);
+      if (!reference || !place.detail) return;
+      map.addSource(id, {type: "geojson", data: reference});
+      map.addLayer({id, type: "line", source: id, paint: {
+        "line-color": "#e69f00", "line-width": 2, "line-dasharray": [3, 2],
+      }});
+    };
+    apply();
+    map.on("style.load", apply);
+    map.on("idle", applyOnce);
+    function applyOnce() { apply(); map?.off("idle", applyOnce); }
+    return () => { map.off("style.load", apply); map.off("idle", applyOnce); };
+  }, [reference, place.detail]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {

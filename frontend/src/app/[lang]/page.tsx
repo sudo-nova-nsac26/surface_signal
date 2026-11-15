@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { EnvironmentalSources } from "@/components/environment/EnvironmentalSources";
 import { HowItWorks } from "@/components/HowItWorks";
 import {
   ChevronDownIcon,
@@ -100,6 +101,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         lang={lang}
         labels={dict.map}
         hero={dict.hero}
+        environment={dict.environment}
       />
 
       <SectionNav labels={dict.nav} />
@@ -190,6 +192,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
               {dict.sources.title}
             </SectionHeading>
             <p className="mt-4 max-w-2xl text-xl text-ink-soft">{dict.sources.lead}</p>
+            <EnvironmentalSources labels={dict.environment} />
           </Reveal>
           <Reveal>
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -40,6 +40,7 @@ def _target(root, output):
             "data/raw",
             "data/derived",
             "data/preparation",
+            "data/context",
             "artifacts",
             "config",
             "backend",
@@ -63,7 +64,9 @@ def _rewrite(value):
     if isinstance(value, str) and value.startswith("/api/v1/"):
         parsed = urlsplit(value)
         relative = parsed.path.removeprefix("/api/v1/")
-        if "/artifacts/" not in relative:
+        if relative == "context/sources":
+            relative = "context-sources"
+        if "/artifacts/" not in relative and "/references/" not in relative:
             query = parse_qs(parsed.query)
             lang = query.get("lang", [None])[0]
             if relative.endswith("/preparation"):
@@ -87,17 +90,27 @@ def _rewrite(value):
     return value
 
 
-def _check_public(value, root):
+def _check_public(value, root, _resolved_root=None):
+    resolved_root = _resolved_root or str(Path(root).resolve())
     if isinstance(value, dict):
         for key, item in value.items():
-            if key.lower() in {"password", "token", "earthdata_token", "authorization", "netrc"}:
+            if key.lower() in {
+                "password",
+                "token",
+                "earthdata_token",
+                "authorization",
+                "netrc",
+                "source_path",
+                "local_path",
+                "raw_path",
+            }:
                 raise ValueError("Private field cannot be published")
-            _check_public(item, root)
+            _check_public(item, root, resolved_root)
     elif isinstance(value, list):
         for item in value:
-            _check_public(item, root)
+            _check_public(item, root, resolved_root)
     elif isinstance(value, str):
-        if str(Path(root).resolve()) in value:
+        if resolved_root in value or value.startswith(("/home/", "/Users/", "/tmp/")):
             raise ValueError("Local filesystem path cannot be published")
         if value.startswith(("http://", "https://")):
             url = urlsplit(value)
@@ -148,6 +161,7 @@ def build_publication(
     exclude_synthetic=False,
     include_previews=False,
     include_preparation=False,
+    include_environmental_context=False,
     max_export_bytes=100_000_000,
 ) -> dict:
     """Publish one area's API responses, retaining a deterministic previous-snapshot backup.
@@ -285,6 +299,10 @@ def build_publication(
         from surfacesignal.providers.sources import SOURCES
 
         emit("sources.json", _page(SOURCES))
+        if include_environmental_context:
+            from surfacesignal.context.publication import emit_environmental_context
+
+            emit_environmental_context(settings, area_id, analyses, exclude_synthetic, emit)
         if include_preparation:
             from surfacesignal.preparation.store import load_preparation
 
@@ -319,6 +337,7 @@ def build_publication(
             "area_id": area_id,
             "exclude_synthetic": exclude_synthetic,
             "include_previews": include_previews,
+            "include_environmental_context": include_environmental_context,
             "sources": provenance,
             "files": hashes,
         }
@@ -373,6 +392,7 @@ def build_publication(
             "validated": True,
             "exclude_synthetic": exclude_synthetic,
             "include_previews": include_previews,
+            "include_environmental_context": include_environmental_context,
             "backup_path": str(backup.relative_to(settings.root.resolve()))
             if backup and backup.is_relative_to(settings.root.resolve())
             else os.path.relpath(backup, settings.root.resolve())

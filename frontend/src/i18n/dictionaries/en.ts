@@ -1,6 +1,8 @@
+import { environmentEn } from "./environment";
 import type { Dictionary } from "./pt";
 
 const en: Dictionary = {
+  environment: environmentEn,
   meta: {
     title: "SurfaceSignal — what the satellite saw on the Taquari River",
     description:

@@ -5,6 +5,9 @@ import type { TimelineStep, TimelineView } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 
+import type { EnvironmentalEvent } from "@/data/api-types";
+import { environmentalMarkers } from "@/data/environmental";
+
 type Labels = Dictionary["map"]["timeline"];
 type Featured = Dictionary["map"]["featured"];
 
@@ -28,6 +31,8 @@ export function Timeline({
   featured,
   selectedId,
   onSelect,
+  environmentalEvents = [],
+  environmentLabels,
 }: {
   data: TimelineView;
   lang: Locale;
@@ -35,6 +40,8 @@ export function Timeline({
   featured: Featured;
   selectedId: string | null;
   onSelect: (step: TimelineStep) => void;
+  environmentalEvents?: EnvironmentalEvent[];
+  environmentLabels?: Dictionary["environment"];
 }) {
   const [playing, setPlaying] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -111,6 +118,7 @@ export function Timeline({
     if (left >= 0) months.push({ left, label: monthName.format(cursor).replace(".", "") });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
+  const markers = environmentalMarkers(environmentalEvents, new Date(start).toISOString(), new Date(end).toISOString());
   const barLeft = at(step.beforeAt);
   const barWidth = Math.max(at(step.afterAt) - barLeft, 1.2);
 
@@ -260,6 +268,28 @@ export function Timeline({
               />
             </button>
           ))}
+          {markers.map((marker) =>
+            marker.kind === "rainfall_window" ? (
+              <span
+                key={marker.key}
+                aria-hidden="true"
+                className="absolute top-0 h-1 border border-highlight bg-highlight/30"
+                style={{
+                  left: `${marker.startPercent}%`,
+                  width: `${Math.max(0.3, marker.endPercent - marker.startPercent)}%`,
+                }}
+              />
+            ) : (
+              <span
+                key={marker.key}
+                aria-hidden="true"
+                className="absolute -top-1 -translate-x-1/2 text-xs text-highlight"
+                style={{ left: `${marker.endPercent}%` }}
+              >
+                {marker.kind === "station_measurement" ? "◆" : marker.kind === "reference" ? "□" : "▲"}
+              </span>
+            ),
+          )}
           {months.map((month) => (
             <span
               key={`l${month.left}`}
@@ -287,6 +317,11 @@ export function Timeline({
           </>
         )}
       </p>
+      {markers.length > 0 && environmentLabels && (
+        <p className="text-xs text-ink-soft">
+          {environmentLabels.events}: ◆ {environmentLabels.station_measurement} · ▰ {environmentLabels.rainfall_window} · □ {environmentLabels.reference}. {environmentLabels.eventDetails}
+        </p>
+      )}
     </div>
   );
 }

@@ -30,19 +30,32 @@ What a visitor sees at the Taquari close-up:
 
 ## 2. How to run it with the real data
 
-The data bundle (~142 MB, 68 GeoJSON) is **not in Git** (the backend team keeps it outside on purpose).
+**Update after backend PR #10 (merged into this branch):** the site now reads a **compact real snapshot that is
+committed** in `frontend/public/data/compact/api/v1/` (11 MB, all 17 comparisons, visualisation-only geometry,
+verified by SHA-256 at build time). So a normal clone already shows real results:
 
-1. Get the `.tar.gz` and its `.sha256` from the team and verify it (`sha256sum`).
-2. Extract so that its `api/v1/` folder becomes `frontend/public/data/api/v1/` (git-ignored).
-3. `cd frontend && npm install && npm run dev`, open http://localhost:3000/pt .
-4. API mode instead: set `NEXT_PUBLIC_API_BASE_URL` (the backend's address) and allow the front-end origin in
+1. `cd frontend && npm install && npm run dev`, open http://localhost:3000/pt .
+2. Optional, the **full** bundle (~142 MB, original polygons; the tar.gz + .sha256 come from the team): extract
+   so its `api/v1/` becomes `frontend/public/data/api/v1/` (git-ignored) and set
+   `NEXT_PUBLIC_STATIC_SNAPSHOT=full`.
+3. API mode instead: set `NEXT_PUBLIC_API_BASE_URL` (the backend's address) and allow the front-end origin in
    the backend's CORS. Not tested end to end by me: the API only runs on Mateus's machine.
+
+Compact polygons are simplified for drawing (about 100 per layer for the July comparison against 1,693 in the full
+files); every number comes from the original statistics, never from the compact geometry.
+
+**Windows note:** the compact files are checked by SHA-256, and Git for Windows (`core.autocrlf=true`) used to add
+a carriage return at the end of each file, which broke the build. The root `.gitattributes` now marks
+`frontend/public/data/compact/**` as `-text`. After pulling, run `git checkout -- frontend/public/data/compact`
+once if `npm run build` reports "Compact checksum mismatch".
 
 The synthetic sample is kept in `public/data/demo/api/v1/` and must NOT come back as an automatic fallback
 (backend decision). If the bundle is missing, the map shows a plain message and "Tentar de novo".
 
-Deploy: the host must serve the static bundle and **compress GeoJSON** (gzip/br). Raw files are 0.6 to 11 MB,
-gzip makes them about 7 times smaller. Check the host's size limits (142 MB).
+Deploy: the public build is now a **static export** (`npm run build` writes `frontend/out`, checked by
+`scripts/validate-static-export.mjs`; Cloudflare Pages is the target, see `docs/cloudflare-pages.md`). The host
+should compress GeoJSON (gzip/br). `npm test` runs the Node tests; one test (symlink rejection) needs a
+privilege Windows does not give by default and fails there only because of that.
 
 ## 3. Decisions to keep
 
@@ -73,6 +86,10 @@ gzip makes them about 7 times smaller. Check the host's size limits (142 MB).
 - MapLibre custom protocol `cleandem://` (`clean-dem.ts`) fixes isolated wrong points in the free elevation
   tiles (a bridge read as a +257 m tower). It only touches zoom 10 to 13 and falls back to the original tile.
 - Fast clicking on the timeline never showed an old answer: each pick cancels the previous requests.
+- Mateus's environmental work (merged here) adds the collapsible panel "Entenda esta mudança" (rain, river,
+  land cover, terrain, sources and optional reference outlines; `components/environment`, `data/environmental.ts`)
+  and station/rainfall/reference markers on the time ruler. They hang on our time bar through the step's
+  `analysis` field (areas come from the timeline file). Never present them as flood proof.
 - The bundle has extra files not used yet: `local-analysis.*.json` and `preparation.*.json` (plans for residents
   and municipal teams). Today their actions are generic ("Organizar a preparação") and need human review, and
   the territorial crossing is empty (`local_relations: null`). Do not show them as advice yet.

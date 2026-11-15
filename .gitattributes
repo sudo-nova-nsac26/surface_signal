@@ -1,0 +1,4 @@
+# The compact real snapshot is verified by SHA-256 (frontend/scripts/validate-static-export.mjs).
+# Keep its bytes exactly as committed, so a Windows checkout does not add a carriage return
+# to each line ending and break the hashes.
+frontend/public/data/compact/** -text

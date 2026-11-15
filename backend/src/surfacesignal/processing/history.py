@@ -851,6 +851,8 @@ def run_history(
     download_fn=None,
     analyze_fn=None,
 ):
+    if download_fn is None and settings.earthdata_token:
+        download_fn = partial(asf.download, token=settings.earthdata_token.get_secret_value())
     snapshot = CatalogSnapshot.model_validate(read_json(snapshot_path))
     with history_lock(settings, snapshot.area_id):
         plan = plan_history(

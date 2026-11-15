@@ -113,6 +113,40 @@ def parser():
         "verify", help="Verify report integrity and current input identities"
     )
     verify.add_argument("--area", required=True)
+    context = groups.add_parser("context").add_subparsers(dest="command", required=True)
+    sources = context.add_parser("sources").add_subparsers(dest="source_command", required=True)
+    sources.add_parser("list")
+    imp = context.add_parser("import")
+    imp.add_argument("--source", required=True)
+    imp.add_argument("--file", type=Path, required=True)
+    imp.add_argument("--metadata", type=Path, required=True)
+    imp.add_argument("--area", required=True)
+    imp.add_argument("--dry-run", action="store_true")
+    build = context.add_parser("build")
+    build.add_argument("--area", required=True)
+    selection = build.add_mutually_exclusive_group()
+    selection.add_argument("--analysis")
+    selection.add_argument("--all-analyses", action="store_true")
+    build.add_argument("--illustrative", action="store_true")
+    build.add_argument("--dry-run", action="store_true")
+    build.add_argument("--minimum-coverage", type=float, default=1.0)
+    for action in (imp, build):
+        for flag, default in [
+            ("max-input-bytes", 25000000),
+            ("max-output-bytes", 25000000),
+            ("max-pixels", 2000000),
+            ("max-records", 50000),
+        ]:
+            action.add_argument("--" + flag, type=int, default=default)
+    verify = context.add_parser("verify")
+    verify.add_argument("--area", required=True)
+    discover = context.add_parser("discover")
+    discover.add_argument("--source", required=True)
+    discover.add_argument("--area", required=True)
+    discover.add_argument("--start", required=True)
+    discover.add_argument("--end", required=True)
+    discover.add_argument("--max-items", type=int, default=100)
+    discover.add_argument("--max-bytes", type=int, default=2000000)
     publish = groups.add_parser("publish").add_subparsers(dest="command", required=True)
     build = publish.add_parser("build")
     build.add_argument("--area", required=True)
@@ -121,13 +155,17 @@ def parser():
     build.add_argument("--exclude-synthetic", action="store_true")
     build.add_argument("--include-previews", action="store_true")
     build.add_argument("--include-preparation", action="store_true")
+    build.add_argument("--include-environmental-context", action="store_true")
     build.add_argument("--max-export-bytes", type=int, default=100_000_000)
+    from surfacesignal.delivery_cli import add_delivery_commands
+
+    add_delivery_commands(groups, publish)
     return root
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    settings = Settings(root=args.root) if args.root else Settings()
+    settings = Settings.from_root(args.root)
 
     def area(identifier):
         return next((a for a in load_areas(settings) if a.area_id == identifier), None)
@@ -150,7 +188,13 @@ def main(argv=None):
         selected_area = area(args.area) if hasattr(args, "area") else None
         if hasattr(args, "area") and selected_area is None and args.group != "history":
             raise ValueError("Area not found in configuration")
-        if args.group == "history":
+        if args.group in {"sources", "data"} or (
+            args.group == "publish" and args.command in {"compact", "full"}
+        ):
+            from surfacesignal.delivery_cli import run_delivery_command
+
+            result = run_delivery_command(settings, args)
+        elif args.group == "history":
             if args.command == "verify":
                 result = verify_history(settings, args.area)
                 print(json.dumps(result, indent=2, allow_nan=False))
@@ -200,6 +244,84 @@ def main(argv=None):
                         "error",
                     )
                 }
+        elif args.group == "context":
+            from surfacesignal.api.service import Repository
+            from surfacesignal.context.models import ContextBudgets
+            from surfacesignal.context.store import ContextNotPrepared, build_context, load_context
+
+            if args.command == "sources":
+                from surfacesignal.providers.environmental import context_sources
+
+                result = context_sources()
+            elif args.command == "discover":
+                from surfacesignal.providers.context_discovery import discover
+
+                result = discover(
+                    args.source,
+                    list(shape(selected_area.geometry).bounds),
+                    args.start,
+                    args.end,
+                    max_items=args.max_items,
+                    max_bytes=args.max_bytes,
+                )
+            elif args.command == "import":
+                from surfacesignal.context.importer import import_dataset
+
+                result = import_dataset(
+                    settings,
+                    args.area,
+                    args.source,
+                    args.file,
+                    args.metadata,
+                    dry_run=args.dry_run,
+                    budgets=ContextBudgets(
+                        **{k: getattr(args, k) for k in ContextBudgets.model_fields}
+                    ),
+                )
+            elif args.command == "verify":
+                results = []
+                for analysis in Repository(settings).analyses(area_id=args.area):
+                    try:
+                        value = load_context(settings, analysis.analysis_id)
+                        results.append(
+                            {
+                                "analysis_id": analysis.analysis_id,
+                                "verified": True,
+                                "context_id": value["manifest"]["context_id"],
+                            }
+                        )
+                    except ContextNotPrepared:
+                        results.append(
+                            {
+                                "analysis_id": analysis.analysis_id,
+                                "verified": False,
+                                "status": "context_not_prepared",
+                            }
+                        )
+                result = {"area_id": args.area, "items": results}
+            else:
+                selected = [
+                    a
+                    for a in Repository(settings).analyses(area_id=args.area)
+                    if a.synthetic == args.illustrative
+                    and (not args.analysis or a.analysis_id == args.analysis)
+                ]
+                if not selected:
+                    raise ValueError(
+                        "No matching analyses; synthetic analyses require --illustrative"
+                    )
+                result = [
+                    build_context(
+                        settings,
+                        a.analysis_id,
+                        dry_run=args.dry_run,
+                        minimum_coverage=args.minimum_coverage,
+                        budgets=ContextBudgets(
+                            **{k: getattr(args, k) for k in ContextBudgets.model_fields}
+                        ),
+                    )
+                    for a in selected
+                ]
         elif args.group == "preparation":
             from surfacesignal.preparation.models import Budgets
             from surfacesignal.preparation.store import build_preparation, verify_preparation
@@ -242,6 +364,7 @@ def main(argv=None):
                 exclude_synthetic=args.exclude_synthetic,
                 include_previews=args.include_previews,
                 include_preparation=args.include_preparation,
+                include_environmental_context=args.include_environmental_context,
                 max_export_bytes=args.max_export_bytes,
             )
         elif args.group == "scenes":
@@ -287,7 +410,14 @@ def main(argv=None):
                     [s for s in load_scenes(settings) if s.area_id == args.area], event
                 )
             elif args.command == "download":
-                path = download(scene(args.scene_id), settings.root / "data/raw", args.max_gb)
+                path = download(
+                    scene(args.scene_id),
+                    settings.root / "data/raw",
+                    args.max_gb,
+                    token=settings.earthdata_token.get_secret_value()
+                    if settings.earthdata_token
+                    else None,
+                )
                 result = {"file": str(path)}
         elif args.group == "gcov":
             if args.command == "inspect":
@@ -345,7 +475,7 @@ def main(argv=None):
             file=sys.stderr,
         )
         return 130
-    except (ValueError, KeyError, OSError) as exc:
+    except (ValueError, KeyError, TypeError, OSError) as exc:
         # Never print arbitrary file content, URLs containing credentials, or provider bodies.
         message = (
             str(exc)

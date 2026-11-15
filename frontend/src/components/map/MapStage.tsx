@@ -36,6 +36,11 @@ import {
 import { ComparePanel } from "./ComparePanel";
 import { InfoAccordion, type InfoTab } from "./ComparisonInfo";
 import { Timeline } from "./Timeline";
+import { EnvironmentalContextPanel } from "../environment/EnvironmentalContextPanel";
+import { useEnvironmental } from "../environment/useEnvironmental";
+import { getReferenceGeoJson } from "@/data/source";
+import type { ReferenceLayer } from "@/data/api-types";
+import type { FeatureCollection } from "geojson";
 
 // The map library is large, so it is kept out of the first download and
 // never runs on the server.
@@ -83,10 +88,12 @@ export function MapStage({
   lang,
   labels,
   hero,
+  environment,
 }: {
   lang: Locale;
   labels: Labels;
   hero: Dictionary["hero"];
+  environment: Dictionary["environment"];
 }) {
   // intro: a turning globe behind the introduction. leaving: the introduction
   // fades while the camera pulls back. map: only the map and its controls.
@@ -201,6 +208,44 @@ export function MapStage({
 
   const selectedStep = timeline?.steps.find((step) => step.id === selectedId) ?? null;
   const analysisId = selectedStep?.analysisId ?? null;
+  // Environmental context of the chosen comparison (rain, river, land) and an optional
+  // reference outline; separate from the satellite layers.
+  const environmental = useEnvironmental(
+    closeUp ? area?.area_id ?? null : null,
+    closeUp ? analysisId : null,
+  );
+  const [reference, setReference] = useState<ReferenceLayer | null>(null);
+  const [referenceData, setReferenceData] = useState<{ id: string; data: FeatureCollection } | null>(null);
+  const [referenceError, setReferenceError] = useState(false);
+  useEffect(() => {
+    if (!reference?.artifact_url || !closeUp) return;
+    const controller = new AbortController();
+    getReferenceGeoJson(reference.artifact_url, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setReferenceData({ id: reference.layer_id, data });
+          setReferenceError(false);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setReferenceError(true);
+      });
+    return () => controller.abort();
+  }, [reference, closeUp]);
+  const environmentPanel = (
+    <EnvironmentalContextPanel
+      state={environmental}
+      step={selectedStep}
+      lang={lang}
+      labels={environment}
+      selectedLayer={reference?.layer_id ?? null}
+      onLayer={(layer) => {
+        setReference(layer);
+        setReferenceError(false);
+      }}
+      layerError={referenceError}
+    />
+  );
 
   // One request set per choice; a newer choice cancels the older one, so an
   // old answer never shows after quick navigation.
@@ -303,6 +348,9 @@ export function MapStage({
           motion={motion}
           intro={phase === "intro"}
           changes={changes}
+          reference={
+            closeUp && reference && referenceData?.id === reference.layer_id ? referenceData.data : null
+          }
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -542,6 +590,8 @@ export function MapStage({
             {closeUp && timeline && (
               <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
                 <Timeline
+                  environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                  environmentLabels={environment}
                   data={timeline}
                   lang={lang}
                   labels={labels.timeline}
@@ -560,6 +610,7 @@ export function MapStage({
                   changes={switches}
                   onChanges={setSwitches}
                 />
+                {environmentPanel}
               </div>
             )}
             </div>
@@ -594,6 +645,8 @@ export function MapStage({
           {closeUp && timeline && (
             <div className="glass rise-in pointer-events-auto absolute bottom-6 left-4 right-[26.5rem] hidden rounded-3xl px-4 py-3 lg:block">
               <Timeline
+                environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                environmentLabels={environment}
                 data={timeline}
                 lang={lang}
                 labels={labels.timeline}
@@ -618,6 +671,7 @@ export function MapStage({
                   changes={switches}
                   onChanges={setSwitches}
                 />
+                {environmentPanel}
             </div>
           )}
 

@@ -1,0 +1,4 @@
+{
+  "description": "Populate only from verified official station metadata. Empty means no stations configured; never infer station identifiers from names or proximity.",
+  "stations": []
+}
