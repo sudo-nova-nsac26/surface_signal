@@ -70,11 +70,11 @@ const pt = {
     lead: "Do espaço até o seu bairro, em quatro passos. Arraste a linha do desenho para comparar antes e depois.",
     next: "Próximo passo",
     continue: "Continuar",
-    sceneNote: "Rio, ruas e pontes reais (OpenStreetMap). A água nova é só uma ilustração.",
+    sceneNote: "Ilustração esquemática e hipotética: ruas, pontes, água e danos desenhados não representam impactos medidos pelo NISAR.",
     before: "Antes · 11 jul",
     after: "Depois · 23 jul",
-    newWater: "Água nova",
-    impactsTitle: "Possíveis impactos",
+    newWater: "Água ilustrativa",
+    impactsTitle: "Exemplos hipotéticos, não observações",
     impacts: {
       streets: "Ruas alagadas",
       houses: "Casas atingidas",
@@ -388,7 +388,7 @@ const pt = {
       "O Serviço Geológico do Brasil informou a situação do rio em {stations} cerca de {hours} horas antes de o satélite passar.",
     source: "Ver a fonte",
     illustrativeBody:
-      "Os desenhos no mapa ainda são exemplos. Eles serão trocados pela medida real do satélite.",
+      "Esta comparação está marcada como sintética nos dados de origem; não representa uma observação real.",
     and: "e",
   },
   illustrative: "Dado ilustrativo",

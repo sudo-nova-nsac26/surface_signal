@@ -79,10 +79,10 @@ export function RegionStatus({
               lang,
               controller.signal,
             );
-          } catch (error) {
+          } catch {
             // Real comparisons may have missing detail; never substitute demo data.
             if (controller.signal.aborted) return;
-            console.warn("Comparison detail unavailable", error);
+            // Missing detail is represented as unavailable in the UI.
           }
         }
         if (!controller.signal.aborted) setState({ status: "ready", region, detail });
