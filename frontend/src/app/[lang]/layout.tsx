@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible, Poppins } from "next/font/google";
 import { notFound } from "next/navigation";
 import { ExternalIcon, TeamIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -7,22 +6,11 @@ import { hasLocale, htmlLang, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { TEAM_SITE_URL } from "@/links";
 import { preferencesBootScript } from "@/preferences/boot-script";
+import { atkinson, brandFont } from "@/fonts";
 import "../globals.css";
 
-// Atkinson Hyperlegible was designed by the Braille Institute for readers
-// with low vision: letters that are easy to confuse are drawn clearly apart.
-const atkinson = Atkinson_Hyperlegible({
-  variable: "--font-atkinson",
-  weight: ["400", "700"],
-  subsets: ["latin"],
-});
-
-// The geometric sans of the SurfaceSignal logo, used only for the name.
-const brandFont = Poppins({
-  variable: "--font-brand",
-  weight: ["700"],
-  subsets: ["latin"],
-});
+// Both supported language routes are exported; unknown languages remain 404.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }));

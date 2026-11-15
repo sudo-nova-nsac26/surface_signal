@@ -7,6 +7,8 @@ import type { ContextAvailability, ReferenceLayer } from "@/data/api-types";
 import { environmentalNumber, environmentalTime, filterEnvironmentalEvents, safeSourceUrl } from "@/data/environmental";
 import type { EnvironmentalState } from "./useEnvironmental";
 
+import { compactSnapshot } from "@/data/source";
+
 type Labels = Dictionary["environment"];
 export function EnvironmentalContextPanel({state, step, lang, labels: l, selectedLayer, onLayer, layerError}: {
   state: EnvironmentalState; step: TimelineStep | null; lang: Locale; labels: Labels;
@@ -25,6 +27,7 @@ export function EnvironmentalContextPanel({state, step, lang, labels: l, selecte
     <div className="space-y-4 pb-2 text-base">
       <section className="space-y-2">
         <h3 className="font-bold">{l.satellite}</h3>
+        {compactSnapshot && <p className="text-sm text-ink-soft">{l.compactMap}</p>}
         {step && <p>{l.between} {date(step.beforeAt)} — {date(step.afterAt)}. {l.timezone}.</p>}
         {step?.analysis?.illustrative && <p className="font-bold text-highlight">{l.illustrative}</p>}
         <p>{step?.analysis ? l.observation : l.noAnalysis}</p>
@@ -43,7 +46,7 @@ export function EnvironmentalContextPanel({state, step, lang, labels: l, selecte
         {report.synthetic && <p className="font-bold text-highlight">{l.illustrative}</p>}
         {block(l.rainfall, report.rainfall.status, <>
           {Object.entries(report.rainfall.windows_mm).map(([window, value]) => <p key={window}>{l.rainfallWindow} {window}: <strong>{value === null ? l.noRain : `${n(value)} mm`}</strong></p>)}
-          <p className="text-sm text-ink-soft">{l.source}: NASA GPM IMERG · {report.rainfall.product ?? l.missing} {report.rainfall.run ?? ""}</p>
+          <p className="text-sm text-ink-soft">{l.source}: {report.rainfall.source_id || l.missing} · {report.rainfall.product ?? l.missing} {report.rainfall.run ?? ""}</p>
           {report.rainfall.resolution_km_approx !== null && <p>{l.resolution}: {n(report.rainfall.resolution_km_approx)} km</p>}
           {report.rainfall.coverage_fraction !== null && <p>{l.coverage}: {n(report.rainfall.coverage_fraction * 100)}%</p>}
         </>)}
@@ -86,6 +89,7 @@ export function EnvironmentalContextPanel({state, step, lang, labels: l, selecte
             {source.reference_year && <p>{l.referenceYear}: {source.reference_year}</p>}
             {source.resolution_m != null && <p>{l.resolution}: {n(source.resolution_m)} m</p>}
             {source.synthetic && <p className="font-bold text-highlight">{l.illustrative}</p>}
+            {source.attribution && <p className="text-sm">{source.attribution}</p>}
             <ul>{source.limitations.map((item, i) => <li key={i}>{item}</li>)}</ul>
           </li>)}</ul>
           <ul className="mt-3 space-y-2">{[...report.limitations, ...report.rainfall.limitations, ...report.hydrology.limitations, ...report.historical_water.limitations, ...report.land_cover.limitations, ...report.topography.limitations, ...report.validation.limitations].map((item, i) => <li key={i}>{item}</li>)}</ul>

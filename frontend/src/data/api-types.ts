@@ -112,7 +112,7 @@ export type ContextAvailability = "available" | "partial" | "unavailable" | "not
 export interface EvidenceSource {
   source_id: string; name: string; url: string;
   synthetic: boolean; redistribution_allowed: boolean;
-  product?: string | null; dataset_version?: string | null; license_id?: string | null; reference_year?: number | null;
+  product?: string | null; attribution?: string | null; terms_url?: string | null; dataset_version?: string | null; license_id?: string | null; reference_year?: number | null;
   observed_start?: string | null; observed_end?: string | null;
   resolution_m?: number | null; limitations: string[];
 }
@@ -127,6 +127,13 @@ export interface AnalysisValidation {
   metrics: Record<string, number | null> | null;
   coverage?: unknown; limitations: string[]; provenance?: Record<string, unknown>;
 }
+/** Prior complete UTC date labels; never acquisition-hour rainfall windows. */
+export interface DailyRainfallSummary {
+  end_label_exclusive: string;
+  totals_mm: Record<string, number | null>;
+  coverage_by_days: Record<string, number>;
+  semantics: string;
+}
 export interface EnvironmentalContextReport {
   schema_version: string; area_id: string; analysis_id: string;
   observed_at: string; generated_at: string; data_status: ContextAvailability;
@@ -134,10 +141,14 @@ export interface EnvironmentalContextReport {
   rainfall: { status: ContextAvailability; source_id: string; product: string | null;
     run: string | null; resolution_km_approx: number | null;
     windows_mm: Record<string, number | null>; coverage_fraction: number | null;
+    daily_summaries?: Record<string, DailyRainfallSummary>;
+    temporal_semantics?: string | null;
     limitations: string[] };
   hydrology: { status: ContextAvailability; stations: unknown[];
     records: HydroObservation[]; limitations: string[] };
   historical_water: { status: ContextAvailability; reference_year: number | null;
+    source_id?: string; mean_frequency?: number | null;
+    reference_start_year?: number | null;
     collection: string; overlap_km2: number | null; overlap_fraction: number | null;
     limitations: string[] };
   land_cover: { status: ContextAvailability; reference_year: number | null;

@@ -7,9 +7,10 @@ import type { EnvironmentalContextReport, EnvironmentalEvent, ReferenceLayer, An
  *
  * Two sources, same shapes:
  * - API mode: NEXT_PUBLIC_API_BASE_URL points at the SurfaceSignal backend
- *   (for example http://127.0.0.1:8000 from `docker compose up`).
+ *   (for example http://127.0.0.1:8000 during local API development).
  * - Static mode (no variable set): reads a snapshot of the same responses
- *   from public/data/api/v1, so the site also works with no backend running.
+ *   from public/data/compact/api/v1. An explicitly installed full snapshot can
+ *   be selected with NEXT_PUBLIC_STATIC_SNAPSHOT=full.
  *
  * Switching between them is configuration only.
  */
@@ -17,10 +18,21 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
   /\/+$/,
   "",
 );
+if (API_BASE) {
+  const address = new URL(API_BASE);
+  if (!/^https?:$/.test(address.protocol) || address.username || address.password || address.search || address.hash) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL must be an HTTP(S) address without credentials, query or fragment");
+  }
+}
 
 export const dataSourceMode: "api" | "static" = API_BASE ? "api" : "static";
 
-const STATIC_ROOT = "/data/api/v1";
+const SNAPSHOT = process.env.NEXT_PUBLIC_STATIC_SNAPSHOT ?? "compact";
+if (SNAPSHOT !== "compact" && SNAPSHOT !== "full") {
+  throw new Error("NEXT_PUBLIC_STATIC_SNAPSHOT must be compact or full");
+}
+export const compactSnapshot = dataSourceMode === "static" && SNAPSHOT === "compact";
+const STATIC_ROOT = SNAPSHOT === "full" ? "/data/api/v1" : "/data/compact/api/v1";
 const PAGE_LIMIT = 200;
 
 export class DataSourceError extends Error {
@@ -124,7 +136,7 @@ export function getArtifactJson<T>(
 
 /** Only bounded, published internal GeoJSON paths are permitted for reference overlays. */
 export function referenceArtifactUrl(value: string): string {
-  const match = value.match(/^\/(?:api\/v1|data\/api\/v1)\/areas\/([A-Za-z0-9_-]+)\/references\/([A-Za-z0-9_-]+\.geojson)$/);
+  const match = value.match(/^\/(?:api\/v1|data\/(?:compact\/)?api\/v1)\/areas\/([A-Za-z0-9_-]+)\/references\/([A-Za-z0-9_-]+\.geojson)$/);
   if (!match) throw new DataSourceError("Invalid reference artifact address");
   return `${dataSourceMode === "api" ? `${API_BASE}/api/v1` : STATIC_ROOT}/areas/${match[1]}/references/${match[2]}`;
 }

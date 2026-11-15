@@ -31,7 +31,7 @@ test('citation and reference URLs reject signatures, foreign origins and path tr
   const s = load('source');
   for (const value of ['javascript:alert(1)','https://a.test/?token=secret','https://user:password@a.test']) assert.equal(e.safeSourceUrl(value),null);
   for (const value of ['/api/v1/areas/a/references/../private','https://evil.test/a.geojson','/api/v1/areas/a/references/x.geojson?token=secret']) assert.throws(()=>s.referenceArtifactUrl(value));
-  assert.equal(s.referenceArtifactUrl('/api/v1/areas/a/references/x.geojson'),'/data/api/v1/areas/a/references/x.geojson');
+  assert.equal(s.referenceArtifactUrl('/api/v1/areas/a/references/x.geojson'),'/data/compact/api/v1/areas/a/references/x.geojson');
 });
 test('API pagination, encoding and abort signal are preserved', async () => {
   const s = load('source', 'http://localhost:8000'); const calls=[]; const controller=new AbortController();
@@ -44,7 +44,7 @@ test('static endpoints have no query, filter locally and errors do not become de
   const s = load('source'); const urls=[];
   global.fetch = async url => {urls.push(url);return Response.json({items:[{event_id:'x',observed_at:'2026-07-24T00:00:00Z', source_id:'synthetic', quality_status:'valid', kind:'station_measurement', synthetic:true}],total:1});};
   assert.deepEqual(await s.listEnvironmentalEvents('a','2026-07-23','2026-07-23'),[]);
-  assert.equal(urls[0],'/data/api/v1/areas/a/environmental-events.json');
+  assert.equal(urls[0],'/data/compact/api/v1/areas/a/environmental-events.json');
   global.fetch=async()=>new Response('',{status:404});
   await assert.rejects(s.getEnvironmentalContext('a'), error=>error instanceof s.DataSourceError && error.status===404);
   global.fetch=async()=>new Response('',{status:503});
@@ -88,7 +88,7 @@ test('unmeasured and measured candidate areas retain null and real zero in timel
 });
 test('object-valued display fields become recoverable data errors', async () => {
   const value = JSON.parse(fs.readFileSync('tests/fixtures/environmental-context.synthetic.json','utf8'));
-  for (const [block,key] of [['historical_water','reference_year'],['historical_water','collection'],['rainfall','run']]) {
+  for (const [block,key] of [['historical_water','reference_year'],['historical_water','collection'],['rainfall','run'],['rainfall','source_id']]) {
     const broken=structuredClone(value); broken[block][key]={bad:'value'};
     assert.throws(()=>e.assertEnvironmentalReport(broken,broken.analysis_id));
   }

@@ -52,9 +52,9 @@ export function assertEnvironmentalReport(value: EnvironmentalContextReport, ana
   }
   const text = (item: unknown) => item == null || typeof item === "string";
   const number = (item: unknown) => item == null || typeof item === "number" && Number.isFinite(item);
-  if (![value.rainfall.product, value.rainfall.run, value.historical_water.collection].every(text) ||
+  if (![value.rainfall.source_id, value.rainfall.product, value.rainfall.run, value.historical_water.collection].every(text) ||
       ![value.historical_water.reference_year, value.land_cover.reference_year].every(number) ||
-      value.sources.some(source => ![source.source_id, source.name, source.url, source.product, source.dataset_version, source.license_id, source.observed_start, source.observed_end].every(text) || !number(source.reference_year) || !number(source.resolution_m)) ||
+      value.sources.some(source => ![source.source_id, source.name, source.url, source.attribution, source.terms_url, source.product, source.dataset_version, source.license_id, source.observed_start, source.observed_end].every(text) || !number(source.reference_year) || !number(source.resolution_m)) ||
       value.hydrology.records.some(record => ![record.datum, record.quality_status, record.source_id].every(text) || !number(record.time_offset_hours)) ||
       (value.validation.metrics !== null && (typeof value.validation.metrics !== "object" || Array.isArray(value.validation.metrics) || !Object.values(value.validation.metrics).every(number)))) {
     throw new Error("Invalid display field");
