@@ -14,7 +14,11 @@ export type TextSize = "md" | "lg" | "xl";
 export interface Preferences {
   contrast: "default" | "high";
   textSize: TextSize;
-  motion: "auto" | "reduce";
+  /**
+   * auto: follow the device setting. reduce: no motion. full: motion on,
+   * even when the device asks for less (the visitor chose it here).
+   */
+  motion: "auto" | "reduce" | "full";
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -37,12 +41,24 @@ function readStored(): Preferences {
         parsed.textSize === "lg" || parsed.textSize === "xl"
           ? parsed.textSize
           : "md",
-      motion: parsed.motion === "reduce" ? "reduce" : "auto",
+      motion:
+        parsed.motion === "reduce" || parsed.motion === "full"
+          ? parsed.motion
+          : "auto",
     };
   } catch {
     // Private windows or blocked storage: the page still works with defaults.
     return DEFAULT_PREFERENCES;
   }
+}
+
+function systemPrefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** The choice made on this site wins over the device setting. */
+export function motionIsReduced(prefs: Preferences, system: boolean) {
+  return prefs.motion === "reduce" || (prefs.motion === "auto" && system);
 }
 
 function applyToDocument(prefs: Preferences) {
@@ -51,7 +67,8 @@ function applyToDocument(prefs: Preferences) {
   else delete root.dataset.contrast;
   if (prefs.textSize === "md") delete root.dataset.text;
   else root.dataset.text = prefs.textSize;
-  if (prefs.motion === "reduce") root.dataset.motion = "reduce";
+  if (motionIsReduced(prefs, systemPrefersReducedMotion()))
+    root.dataset.motion = "reduce";
   else delete root.dataset.motion;
 }
 
@@ -93,15 +110,36 @@ function subscribeToMotionQuery(listener: () => void) {
 }
 
 /**
- * True when motion should be avoided: either the visitor turned on
- * "reduce motion" here, or their device already asks for it.
+ * True when motion should be avoided: the visitor turned on "reduce motion"
+ * here, or their device asks for it and they did not turn motion back on.
  */
 export function useReducedMotion(): boolean {
-  const { motion } = usePreferences();
-  const systemPrefersReduce = useSyncExternalStore(
+  const prefs = usePreferences();
+  const system = useSyncExternalStore(
     subscribeToMotionQuery,
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    systemPrefersReducedMotion,
     () => false,
   );
-  return motion === "reduce" || systemPrefersReduce;
+  return motionIsReduced(prefs, system);
+}
+
+export type MotionLevel = "full" | "gentle" | "none";
+
+/**
+ * How much the interface may move.
+ * - none: the visitor turned motion off here.
+ * - gentle: the device asks for less motion. Camera moves become short and
+ *   smooth, with no sweeping flights and no spinning, so changes stay readable.
+ * - full: everything.
+ */
+export function useMotionLevel(): MotionLevel {
+  const prefs = usePreferences();
+  const system = useSyncExternalStore(
+    subscribeToMotionQuery,
+    systemPrefersReducedMotion,
+    () => false,
+  );
+  if (prefs.motion === "reduce") return "none";
+  if (prefs.motion === "auto" && system) return "gentle";
+  return "full";
 }

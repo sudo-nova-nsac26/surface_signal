@@ -244,11 +244,24 @@ export function HowItWorks({ labels }: { labels: Labels }) {
         </ol>
         <button
           type="button"
-          onClick={() => setStep((current) => (current + 1) % total)}
+          onClick={() => {
+            if (step < total - 1) {
+              setStep(step + 1);
+              return;
+            }
+            // Last step: carry on down the page instead of starting over.
+            document
+              .getElementById("layers")
+              ?.scrollIntoView({ block: "start" });
+          }}
           className="pressable inline-flex min-h-14 items-center justify-center gap-3 self-start rounded-2xl border-2 border-transparent bg-brand px-6 text-xl font-bold text-brand-ink hc:border-ink"
         >
-          {labels.next}
-          <ArrowRightIcon />
+          {step < total - 1 ? labels.next : labels.continue}
+          {step < total - 1 ? (
+            <ArrowRightIcon />
+          ) : (
+            <ArrowRightIcon className="rotate-90" />
+          )}
         </button>
       </div>
     </div>

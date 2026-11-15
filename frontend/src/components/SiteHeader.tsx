@@ -3,34 +3,6 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import { AccessibilityMenu } from "./AccessibilityMenu";
 import { LanguageSwitch } from "./LanguageSwitch";
 
-function BrandMark() {
-  return (
-    <svg
-      viewBox="0 0 40 40"
-      className="size-10 shrink-0"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect width="40" height="40" rx="10" fill="var(--ink)" />
-      <path
-        d="M6 16c4.700-4 9.300-4 14 0s9.300 4 14 0"
-        fill="none"
-        stroke="var(--bg)"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 25c4.700-4 9.300-4 14 0s9.300 4 14 0"
-        fill="none"
-        stroke="var(--bg)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
-    </svg>
-  );
-}
-
 export function SiteHeader({
   lang,
   dict,
@@ -39,19 +11,34 @@ export function SiteHeader({
   dict: Dictionary;
 }) {
   return (
-    <header className="relative border-b-2 border-ink bg-surface">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <BrandMark />
+    <header className="relative border-b border-line bg-bg-raised hc:border-b-2">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        {/* A plain link on purpose: a full page load, as if reloading the site. */}
+        <a
+          href={`/${lang}`}
+          aria-label={`${dict.brand.name} — ${dict.brand.home}`}
+          className="flex items-center gap-3 rounded-xl"
+        >
+          {/* The symbol of the SurfaceSignal logo; the name beside it is text. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/surfacesignal-mark.webp"
+            alt=""
+            width={52}
+            height={49}
+            className="h-12 w-auto shrink-0"
+          />
           <div className="leading-tight">
-            <p className="text-xl font-bold">{dict.brand.name}</p>
+            <p className="brand-name text-2xl sm:text-3xl">
+              Surface<span className="text-brand-text">Signal</span>
+            </p>
             <p className="hidden text-base text-ink-soft sm:block">
               {dict.brand.tagline}
             </p>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <LanguageSwitch current={lang} label={dict.language.label} />
+        </a>
+        <div className="flex items-center gap-1">
+          <LanguageSwitch current={lang} />
           <AccessibilityMenu labels={dict.a11y} />
         </div>
       </div>

@@ -6,4 +6,4 @@ import { STORAGE_KEY } from "./store-key";
  */
 export const preferencesBootScript = `(function(){try{var p=JSON.parse(localStorage.getItem(${JSON.stringify(
   STORAGE_KEY,
-)})||"{}"),d=document.documentElement;if(p.contrast==="high")d.dataset.contrast="high";if(p.textSize==="lg"||p.textSize==="xl")d.dataset.text=p.textSize;if(p.motion==="reduce")d.dataset.motion="reduce"}catch(e){}})();`;
+)})||"{}"),d=document.documentElement;d.dataset.js="1";if(p.contrast==="high")d.dataset.contrast="high";if(p.textSize==="lg"||p.textSize==="xl")d.dataset.text=p.textSize;if(p.motion==="reduce"||(p.motion!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))d.dataset.motion="reduce"}catch(e){}})();`;

@@ -1,47 +1,72 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { HowItWorks } from "@/components/HowItWorks";
 import {
-  ArrowRightIcon,
-  CompareIcon,
   HillIcon,
   InfoIcon,
-  PaintIcon,
   PlantIcon,
-  SatelliteIcon,
   WaterIcon,
 } from "@/components/icons";
+import { MapStage } from "@/components/map/MapStage";
 import { RegionStatus } from "@/components/RegionStatus";
+import { Reveal } from "@/components/Reveal";
 import type { LayerId, LayerStatus } from "@/data/region";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-
-const HOW_ICONS = [SatelliteIcon, CompareIcon, PaintIcon];
 
 const LAYERS: {
   id: LayerId;
   status: LayerStatus;
   icon: ReactNode;
   colorClass: string;
+  textClass: string;
 }[] = [
   {
     id: "water",
     status: "available",
-    icon: <WaterIcon />,
+    icon: <WaterIcon className="size-9" />,
     colorClass: "bg-water",
+    textClass: "text-water",
   },
   {
     id: "vegetation",
     status: "exploratory",
-    icon: <PlantIcon />,
+    icon: <PlantIcon className="size-9" />,
     colorClass: "bg-vegetation",
+    textClass: "text-vegetation",
   },
   {
     id: "slopes",
     status: "unavailable",
-    icon: <HillIcon />,
+    icon: <HillIcon className="size-9" />,
     colorClass: "bg-slopes",
+    textClass: "text-slopes",
   },
 ];
+
+function SectionHeading({
+  id,
+  number,
+  children,
+}: {
+  id: string;
+  number: string;
+  children: ReactNode;
+}) {
+  return (
+    <h2 id={id} className="flex items-baseline gap-4">
+      <span
+        aria-hidden="true"
+        className="text-xl font-bold tabular-nums text-brand-text"
+      >
+        {number}
+      </span>
+      <span className="text-4xl font-bold tracking-tight sm:text-5xl">
+        {children}
+      </span>
+    </h2>
+  );
+}
 
 export default async function HomePage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -50,134 +75,95 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
 
   return (
     <>
-      <aside
-        aria-labelledby="notice-title"
-        className="border-b-2 border-ink bg-notice-bg text-notice-ink"
-      >
-        <div className="mx-auto flex max-w-5xl gap-3 px-4 py-3">
-          <InfoIcon className="mt-1 shrink-0" />
-          <p className="text-base">
-            <strong id="notice-title">{dict.notice.title}.</strong>{" "}
-            {dict.notice.body}
-          </p>
-        </div>
-      </aside>
-
-      <section className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
-        <p className="mb-3 font-bold text-accent">{dict.hero.eyebrow}</p>
-        <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">
-          {dict.hero.title}
-        </h1>
-        <p className="mt-5 max-w-2xl text-xl text-ink-soft">{dict.hero.lead}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          <a
-            href="#story"
-            className="inline-flex min-h-16 items-center gap-3 rounded-2xl border-2 border-ink bg-accent px-8 text-2xl font-bold text-accent-ink"
-          >
-            {dict.hero.start}
-            <ArrowRightIcon />
-          </a>
-          <p className="text-ink-soft">{dict.hero.startHint}</p>
-        </div>
-      </section>
+      <MapStage
+        lang={lang}
+        labels={dict.map}
+        hero={dict.hero}
+        layers={dict.layers}
+        illustrative={dict.illustrative}
+      />
 
       <section
+        id="how"
         aria-labelledby="how-title"
-        className="border-y-2 border-ink bg-surface"
+        className="starfield scroll-mt-4"
       >
-        <div className="mx-auto max-w-5xl px-4 py-10">
-          <h2 id="how-title" className="text-3xl font-bold">
-            {dict.how.title}
-          </h2>
-          <ol className="mt-6 grid gap-4 sm:grid-cols-3">
-            {dict.how.steps.map((step, index) => {
-              const StepIcon = HOW_ICONS[index];
-              return (
-                <li
-                  key={step.title}
-                  className="rounded-2xl border-2 border-ink bg-bg p-5"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-10 items-center justify-center rounded-full bg-ink text-xl font-bold text-bg"
-                    >
-                      {index + 1}
-                    </span>
-                    <StepIcon className="text-accent" />
-                  </div>
-                  <h3 className="mt-3 text-xl font-bold">{step.title}</h3>
-                  <p className="mt-1 text-ink-soft">{step.body}</p>
-                </li>
-              );
-            })}
-          </ol>
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+          <Reveal>
+            <SectionHeading id="how-title" number="01">
+              {dict.how.title}
+            </SectionHeading>
+          </Reveal>
+          <Reveal>
+            <HowItWorks labels={dict.how} />
+          </Reveal>
         </div>
       </section>
 
       <section
+        id="layers"
         aria-labelledby="layers-title"
-        className="mx-auto max-w-5xl px-4 py-10"
+        className="border-y border-line bg-bg-raised hc:border-y-2 hc:border-ink"
       >
-        <h2 id="layers-title" className="text-3xl font-bold">
-          {dict.layers.title}
-        </h2>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-3">
-          {LAYERS.map(({ id, status, icon, colorClass }) => (
-            <li
-              key={id}
-              className="flex flex-col gap-3 rounded-2xl border-2 border-ink bg-surface p-5"
-            >
-              <div className="flex items-center justify-between gap-3">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+          <Reveal>
+            <SectionHeading id="layers-title" number="02">
+              {dict.layers.title}
+            </SectionHeading>
+          </Reveal>
+          <Reveal>
+          <ul className="mt-8 grid gap-4 md:grid-cols-3">
+            {LAYERS.map(({ id, status, icon, colorClass, textClass }) => (
+              <li
+                key={id}
+                className="card relative flex flex-col gap-4 overflow-hidden rounded-3xl border border-line bg-surface p-6 hc:border-2"
+              >
                 <span
-                  className={`flex size-12 items-center justify-center rounded-xl border-2 border-ink text-surface ${colorClass}`}
-                >
-                  {icon}
-                </span>
-                <span
-                  className={`rounded-full border-2 border-ink px-3 py-1 text-base font-bold ${
-                    status === "available" ? "bg-ink text-bg" : ""
-                  }`}
-                >
-                  {dict.layers.status[status]}
-                </span>
-              </div>
-              <h3 className="text-xl font-bold">{dict.layers[id].name}</h3>
-              <p className="text-ink-soft">{dict.layers[id].body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section
-        id="story"
-        aria-labelledby="story-title"
-        className="scroll-mt-4 border-t-2 border-ink bg-surface"
-      >
-        <div className="mx-auto max-w-5xl px-4 py-10">
-          <h2 id="story-title" className="text-3xl font-bold">
-            {dict.story.title}
-          </h2>
-          <p className="mt-2 max-w-2xl text-ink-soft">{dict.story.lead}</p>
-          <ol className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            {dict.story.steps.map((step, index) => (
-              <li key={step} className="flex items-center gap-3">
-                {index > 0 && (
-                  <ArrowRightIcon className="hidden shrink-0 text-ink-soft sm:block" />
-                )}
-                <span className="flex min-h-14 flex-1 items-center gap-3 rounded-2xl border-2 border-ink bg-bg px-4 py-2 font-bold">
+                  aria-hidden="true"
+                  className={`absolute -right-10 -top-10 size-32 rounded-full opacity-15 blur-2xl hc:hidden ${colorClass}`}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className={textClass}>{icon}</span>
                   <span
-                    aria-hidden="true"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink text-base text-bg"
+                    className={`rounded-full border px-3 py-1 text-base font-bold ${
+                      status === "available"
+                        ? "border-brand bg-brand text-brand-ink"
+                        : "border-line text-ink-soft hc:border-ink hc:text-ink"
+                    }`}
                   >
-                    {index + 1}
+                    {dict.layers.status[status]}
                   </span>
-                  {step}
-                </span>
+                </div>
+                <h3 className="text-2xl font-bold">{dict.layers[id].name}</h3>
+                <p className="text-ink-soft">{dict.layers[id].body}</p>
+                <span
+                  aria-hidden="true"
+                  className={`mt-auto h-1 w-16 rounded-full ${colorClass}`}
+                />
               </li>
             ))}
-          </ol>
-          <RegionStatus lang={lang} labels={dict.region} badge={dict.illustrative} />
+          </ul>
+          </Reveal>
+        </div>
+      </section>
+
+      <section aria-labelledby="region-title" className="starfield">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+          <Reveal>
+            <RegionStatus
+              lang={lang}
+              labels={dict.region}
+              badge={dict.illustrative}
+              number="03"
+            />
+          </Reveal>
+          <p className="mt-8 flex gap-2 rounded-xl border-l-4 border-highlight bg-surface px-4 py-3 text-base text-ink-soft">
+            <InfoIcon className="mt-0.5 shrink-0 text-highlight" />
+            <span>
+              <strong className="text-ink">{dict.notice.title}.</strong>{" "}
+              {dict.notice.body}
+            </span>
+          </p>
         </div>
       </section>
     </>

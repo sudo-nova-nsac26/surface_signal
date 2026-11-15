@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import {
   setPreferences,
   usePreferences,
+  useReducedMotion,
   type TextSize,
 } from "@/preferences/store";
 import { AccessibilityIcon, CloseIcon } from "./icons";
@@ -54,6 +55,7 @@ function Switch({
 export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
   const [open, setOpen] = useState(false);
   const prefs = usePreferences();
+  const reducedMotion = useReducedMotion();
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,10 +87,12 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-12 items-center gap-2 rounded-xl border-2 border-ink bg-accent px-4 font-bold text-accent-ink"
+        aria-label={labels.open}
+        title={labels.open}
+        className="tool-button"
       >
-        <AccessibilityIcon />
-        <span>{labels.open}</span>
+        <AccessibilityIcon width="1.3em" height="1.3em" />
+        <span className="hidden sm:inline">{labels.open}</span>
       </button>
 
       <div
@@ -96,7 +100,7 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         hidden={!open}
         role="group"
         aria-label={labels.title}
-        className="absolute inset-x-4 top-full z-20 mt-2 flex flex-col gap-4 rounded-2xl border-2 border-ink bg-surface p-4 shadow-xl sm:inset-x-auto sm:right-0 sm:w-96"
+        className="absolute inset-x-4 top-full z-20 mt-2 flex flex-col gap-4 rounded-3xl border-2 border-ink bg-surface p-4 shadow-2xl sm:inset-x-auto sm:right-0 sm:w-96"
       >
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-xl font-bold">{labels.title}</h2>
@@ -154,11 +158,11 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         />
 
         <Switch
-          checked={prefs.motion === "reduce"}
-          onChange={(on) => setPreferences({ motion: on ? "reduce" : "auto" })}
+          checked={reducedMotion}
+          onChange={(on) => setPreferences({ motion: on ? "reduce" : "full" })}
           label={labels.motion}
           hint={labels.motionHint}
-          stateLabel={prefs.motion === "reduce" ? labels.on : labels.off}
+          stateLabel={reducedMotion ? labels.on : labels.off}
         />
       </div>
     </div>

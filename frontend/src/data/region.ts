@@ -188,3 +188,146 @@ export async function loadRegionView(
   ]);
   return buildRegionView(area, scenes, analyses);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Timeline: the satellite passes over a place, taken two at a time. Each  */
+/* step compares one pass with the previous pass of the same kind, so the  */
+/* visitor can move forward and back through what happened.                */
+/* ---------------------------------------------------------------------- */
+
+export interface TimelinePass {
+  sceneId: string;
+  /** ISO 8601 UTC acquisition time. */
+  at: string;
+  /** "ASCENDING" or "DESCENDING" when known. */
+  direction: string | null;
+}
+
+export interface TimelineAnalysis {
+  analysisId: string;
+  illustrative: boolean;
+  hasChangeShapes: boolean;
+}
+
+export interface TimelineStep {
+  /** Stable identifier: the two acquisition times. */
+  id: string;
+  beforeAt: string;
+  afterAt: string;
+  direction: string | null;
+  /** The prepared comparison for this step, when the backend has one. */
+  analysis: TimelineAnalysis | null;
+}
+
+export interface TimelineEvent {
+  /** ISO 8601 UTC time of the observation. */
+  at: string;
+  source: string;
+  url: string;
+  stations: string[];
+}
+
+export interface TimelineView {
+  passes: TimelinePass[];
+  steps: TimelineStep[];
+  events: TimelineEvent[];
+}
+
+const stepId = (beforeAt: string, afterAt: string) => `${beforeAt}|${afterAt}`;
+
+export function buildTimeline(
+  scenes: ApiScene[],
+  analyses: ApiAnalysis[],
+): TimelineView {
+  const real = scenes.filter((scene) => !scene.synthetic);
+
+  const passes = new Map<string, TimelinePass>();
+  for (const scene of real) {
+    passes.set(scene.start_time, {
+      sceneId: scene.scene_id,
+      at: scene.start_time,
+      direction: scene.direction,
+    });
+  }
+
+  // Analyses and river bulletins from the backend.
+  const prepared = new Map<string, TimelineAnalysis>();
+  const events = new Map<string, TimelineEvent>();
+  for (const analysis of analyses) {
+    const [before, after] = analysis.scenes;
+    if (!before || !after) continue;
+    prepared.set(stepId(before.start_time, after.start_time), {
+      analysisId: analysis.analysis_id,
+      illustrative: analysis.synthetic || analysis.evidence.synthetic,
+      hasChangeShapes: CHANGE_CANDIDATES_ARTIFACT in analysis.artifacts,
+    });
+    for (const record of analysis.provenance.hydrological_context ?? []) {
+      const key = `${record.observed_at}|${record.source_url}`;
+      const event = events.get(key) ?? {
+        at: record.observed_at,
+        source: "SGB",
+        url: record.source_url,
+        stations: [],
+      };
+      if (!event.stations.includes(record.station)) {
+        event.stations.push(record.station);
+      }
+      events.set(key, event);
+    }
+  }
+
+  // Consecutive passes of the same kind: same track, frame, direction...
+  const groups = new Map<string, ApiScene[]>();
+  for (const scene of real) {
+    const key = PAIR_KEYS.map((name) => String(scene[name])).join("|");
+    groups.set(key, [...(groups.get(key) ?? []), scene]);
+  }
+  const steps = new Map<string, TimelineStep>();
+  for (const group of groups.values()) {
+    const sorted = [...group].sort(
+      (a, b) => Date.parse(a.start_time) - Date.parse(b.start_time),
+    );
+    for (let i = 1; i < sorted.length; i += 1) {
+      const before = sorted[i - 1];
+      const after = sorted[i];
+      if (!comparable(before, after)) continue;
+      const id = stepId(before.start_time, after.start_time);
+      steps.set(id, {
+        id,
+        beforeAt: before.start_time,
+        afterAt: after.start_time,
+        direction: after.direction,
+        analysis: prepared.get(id) ?? null,
+      });
+    }
+  }
+  // A prepared comparison between passes that are not neighbours still counts.
+  for (const [id, analysis] of prepared) {
+    if (steps.has(id)) continue;
+    const [beforeAt, afterAt] = id.split("|");
+    steps.set(id, { id, beforeAt, afterAt, direction: null, analysis });
+  }
+
+  const byTime = (a: { at: string }, b: { at: string }) =>
+    Date.parse(a.at) - Date.parse(b.at);
+  return {
+    passes: [...passes.values()].sort(byTime),
+    steps: [...steps.values()].sort(
+      (a, b) =>
+        Date.parse(a.afterAt) - Date.parse(b.afterAt) ||
+        Date.parse(a.beforeAt) - Date.parse(b.beforeAt),
+    ),
+    events: [...events.values()].sort(byTime),
+  };
+}
+
+export async function loadTimeline(
+  areaId: string,
+  signal?: AbortSignal,
+): Promise<TimelineView> {
+  const [scenes, analyses] = await Promise.all([
+    listScenes(areaId, signal),
+    listAnalyses(areaId, signal),
+  ]);
+  return buildTimeline(scenes, analyses);
+}

@@ -13,3 +13,186 @@ Only real diagonal GCOV power terms use 10*log10. No inferred flood truth from a
 Require comparable scene metadata and enforce memory/download budgets.
 Mark synthetic data explicitly. Every output must preserve sources, parameters and hashes.
 No public license or visibility change without repository owner authorization.
+
+---
+
+# Front-end (`frontend/`)
+
+Notes for anyone (human or agent) working on the web app. The backend rules above
+still apply to everything under `backend/`. This section is the front-end's memory:
+what the project is, how the app is built, and what comes next. **Keep it current:**
+when you finish or change something listed here, update this file in the same change.
+
+> **Taking over?** Read [`docs/frontend-handoff.md`](docs/frontend-handoff.md) after this file: current state,
+> decisions already made, pitfalls, how to test, and the ordered next tasks (written 2026-11-14 at a hand-off).
+
+## What we are building
+
+**SurfaceSignal**, the Sudo Nova team's entry for the NASA Space Apps Challenge 2026,
+challenge *Dancing with the SARs* (NISAR radar, https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/).
+It turns NISAR radar changes around Lajeado and Estrela (Taquari Valley, Rio Grande do Sul)
+into something anyone can understand, with the July 2026 flood as the anchor case
+(NISAR passes 2026-07-11 and 2026-07-23; SGB bulletin 2026-07-23 16:00 BRT, river above
+flood level and falling, 2 h 34 min before the pass).
+
+**Audience, in this order:** older adults (RS is Brazil's oldest state), deaf and hard-of-hearing
+people (sirens and radio do not reach them), and anyone with no technical background.
+Judges also read it, so submission material is English. Judging criteria: Impact, Creativity,
+Validity, Relevance, Presentation.
+
+**Rules that shape every decision**
+
+- No radar jargon in the interface (no "backscatter", "dB", "coherence"). Plain words, large text.
+- Never say "alert" or "risk". It is *what the satellite saw*. A candidate is not a confirmed flood.
+  The "not an official alert" notice (199 / 193 / SMS 40199) stays on the page.
+- Honest data: anything not real is labelled ("Dado ilustrativo"); unmeasured values are `null`, never 0.
+  Layers: water = main; vegetation = exploratory; slopes = unavailable (needs InSAR), never invented.
+- Colour is never the only signal (icon + text too). Data colours are Okabe-Ito; brand colours are
+  space navy, cyan, white and amber (from the Sudo Nova logo), for identity only.
+- Everything is sized in `rem`; touch targets >= 48 px; focus ring always visible; bilingual PT/EN.
+- Weak phones matter: no heavy libraries, SVG/CSS over images, only `transform` and `opacity` animate.
+- AI use must be declared (README credits + the Space Apps form). No NASA logos or branding in generated content.
+
+## Stack and how to run
+
+Next.js 16 (App Router, TypeScript, Tailwind 4), MapLibre GL JS 6 (no keys: OpenFreeMap tiles,
+Mapzen terrain on AWS). No Docker, no database. **Read `frontend/node_modules/next/dist/docs/` before
+using a Next.js API: this version differs from older ones.**
+
+```bash
+cd frontend && npm install && npm run dev      # http://localhost:3000
+npm run lint && npm run build                  # must pass before every commit
+```
+
+If CSS looks stale after edits, restart `npm run dev` (Turbopack caches it).
+
+## Architecture
+
+```text
+src/app/[lang]/        pages per language (/pt, /en); "/" redirects via src/proxy.ts
+src/i18n/              dictionaries; pt.ts defines the shape, en.ts must match
+src/preferences/       text size, contrast, motion (3 levels); boot script runs before first paint
+src/data/              THE data layer
+  source.ts            the only door to data: API mode (NEXT_PUBLIC_API_BASE_URL) or static snapshot
+  api-types.ts         mirrors backend/src/surfacesignal/domain.py and docs/api-contract.md
+  region.ts            backend records -> what the UI says (region state, timeline)
+  area-labels.ts       everyday names for backend area ids
+src/components/map/    the map (see below)
+public/data/api/v1/    static snapshot of API responses (real AOI + real 19-scene catalog + 1 synthetic sample)
+public/data/boundaries IBGE / Natural Earth outlines (credits in its README)
+```
+
+**Data rule:** components never read files or build API URLs. They call `src/data/source.ts`.
+Switching to the real backend is configuration only. If the backend contract changes, edit
+`api-types.ts` and `region.ts` only.
+
+**Map** (`src/components/map`): `MapStage` is the whole first screen (intro, then full-screen map with
+quiet controls). `MapView` owns MapLibre. `places.ts` is a tree (world > country > state > region of the state):
+bright dots open a place, `UPCOMING` places are dark locked dots. Each place can carry a strong `outline`
+and a `focus` (the world is framed on Brazil). `Timeline.tsx` draws real passes, published analyses and
+river bulletins. `hardware.ts` picks 3D or 2D at "Start" (device report + 1.5 s smoothness probe);
+the visitor's own 2D/3D choice always wins. 2D is the safe default.
+
+**Hard-won lessons**
+
+- MapLibre `easeTo` stops the previous move and stopping fires `moveend`: never restart an animation from
+  a `moveend` handler without a re-entrancy guard (this froze the page once).
+- Do not re-apply projection/terrain on every camera change: it interrupts flights.
+- The glow around the globe (`setSky` atmosphere) is sequenced, not tied to the projection (owner asked,
+  tying it to the zoom curve still looked early): going globe -> map it fades out FIRST (200 ms) and then
+  the whole unfold runs; going map -> globe the whole unfold runs with no glow and the glow fades in
+  AFTER (450 ms). `fadeGlow` in `MapView`. It is 0 on the flat map.
+- The map is created when the browser is idle so the page paints first; the worker file is copied to
+  `public/vendor` by `scripts/copy-map-worker.mjs` (not committed).
+- Browsers/Windows with "reduce animations" get *gentle* motion, not none; the in-app switch overrides the device.
+
+## Workflow
+
+Git flow: `feature/*` -> `develop` -> `main`, small Conventional Commits, draft PRs, never push to
+`develop`/`main` directly. **Ask the owner before any push.** Never commit tokens, `.env*`, HDF5 or
+anything private. The backend branch history is owned by Mateus; do not rewrite it. The repo is
+public: check what you stage.
+
+## Status (update as you go)
+
+Front-end is about **70%** (owner estimate, 2026-11-14). Draft PR #6 (`feature/frontend-guided-map`) holds the
+whole map; it is **map only, no real NISAR results yet**.
+
+Done: scaffold, PT/EN, accessibility panel, data layer with API/static switch, Sudo Nova theme, full-screen
+guided map (intro, 2D/3D unfold, dots, outlines, locked places), hardware-based start view, timeline
+stepper (17 steps from the real catalog), logo/wordmark/header buttons.
+
+Also done: before/after control and layer switches (`ComparePanel`), on PR #6.
+
+Not done (in this order): landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, mobile and weak-phone checks,
+anything that needs real data. Stepping the timeline does not change the map yet because no step has real shapes:
+expected, see the handoff doc.
+
+**Who does what now (owner decision 2026-11-14):** the front-end stays ours until it is 100% and ready
+for the real data. Deploy, public repo and licence, submission texts and the 7-slide demo are with the
+other team members for now; do not spend time on them unless asked.
+
+Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-hosting` assumes a static
+`frontend/dist` that Next.js does not produce), licence (Apache-2.0 suggested, not applied), pre-event
+eligibility of the backend, the root README still describes the frontend as Vite on port 5173, and a
+**deadline with Mateus** for the real data (see roadmap 1).
+
+## Owner decisions on the map (2026-11-14, done)
+
+- Place tree is **World > Country > State > Region of the state**. No continent or
+  "Região Sul" level. World: Brazil open, other countries locked. Brazil: RS open, the other
+  26 states locked. RS: Taquari Valley open, other regions locked. Names of locked places
+  live in `places.ts` (both languages).
+- After "Start" the globe **zooms in on Brazil and stays there** (no zoom-out). The world view
+  uses one fixed zoom for globe and flat map (`worldZoom`), so the two match in scale.
+- **2D <-> 3D** is NOT a fade, and must never zoom out and in again (owner rejected both). At world/
+  country/state level it is `unfold` in `MapView`: the projection is tied to the zoom for 1.5 s
+  (`interpolate` on `["zoom"]` from `vertical-perspective` to `mercator`), so the globe flattens in
+  one continuous half-step of zoom, exactly as it already looks on the way into the valley. For this
+  to end on the final view, the flat map sits `UNFOLD_ZOOM` (0.5) closer than the globe and every
+  place is framed by one formula (`frameBounds`, not `cameraForBounds`, which differs per projection).
+  The intro also ends with `unfold` when the visitor starts in 2D. At the close-up the plain tilt
+  animation is kept. `crossfade` remains only for the gentle-motion hand-over.
+- Header: SurfaceSignal logo symbol + name in Poppins Bold. The logo is a plain link to `/<lang>`
+  (full reload, like F5). Language is a sliding switch (PT left, EN right, lit side = current
+  language); accessibility is a framed button. Frameless buttons were rejected as not looking like buttons.
+- "How it works": after the 3rd step the button becomes "Continue" and scrolls to the next section
+  (`#layers`); it never loops back to step 1.
+- **Timeline** is a stepper: each step compares one pass with the previous pass of the same kind
+  (17 steps for the real catalog). Prev/next buttons, a slider and play move through them; the map
+  draws the chosen step's change shapes when the backend has them. Steps without an analysis say
+  they are not prepared yet. It becomes the story once Mateus publishes real pairs.
+
+## Roadmap
+
+Order agreed with the owner on 2026-11-14. The goal is a front-end that is 100% finished and only waits for
+data: every piece below must work with the synthetic sample today and with real analyses later, with no
+code change (data comes through `src/data/source.ts`).
+
+1. **Real data (Mateus).** Needs an Earthdata account and a machine with ~180 GB free (`history run`, see
+   `docs/real-data-execution.md`). Ask for the **11 Jul -> 23 Jul pair first**: it is enough for the story.
+   Agree a deadline with Mateus. If real data does not arrive in time, the project is delivered honestly as
+   "map + method + real catalog" with the sample labelled illustrative. When data arrives: check the
+   timeline against real analyses, show real numbers (area changed) with `null` handled, make the
+   timeline read as a story in plain words.
+2. **Before/after on the valley (done, waits for data).** `ComparePanel` at the valley close-up: "Antes" /
+   "Depois" buttons and a slider that fade the chosen comparison's change shapes in (0 = map as it was,
+   1 = what appeared), plus the 3 layer switches. Only water is interactive (the backend's
+   `change-candidates.geojson`); vegetation and slopes are listed with their honest status and a "not
+   available yet" note until their data exists. It is a fade of the shapes, not a swipe: a swipe would need
+   a second map (heavy on weak phones). Tested with temporary shapes (reverted): the sample file stays empty
+   on purpose, and the panel then disables the controls and says why. Not wired yet: the radar previews
+   (`before-preview.png` / `after-preview.png`) of each analysis; they are raw grey radar and not
+   georeferenced, so decide with the owner whether to show them at all.
+3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centres the map
+   only, never sent anywhere).
+4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud (browser speech), WhatsApp share.
+5. **Polish and checks:** phone-sized screens, high contrast, English, keyboard and screen reader on the new
+   map controls and timeline, a real weak phone (the 40 fps threshold in `hardware.ts` is an estimate),
+   the 2D fallback on a weak device.
+6. **Explorer (only if time is left):** the 3 availability states (analysis / catalog / no pair) for other
+   regions; a 2nd cut in the same NISAR pair (Muçum / Roca Sales / Encantado, or Arroio do Meio /
+   Cruzeiro do Sul).
+7. **Delivery (others for now):** deploy, public repo + licence, 7-slide English demo, English submission
+   texts, AI-use declaration, FortiGuard classification of the site. Submission closes Sunday 2026-11-15
+   23:59 (owner's time).

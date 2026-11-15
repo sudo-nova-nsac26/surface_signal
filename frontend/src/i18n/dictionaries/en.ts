@@ -9,6 +9,7 @@ const en: Dictionary = {
   skipToContent: "Skip to content",
   brand: {
     name: "SurfaceSignal",
+    home: "back to the start",
     tagline: "Surface change, explained for everyone",
   },
   language: {
@@ -37,9 +38,20 @@ const en: Dictionary = {
     lead: "A radar in space can see water at night and through clouds. Here you can see, in plain colors, what changed in Lajeado and Estrela during the July 2026 flood.",
     start: "Start",
     startHint: "Takes about 2 minutes",
+    facts: [
+      { label: "Where", value: "Lajeado and Estrela, on the Taquari River" },
+      { label: "When", value: "July 11 and 23, 2026" },
+      { label: "Who observed", value: "NISAR satellite, by NASA and ISRO" },
+    ],
   },
   how: {
     title: "How it works",
+    next: "Next step",
+    continue: "Continue",
+    sceneNote: "Explanatory drawing. Not the real map.",
+    before: "Before",
+    after: "After",
+    newWater: "New water",
     steps: [
       {
         title: "The satellite passes over",
@@ -77,13 +89,109 @@ const en: Dictionary = {
   },
   story: {
     title: "The journey to the Taquari Valley",
-    lead: "You move forward with large buttons, one step at a time. No need to rotate or drag the map.",
-    steps: [
-      "World",
-      "Brazil",
-      "Rio Grande do Sul",
-      "Taquari Valley: Lajeado and Estrela",
-    ],
+    lead: "Tap the dots on the map or the large buttons to get closer, one place at a time.",
+  },
+  map: {
+    label: "Map of the journey to the Taquari Valley",
+    loading: "Preparing the map…",
+    unsupported:
+      "This device could not open the map. You can still read the explanation of each place.",
+    view: "How you want to see the map",
+    view2d: "2D",
+    view2dHint: "Flat map, lighter",
+    view3d: "3D",
+    view3dHint: "Globe and relief",
+    breadcrumb: "Where you are",
+    back: "Back",
+    goTo: "Go to {name}",
+    dotHint: "Tap the dot to get closer",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    rotateLabel: "Rotate",
+    rotateLeft: "Rotate left",
+    rotateRight: "Rotate right",
+    tiltLabel: "Tilt",
+    tiltMore: "Tilt more",
+    tiltLess: "Tilt less",
+    resetView: "Back to the starting view",
+    hint3d: "In 3D you can rotate and tilt the map: drag with the mouse wheel pressed, with two fingers, or use the buttons on the side.",
+    area: "Analysed area",
+    gestureDesktop: "Hold Ctrl and scroll to zoom the map",
+    gestureMac: "Hold ⌘ and scroll to zoom the map",
+    gestureMobile: "Use two fingers to move the map",
+    auto3d: "Your device looks fast: the map will open in 3D. You can switch whenever you like.",
+    auto2d: "To keep things light on your device, the map will open in 2D. You can switch to 3D whenever you like.",
+    upcomingLabel: "Not available yet",
+    explore: "Explore the map",
+    more: "How it works",
+    mouseHint: "Scroll to zoom. In 3D, hold the mouse wheel (or the right button) and drag to rotate.",
+    compare: {
+      title: "Before and after",
+      lead: "Slide to see what appeared on the map between the two dates.",
+      before: "Before",
+      after: "After",
+      slider: "Move between before and after",
+      showing: "Showing: {state}",
+      stateBefore: "before",
+      stateAfter: "after",
+      stateBetween: "moving from before to after",
+      legendWater: "Water that appeared",
+      layersTitle: "What to show",
+      switchOn: "on",
+      switchOff: "off",
+      noShapes:
+        "This example does not have the shapes measured by the satellite yet. They appear here when the real data arrives.",
+      notPrepared:
+        "This comparison has not been prepared yet, so there are no shapes to show.",
+      locked: "Not available yet",
+    },
+    timeline: {
+      title: "Timeline",
+      lead: "Move from one comparison to the next. Each one shows what changed between two satellite passes.",
+      counter: "Comparison {current} of {total}",
+      compared: "{after} compared with {before}",
+      slider: "Choose the comparison",
+      prev: "Previous",
+      next: "Next",
+      play: "Play",
+      pause: "Pause",
+      ready: "Comparison ready",
+      readyBody: "The map shows what changed between the two dates.",
+      notReady: "Not prepared yet",
+      notReadyBody:
+        "The satellite passed on these dates, but this data is very large and is still being prepared.",
+      illustrativeBody:
+        "This is an example used to build the screen, not the satellite's real measurement.",
+      morning: "Morning pass",
+      evening: "Late-afternoon pass",
+      river: "River bulletin on that day ({stations})",
+      source: "See the source",
+      legendPass: "Satellite pass",
+      legendPair: "Chosen comparison",
+      empty: "No passes are recorded for this place yet.",
+    },
+    places: {
+      world: {
+        name: "World",
+        description:
+          "This is our planet. The NISAR satellite circles it and observes almost all land every 12 days. Tap the Brazil dot to begin.",
+      },
+      brazil: {
+        name: "Brazil",
+        description:
+          "Brazil. We are heading to the south of the country, where the river rose in July 2026.",
+      },
+      "rio-grande-do-sul": {
+        name: "Rio Grande do Sul",
+        description:
+          "Rio Grande do Sul. The Taquari River runs through the middle of the state, between the highlands and the capital.",
+      },
+      "taquari-valley": {
+        name: "Taquari Valley: Lajeado and Estrela",
+        description:
+          "Lajeado and Estrela sit on opposite banks of the Taquari River. The dashed line shows the area we compared.",
+      },
+    },
   },
   region: {
     title: "What we have for this region",

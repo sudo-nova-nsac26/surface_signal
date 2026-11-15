@@ -45,10 +45,13 @@ export function RegionStatus({
   lang,
   labels,
   badge,
+  number,
 }: {
   lang: Locale;
   labels: Labels;
   badge: string;
+  /** Section number shown beside the title. */
+  number?: string;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -72,23 +75,30 @@ export function RegionStatus({
   }, [attempt]);
 
   return (
-    <section
-      aria-labelledby="region-title"
-      aria-busy={state.status === "loading"}
-      className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-sm hc:border-2"
-    >
-      <h3 id="region-title" className="text-2xl font-bold">
-        {labels.title}
-      </h3>
+    <div aria-busy={state.status === "loading"}>
+      <h2 id="region-title" className="flex items-baseline gap-4">
+        {number && (
+          <span
+            aria-hidden="true"
+            className="text-xl font-bold tabular-nums text-brand-text"
+          >
+            {number}
+          </span>
+        )}
+        <span className="text-4xl font-bold tracking-tight sm:text-5xl">
+          {labels.title}
+        </span>
+      </h2>
 
+      <div className="mt-8 rounded-3xl border border-line bg-surface p-6 hc:border-2">
       {state.status === "loading" && (
-        <p className="mt-3 text-ink-soft" role="status">
+        <p className="text-ink-soft" role="status">
           {labels.loading}
         </p>
       )}
 
       {state.status === "error" && (
-        <div className="mt-3 flex flex-wrap items-center gap-4" role="alert">
+        <div className="flex flex-wrap items-center gap-4" role="alert">
           <p>{labels.error}</p>
           <button
             type="button"
@@ -112,7 +122,8 @@ export function RegionStatus({
           formatDate={formatDate}
         />
       )}
-    </section>
+      </div>
+    </div>
   );
 }
 
@@ -152,7 +163,7 @@ function RegionDetails({
   const riverSource = river[0]?.source_url;
 
   return (
-    <div className="mt-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xl font-bold">
           {friendly ? friendly.name[lang] : region.name}

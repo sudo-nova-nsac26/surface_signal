@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible } from "next/font/google";
+import { Atkinson_Hyperlegible, Poppins } from "next/font/google";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
@@ -12,6 +12,13 @@ import "../globals.css";
 const atkinson = Atkinson_Hyperlegible({
   variable: "--font-atkinson",
   weight: ["400", "700"],
+  subsets: ["latin"],
+});
+
+// The geometric sans of the SurfaceSignal logo, used only for the name.
+const brandFont = Poppins({
+  variable: "--font-brand",
+  weight: ["700"],
   subsets: ["latin"],
 });
 
@@ -49,7 +56,8 @@ export default async function RootLayout({
     // which is the one mismatch suppressHydrationWarning is meant for.
     <html
       lang={htmlLang[lang]}
-      className={`${atkinson.variable} h-full antialiased`}
+      className={`${atkinson.variable} ${brandFont.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
@@ -58,7 +66,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         <a
           href="#content"
-          className="sr-only z-30 rounded-xl bg-accent px-4 py-3 font-bold text-accent-ink focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
+          className="sr-only z-30 rounded-xl bg-highlight px-4 py-3 font-bold text-highlight-ink focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
         >
           {dict.skipToContent}
         </a>
@@ -66,17 +74,30 @@ export default async function RootLayout({
         <main id="content" className="flex-1">
           {children}
         </main>
-        <footer className="border-t-2 border-ink bg-surface">
-          <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 text-base sm:grid-cols-2">
+        <footer className="border-t border-line bg-bg-raised hc:border-t-2">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-base sm:grid-cols-[auto_1fr_1fr]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/sudo-nova-logo.jpeg"
+              alt="Sudo Nova"
+              width={112}
+              height={112}
+              loading="lazy"
+              className="size-28 rounded-2xl border border-line"
+            />
             <div>
-              <h2 className="font-bold">{dict.footer.data}</h2>
+              <h2 className="text-lg font-bold text-brand-text">
+                {dict.footer.data}
+              </h2>
               <p className="text-ink-soft">{dict.footer.dataBody}</p>
             </div>
             <div>
-              <h2 className="font-bold">{dict.footer.team}</h2>
+              <h2 className="text-lg font-bold text-brand-text">
+                {dict.footer.team}
+              </h2>
               <p className="text-ink-soft">{dict.footer.teamBody}</p>
             </div>
-            <p className="text-ink-soft sm:col-span-2">{dict.footer.ai}</p>
+            <p className="text-ink-soft sm:col-span-3">{dict.footer.ai}</p>
           </div>
         </footer>
       </body>
