@@ -54,7 +54,7 @@ For **fish**:
 read --global --export --silent --prompt-str 'Earthdata token: ' SURFACESIGNAL_EARTHDATA_TOKEN
 ```
 
-For **Bash / Zsh**:
+For **Bash**:
 
 ```bash
 read -r -s -p 'Earthdata token: ' SURFACESIGNAL_EARTHDATA_TOKEN
@@ -70,7 +70,7 @@ set --erase --global SURFACESIGNAL_EARTHDATA_TOKEN
 ```
 
 ```bash
-# Bash / Zsh
+# Bash
 unset SURFACESIGNAL_EARTHDATA_TOKEN
 ```
 
