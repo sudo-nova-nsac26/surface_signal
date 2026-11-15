@@ -232,7 +232,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             <p className="mt-4 max-w-2xl text-xl text-ink-soft">{dict.sources.lead}</p>
           </Reveal>
           <Reveal>
-                        <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {dict.sources.items.map((item, index) => (
                 <li
                   key={item.name}
