@@ -24,3 +24,11 @@ test("both landing pages identify SAR changes as unconfirmed candidates", () => 
     }
   }
 });
+
+test("land-cover narrative does not carry a hard-coded percentage between comparisons", () => {
+  for (const locale of ["en", "pt"]) {
+    const source = dictionary(locale);
+    assert.doesNotMatch(source, /34[.,]2%|30[.,]5%|mata ciliar|riparian trees/i);
+    assert.match(source, /WorldCover 2021/);
+  }
+});

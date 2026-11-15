@@ -122,11 +122,11 @@ const en: Dictionary = {
     vegetation: {
       name: "Plants and crops",
       body: "Where radar response changed in areas classified as crops or vegetation by historical land-cover data; cause is not established.",
-      today: "On the map today: automatic crossing with land cover (ESA WorldCover 10 m — 34.2% of patches on cropland and 30.5% on riparian trees) plus radar echo increase or drop.",
+      today: "On the map today: comparison of radar backscatter change with historical land-cover classes (ESA WorldCover 2021, 10 m). Percentages depend on the selected comparison; 2021 land cover does not establish vegetation change in 2026.",
     },
     slopes: {
       name: "Slopes, relief and hills",
-      body: "What happens across the higher, steeper parts of the valley when heavy rain hits the hills.",
+      body: "Explore terrain height, slope and radar backscatter changes in elevated areas, without inferring slope displacement or risk.",
       today: "On the map today: 3D relief and terrain slope (Copernicus DEM 30 m) plus a radar-response candidate near spot Q6; this is not evidence of slope movement. Future research may assess interferometry.",
     },
     expansion: {
@@ -509,7 +509,7 @@ const en: Dictionary = {
   footer: {
     data: "Data",
     dataBody:
-      "NISAR radar (NASA and ISRO), distributed by the Alaska Satellite Facility. River status: Geological Survey of Brazil (SGB).",
+      "Data: NISAR/ASF (NASA–ISRO), CHIRPS v3, JRC Global Surface Water, ESA WorldCover 2021, Copernicus DEM, IBGE and dated SGB bulletins. Basemap and font credits are listed separately in the sources section.",
     team: "Who made this",
     teamBody:
       "Team Sudo Nova, for the NASA Space Apps Challenge 2026. Not an official NASA or ISRO product.",

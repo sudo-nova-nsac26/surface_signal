@@ -125,11 +125,11 @@ const pt = {
     vegetation: {
       name: "Plantas e lavouras",
       body: "Onde o retorno do radar mudou em áreas classificadas historicamente como lavouras ou vegetação; a causa ainda não foi demonstrada.",
-      today: "Hoje no mapa: cruzamento automático com uso do solo (ESA WorldCover 10 m — 34,2% das manchas em lavouras e 30,5% em mata ciliar) e aumento ou queda do eco do radar.",
+      today: "Hoje no mapa: comparação entre mudanças do eco do radar e classes históricas de cobertura do solo (ESA WorldCover 2021, 10 m). Percentuais específicos dependem do período selecionado; a classe de 2021 não comprova mudança na vegetação em 2026.",
     },
     slopes: {
       name: "Encostas, relevo e morros",
-      body: "O que acontece nas áreas mais altas e inclinadas do vale quando chove forte sobre os morros.",
+      body: "Observe relevo, inclinação e alterações do eco do radar em regiões elevadas, sem afirmar movimento de encosta ou risco.",
       today: "Hoje no mapa: relevo 3D e inclinação do terreno (Copernicus DEM 30 m), além de um candidato de mudança no radar perto do ponto Q6; isso não comprova movimento de encosta. A interferometria fica para pesquisa futura.",
     },
     expansion: {
@@ -512,7 +512,7 @@ const pt = {
   footer: {
     data: "Dados",
     dataBody:
-      "Radar NISAR (NASA e ISRO), distribuído pelo Alaska Satellite Facility. Situação do rio: Serviço Geológico do Brasil (SGB).",
+      "Dados: NISAR/ASF (NASA–ISRO), CHIRPS v3, JRC Global Surface Water, ESA WorldCover 2021, Copernicus DEM, IBGE e boletins SGB. Mapas e fontes tipográficas têm créditos próprios na seção de fontes.",
     team: "Quem fez",
     teamBody:
       "Time Sudo Nova, para o NASA Space Apps Challenge 2026. Não é um produto oficial da NASA nem da ISRO.",
