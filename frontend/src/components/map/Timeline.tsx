@@ -54,7 +54,8 @@ export function Timeline({
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareActive, setCompareActive] = useState(false);
   const [pairAIdx, setPairAIdx] = useState<number>(0);
-  const [pairBIdx, setPairBIdx] = useState<number>(() => Math.max(0, data.steps.length - 1));
+  // null means "use the latest available step" until the user makes a choice.
+  const [pairBChoice, setPairBChoice] = useState<{ index: number; length: number } | null>(null);
   const [dragPercent, setDragPercent] = useState<number | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -67,12 +68,15 @@ export function Timeline({
     steps.findIndex((step) => step.id === selectedId),
   );
 
-  // Ensure default B index is the last step once steps are loaded.
-  useEffect(() => {
-    if (steps.length > 1) {
-      setPairBIdx((prev) => (prev >= steps.length || prev === 0 ? steps.length - 1 : prev));
-    }
-  }, [steps.length]);
+  // Derive the current B index instead of synchronously resetting it in an effect.
+  // Preserve the previous behavior when a chosen index becomes unavailable.
+  const pairBIdx =
+    pairBChoice === null ||
+    pairBChoice.index >= steps.length ||
+    (pairBChoice.index === 0 && pairBChoice.length !== steps.length)
+      ? Math.max(0, steps.length - 1)
+      : pairBChoice.index;
+  const setPairBIdx = (index: number) => setPairBChoice({ index, length: steps.length });
 
   const latest = useRef({ index, steps, onSelect });
   useEffect(() => {

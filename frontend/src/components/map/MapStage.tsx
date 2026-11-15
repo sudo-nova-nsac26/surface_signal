@@ -380,18 +380,26 @@ export function MapStage({
         selectedHotspotId?: string | null;
         satelliteImagery?: boolean;
       };
-      if (saved.phase === "map" || saved.phase === "leaving") {
-        setRestoredFromLangSwitch(true);
-        setPhase("map");
-      }
-      if (saved.placeId) setPlaceId(saved.placeId);
-      if (saved.view === "2d" || saved.view === "3d") {
-        viewChosen.current = true;
-        setView(saved.view);
-      }
-      if (saved.selectedId) setSelectedId(saved.selectedId);
-      if (saved.selectedHotspotId) setSelectedHotspotId(saved.selectedHotspotId);
-      if (typeof saved.satelliteImagery === "boolean") setSatelliteImagery(saved.satelliteImagery);
+
+      // Defer the state updates until after this effect. The saved snapshot
+      // is captured before the regular sessionStorage synchronization runs.
+      queueMicrotask(() => {
+        if (saved.phase === "map" || saved.phase === "leaving") {
+          setRestoredFromLangSwitch(true);
+          setPhase("map");
+        }
+        if (saved.placeId) setPlaceId(saved.placeId);
+        if (saved.view === "2d" || saved.view === "3d") {
+          viewChosen.current = true;
+          setView(saved.view);
+        }
+        if (saved.selectedId) setSelectedId(saved.selectedId);
+        if (saved.selectedHotspotId) setSelectedHotspotId(saved.selectedHotspotId);
+        // The satellite base layer is available only in the flat 2D view.
+        if (typeof saved.satelliteImagery === "boolean") {
+          setSatelliteImagery(saved.satelliteImagery && saved.view !== "3d");
+        }
+      });
     } catch {
       // Ignore storage errors.
     }
@@ -475,12 +483,6 @@ export function MapStage({
     setView(next);
     if (next === "3d") setSatelliteImagery(false);
   };
-
-  useEffect(() => {
-    if (view === "3d" && satelliteImagery) {
-      setSatelliteImagery(false);
-    }
-  }, [view, satelliteImagery]);
 
   const begin = () => {
     // 3D from the start only when the device is known to be able to.
