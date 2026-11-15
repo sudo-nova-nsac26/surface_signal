@@ -1,10 +1,6 @@
 # Public data/static delivery report — 2026-11-15
 
-Branch: `feature/public-data-static-delivery`, created from fetched
-`origin/develop`3920e60. The previous environmental work was preserved through
-additive commits; original SAR artifacts, raw data and historical reports were
-neither removed nor reprocessed. No push, production deployment, Release upload,
-remote overwrite, repository visibility or license change was performed.
+This report records the verified production-ready snapshot and delivery metrics for the Taquari Valley dataset. The current project site is [surfacesignal.earth](https://surfacesignal.earth/). Scientific raw and derived artifacts were not reprocessed by the snapshot packaging step. A static website deployment does **not** mean that the optional full archive has been publicly released.
 
 ## Delivered architecture
 
@@ -186,10 +182,9 @@ versioned compact data. Changes remove proxy, configure export, select compact/f
 at the single data adapter and add truthful source/compact-map labels and additive
 environmental TypeScript fields. Existing scientific numbers and camera behavior stay.
 
-Configuration/docs: root.env.example, snapshot descriptor, frontend `.env.example`/
-.node-version/.gitignore, CI static job, README, AGENTS, current handoff, source evidence,
-snapshot procedure, Cloudflare procedure and this report. The detailed integration
-report for Yuri is [frontend-environmental-handoff.md](frontend-environmental-handoff.md).
+Configuration/docs: root `.env.example`, snapshot descriptor, frontend `.env.example`,
+`.node-version`, `.gitignore`, CI static job, READMEs, source evidence,
+[snapshot procedure](snapshot-delivery.md), [Cloudflare procedure](cloudflare-pages.md) and this report.
 
 Final static export sizes: compact mode 325 files/19,148,748bytes, largest 2,499,427 bytes;
 full mode 584 files/167,050,306bytes, largest 11,057,526 bytes. Both pass the Pages
