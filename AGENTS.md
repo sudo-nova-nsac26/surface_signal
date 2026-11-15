@@ -232,6 +232,9 @@ Last round (2026-11-15, done): the explanation topics ("Entender esta comparaç�
 técnicos") open **inside the left card, below each button** (an accordion that scrolls), not in a box over the
 map (`InfoAccordion` in `ComparisonInfo.tsx`; the card widens a little while one is open).
 
+The left card is a column: its middle scrolls and its footer (Voltar / Ir para) is pinned, and its height stops above
+the time bar (checked at 1440, 1280 and 1100 px wide).
+
 Details round (2026-11-15, done): the FAQ answer "Por que fizemos este site?" now states the challenge (show the
 changes a satellite sees on a region's surface in a simple way anyone can understand). Cards were renamed again:
 "Água", "Sinal mais fraco", "Sinal mais forte" (owner: "mais escuro/claro" made no sense), all with the same

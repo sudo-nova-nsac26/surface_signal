@@ -483,12 +483,17 @@ export function MapStage({
             aria-live="polite"
             className={`glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col rounded-3xl sm:inset-x-auto sm:left-4 sm:bottom-6 ${
               closeUp
-                ? `max-h-[60svh] gap-2 overflow-y-auto p-3 lg:bottom-auto lg:top-[13.75rem] lg:max-h-[calc(100svh-22.5rem)] xl:top-[5rem] xl:max-h-[calc(100svh-14.5rem)] ${
+                ? `max-h-[60svh] overflow-hidden p-3 lg:bottom-auto lg:top-[13.75rem] lg:max-h-[calc(100svh-31rem)] xl:top-[5rem] xl:max-h-[calc(100svh-20rem)] ${
                   infoTab ? "sm:w-[23rem]" : "sm:w-[19rem]"
                 }`
                 : "gap-3 p-4 sm:w-[24rem]"
             }`}
           >
+            <div
+              className={`flex min-h-0 flex-col ${
+                closeUp ? "flex-1 gap-2 overflow-y-auto pr-1" : "gap-3"
+              }`}
+            >
             <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
               {labels.places[current.id].name}
             </h2>
@@ -557,7 +562,8 @@ export function MapStage({
                 />
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
+            </div>
+            <div className={`flex flex-wrap gap-2 ${closeUp ? "shrink-0 border-t border-line pt-2" : ""}`}>
               {current.parent && (
                 <button
                   type="button"
