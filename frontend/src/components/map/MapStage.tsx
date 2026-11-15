@@ -280,7 +280,11 @@ export function MapStage({
   }, [analysisId, lang, detailTry]);
 
   // The map draws only what the backend says is available for this comparison.
-  const currentDetail = detail && detail.id === analysisId ? detail.data : null;
+  // Keep the last loaded detail in view while the next step is fetching so the
+  // right panel and map never collapse or flash during timeline scrubbing.
+  const currentDetail = detail?.data ?? null;
+  const isDetailLoading =
+    detailStatus === "loading" || Boolean(detail && detail.id !== analysisId);
   const changes = useMemo<ChangeLayers>(() => {
     if (!analysisId || !currentDetail) return NO_CHANGES;
     const has = (id: string) =>
@@ -472,6 +476,12 @@ export function MapStage({
     if (next === "3d") setSatelliteImagery(false);
   };
 
+  useEffect(() => {
+    if (view === "3d" && satelliteImagery) {
+      setSatelliteImagery(false);
+    }
+  }, [view, satelliteImagery]);
+
   const begin = () => {
     // 3D from the start only when the device is known to be able to.
     if (!viewChosen.current) setView(tier === "high" ? "3d" : "2d");
@@ -648,7 +658,10 @@ export function MapStage({
               </ol>
             </nav>
 
-            <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+            <div
+              data-tour="top-controls"
+              className="pointer-events-auto flex flex-wrap items-center gap-2"
+            >
               {closeUp && (
                 <button
                   type="button"
@@ -930,7 +943,7 @@ export function MapStage({
                     lang={lang}
                     step={selectedStep}
                     detail={currentDetail}
-                    status={detailStatus}
+                    status={detailStatus === "error" ? "error" : isDetailLoading ? "loading" : "ready"}
                     onRetry={() => setDetailTry((n) => n + 1)}
                     changes={switches}
                     onChanges={setSwitches}
@@ -998,7 +1011,7 @@ export function MapStage({
                 lang={lang}
                 step={selectedStep}
                 detail={currentDetail}
-                status={detailStatus}
+                status={detailStatus === "error" ? "error" : isDetailLoading ? "loading" : "ready"}
                 onRetry={() => setDetailTry((n) => n + 1)}
                 changes={switches}
                 onChanges={setSwitches}

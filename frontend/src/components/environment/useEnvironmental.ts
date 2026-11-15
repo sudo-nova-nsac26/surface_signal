@@ -38,7 +38,13 @@ export function useEnvironmental(areaId: string | null, analysisId: string | nul
     return () => controller.abort();
   }, [areaId, attempt]);
   return {
-    report: analysisId ? report?.key === analysisId ? report : {key: analysisId, status: "loading" as const} : null,
+    report: analysisId
+      ? report?.key === analysisId
+        ? report
+        : report?.status === "ready"
+          ? { key: analysisId, status: "ready" as const, value: report.value }
+          : { key: analysisId, status: "loading" as const }
+      : null,
     region: areaId ? region?.key === areaId ? region : {key: areaId, status: "loading" as const} : null,
     retry: () => { setReport(null); setRegion(null); retry(n => n + 1); },
   };

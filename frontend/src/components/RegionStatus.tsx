@@ -316,14 +316,11 @@ function RegionDetails({
             </span>
           )}
         </div>
-        <a
-          href="#map-stage"
-          className="pressable inline-flex items-center gap-2 rounded-xl border border-brand/60 bg-bg px-3.5 py-2 text-xs font-bold text-brand-text hover:bg-brand hover:text-brand-ink"
-        >
+        <p className="text-xs font-medium text-ink-soft">
           {isPt
-            ? "↑ Ver dados técnicos no Mapa (aba Detalhes técnicos)"
-            : "↑ View technical data in Map (Technical details tab)"}
-        </a>
+            ? "💡 Você também pode ver esses dados técnicos diretamente no mapa (painel esquerdo → aba 'Detalhes técnicos')."
+            : "💡 You can also view this technical data directly on the map (left panel → 'Technical details' tab)."}
+        </p>
       </div>
 
       <div className="flex flex-col gap-2 text-base">

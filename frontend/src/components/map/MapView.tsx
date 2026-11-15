@@ -323,6 +323,16 @@ const SATELLITE_SOURCE = "esri-world-imagery";
 const SATELLITE_LAYER = "esri-world-imagery-layer";
 
 function syncSatelliteImagery(map: MapLibreMap, visible: boolean) {
+  if (!visible) {
+    try {
+      if (map.getLayer(SATELLITE_LAYER)) {
+        map.setLayoutProperty(SATELLITE_LAYER, "visibility", "none");
+      }
+    } catch {
+      // Ignore if style is mid-initialization
+    }
+    return;
+  }
   if (!map.isStyleLoaded()) return;
   if (!map.getSource(SATELLITE_SOURCE)) {
     map.addSource(SATELLITE_SOURCE, {
@@ -345,7 +355,7 @@ function syncSatelliteImagery(map: MapLibreMap, visible: boolean) {
         id: SATELLITE_LAYER,
         type: "raster",
         source: SATELLITE_SOURCE,
-        layout: { visibility: visible ? "visible" : "none" },
+        layout: { visibility: "visible" },
         paint: {
           "raster-opacity": 0.9,
           "raster-contrast": 0.08,
@@ -354,7 +364,7 @@ function syncSatelliteImagery(map: MapLibreMap, visible: boolean) {
       before,
     );
   } else {
-    map.setLayoutProperty(SATELLITE_LAYER, "visibility", visible ? "visible" : "none");
+    map.setLayoutProperty(SATELLITE_LAYER, "visibility", "visible");
   }
 }
 
@@ -1430,13 +1440,13 @@ export default function MapView({
     setChangeLayers(map, changes, Boolean(latest.current.place.detail));
   }, [changes, colorblind]);
 
-  // Real optical satellite base layer (Esri World Imagery) at the close-up.
+  // Real optical satellite base layer (Esri World Imagery) at the close-up (2D only).
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const showSat = Boolean(satelliteImagery && view === "2d" && place.detail);
     const apply = () => {
-      if (!map.isStyleLoaded()) return;
-      syncSatelliteImagery(map, Boolean(satelliteImagery && place.detail));
+      syncSatelliteImagery(map, showSat);
     };
     apply();
     map.on("style.load", apply);
@@ -1449,7 +1459,7 @@ export default function MapView({
       map.off("style.load", apply);
       map.off("idle", applyOnce);
     };
-  }, [satelliteImagery, place.detail]);
+  }, [satelliteImagery, view, place.detail]);
 
   // The sparkle starts or stops when motion settings or the device report change.
   useEffect(() => {

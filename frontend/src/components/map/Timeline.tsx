@@ -52,6 +52,7 @@ export function Timeline({
   const [playing, setPlaying] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [compareActive, setCompareActive] = useState(false);
   const [pairAIdx, setPairAIdx] = useState<number>(0);
   const [pairBIdx, setPairBIdx] = useState<number>(() => Math.max(0, data.steps.length - 1));
   const [dragPercent, setDragPercent] = useState<number | null>(null);
@@ -201,6 +202,73 @@ export function Timeline({
 
   return (
     <div className="relative flex flex-col gap-2">
+      {/* Active comparison banner when confirmed on the map */}
+      {compareActive && !compareOpen && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-brand bg-surface/95 px-3 py-2 text-xs shadow-lg">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-extrabold text-brand-ink">
+              ⚡ {lang === "pt" ? "COMPARANDO NO MAPA" : "COMPARING ON MAP"}
+            </span>
+            <button
+              type="button"
+              onClick={() => move(pairAIdx)}
+              className={`rounded-lg border px-2.5 py-1 font-bold transition ${
+                index === pairAIdx
+                  ? "border-brand bg-brand/20 text-brand-text"
+                  : "border-line bg-bg text-ink-soft hover:border-brand hover:text-ink"
+              }`}
+            >
+              {index === pairAIdx ? "● " : ""}
+              {lang === "pt" ? "Período A:" : "Period A:"} {date(stepA.beforeAt)} → {date(stepA.afterAt)}
+            </button>
+            <span className="font-bold text-ink-soft">⇄</span>
+            <button
+              type="button"
+              onClick={() => move(pairBIdx)}
+              className={`rounded-lg border px-2.5 py-1 font-bold transition ${
+                index === pairBIdx
+                  ? "border-highlight bg-highlight/20 text-highlight"
+                  : "border-line bg-bg text-ink-soft hover:border-highlight hover:text-ink"
+              }`}
+            >
+              {index === pairBIdx ? "● " : ""}
+              {lang === "pt" ? "Período B:" : "Period B:"} {date(stepB.beforeAt)} → {date(stepB.afterAt)}
+            </button>
+            <span className="hidden rounded-lg border border-line bg-bg/80 px-2 py-1 text-ink-soft xl:inline-block">
+              Δ {lang === "pt" ? "Água:" : "Water:"}{" "}
+              <strong className="text-brand-text">
+                {waterB - waterA >= 0 ? "+" : ""}
+                {numFmt.format(waterB - waterA)} km²
+              </strong>{" "}
+              · Δ {lang === "pt" ? "Mudança:" : "Changed:"}{" "}
+              <strong className="text-ink">
+                {chgB - chgA >= 0 ? "+" : ""}
+                {numFmt.format(chgB - chgA)} km²
+              </strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCompareOpen(true)}
+              className="rounded-lg border border-line bg-bg px-2.5 py-1 font-bold text-ink hover:border-brand"
+            >
+              {lang === "pt" ? "Trocar A/B" : "Change A/B"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCompareActive(false);
+                setCompareOpen(false);
+              }}
+              className="rounded-lg border border-red-400/60 bg-red-950/60 px-2.5 py-1 font-bold text-red-200 hover:bg-red-500 hover:text-slate-950"
+            >
+              ✕ {lang === "pt" ? "Sair da comparação" : "Exit comparison"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Non-sequential period comparator drawer (e.g., 1st vs. Last reading or Flood vs. Latest). */}
       {compareOpen && (
         <div className="glass mb-1 rounded-2xl border border-brand/50 bg-surface/95 p-3 shadow-2xl">
@@ -238,11 +306,14 @@ export function Timeline({
               </button>
               <button
                 type="button"
-                onClick={() => setCompareOpen(false)}
-                aria-label={lang === "pt" ? "Fechar comparador" : "Close comparator"}
-                className="flex size-7 items-center justify-center rounded-lg border border-line bg-bg text-xs font-bold hover:border-brand"
+                onClick={() => {
+                  setCompareOpen(false);
+                  setCompareActive(false);
+                }}
+                aria-label={lang === "pt" ? "Sair da comparação" : "Exit comparison"}
+                className="flex items-center gap-1 rounded-lg border border-red-400/60 bg-red-950/60 px-2.5 py-1 text-[11px] font-bold text-red-200 hover:bg-red-500 hover:text-slate-950"
               >
-                ✕
+                ✕ {lang === "pt" ? "Sair da comparação" : "Exit comparison"}
               </button>
             </div>
           </div>
@@ -346,36 +417,49 @@ export function Timeline({
               </div>
             </div>
 
-            {/* Direct Delta Summary (A -> B) */}
-            <div className="flex flex-col justify-center rounded-xl border border-brand/30 bg-brand-soft/40 p-2.5 text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-text">
-                {lang === "pt" ? "Diferença entre A e B" : "Difference between A & B"}
-              </span>
-              <p className="mt-1 text-ink">
-                {lang === "pt" ? "Água candidata:" : "Candidate water:"}{" "}
-                <strong className="text-brand-text">
-                  {waterB - waterA >= 0 ? "+" : ""}
-                  {numFmt.format(waterB - waterA)} km²
-                </strong>{" "}
-                ({waterB < waterA
-                  ? lang === "pt"
-                    ? "recuo / drenagem"
-                    : "receded / drained"
-                  : waterB > waterA
+            {/* Direct Delta Summary (A -> B) + Confirm Button */}
+            <div className="flex flex-col justify-between gap-2 rounded-xl border border-brand/30 bg-brand-soft/40 p-2.5 text-xs">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-text">
+                  {lang === "pt" ? "Diferença entre A e B" : "Difference between A & B"}
+                </span>
+                <p className="mt-1 text-ink">
+                  {lang === "pt" ? "Água candidata:" : "Candidate water:"}{" "}
+                  <strong className="text-brand-text">
+                    {waterB - waterA >= 0 ? "+" : ""}
+                    {numFmt.format(waterB - waterA)} km²
+                  </strong>{" "}
+                  ({waterB < waterA
                     ? lang === "pt"
-                      ? "expansão"
-                      : "expanded"
-                    : lang === "pt"
-                      ? "estável"
-                      : "stable"})
-              </p>
-              <p className="mt-0.5 text-ink-soft">
-                {lang === "pt" ? "Superfície alterada:" : "Altered surface:"}{" "}
-                <strong className="text-ink">
-                  {chgB - chgA >= 0 ? "+" : ""}
-                  {numFmt.format(chgB - chgA)} km²
-                </strong>
-              </p>
+                      ? "recuo / drenagem"
+                      : "receded / drained"
+                    : waterB > waterA
+                      ? lang === "pt"
+                        ? "expansão"
+                        : "expanded"
+                      : lang === "pt"
+                        ? "estável"
+                        : "stable"})
+                </p>
+                <p className="mt-0.5 text-ink-soft">
+                  {lang === "pt" ? "Superfície alterada:" : "Altered surface:"}{" "}
+                  <strong className="text-ink">
+                    {chgB - chgA >= 0 ? "+" : ""}
+                    {numFmt.format(chgB - chgA)} km²
+                  </strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCompareActive(true);
+                  setCompareOpen(false);
+                  move(pairBIdx);
+                }}
+                className="pressable w-full rounded-xl bg-brand px-3 py-2 text-center text-xs font-extrabold text-brand-ink shadow transition hover:opacity-95"
+              >
+                ✓ {lang === "pt" ? "Confirmar e comparar no mapa" : "Confirm & compare on map"}
+              </button>
             </div>
           </div>
         </div>
@@ -590,8 +674,8 @@ export function Timeline({
       </div>
 
       {/* Bottom status row (RoamingEye style: concise left status + right metadata & compare button) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/50 pt-1 text-xs text-ink-soft">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex min-h-7 flex-wrap items-center justify-between gap-2 border-t border-line/50 pt-1 text-xs text-ink-soft sm:flex-nowrap">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
           <span aria-hidden="true" className="size-2 rounded-full bg-emerald-400" />
           <span>
             <strong className="text-ink">
