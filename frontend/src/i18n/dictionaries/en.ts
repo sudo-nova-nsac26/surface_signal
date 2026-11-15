@@ -127,7 +127,7 @@ const en: Dictionary = {
     slopes: {
       name: "Slopes, relief and hills",
       body: "What happens across the higher, steeper parts of the valley when heavy rain hits the hills.",
-      today: "On the map today: 3D relief and slope in degrees (Copernicus DEM 30 m, from 18 m to 58+ m) + hillslope surface roughness change (spot Q6). Next step: InSAR phase (GUNW).",
+      today: "On the map today: 3D relief and terrain slope (Copernicus DEM 30 m) plus a radar-response candidate near spot Q6; this is not evidence of slope movement. Future research may assess interferometry.",
     },
     expansion: {
       badge: "Future vision and scale",
@@ -136,8 +136,8 @@ const en: Dictionary = {
       items: [
         {
           tag: "1 · Live today",
-          title: "Water, crops, 3D relief and hillslope roughness",
-          body: "Interactive inspection across squares Q1 to Q6 with real satellite imagery, 3-day rainfall (CHIRPS), river bulletin (SGB), elevation/slope (Copernicus 30 m) and slope texture.",
+          title: "Radar change, land-cover context and 3D relief",
+          body: "Interactive inspection across squares Q1 to Q6 with satellite radar, estimated 3-day rainfall (CHIRPS), dated SGB bulletin, elevation/slope (Copernicus DEM) and unclassified radar changes.",
         },
         {
           tag: "2 · Planned hydrological integration",
@@ -146,12 +146,12 @@ const en: Dictionary = {
         },
         {
           tag: "3 · Next Radar Leap (NISAR GUNW)",
-          title: "Landslides and millimeter-scale slope movement",
+          title: "Interferometric displacement research",
           body: "GCOV highlights possible radar-response changes, not slope movement. Future interferometric research would require suitable products, calibration and independent validation before any displacement or risk claim.",
         },
         {
           tag: "4 · Civil Defense & Citizen Support",
-          title: "Critical infrastructure and elevation-safe routes",
+          title: "Critical infrastructure research (no routing)",
           body: "Research how verified hazard maps could be combined with critical infrastructure information; do not generate evacuation routes or safety decisions without official validation.",
         },
         {
@@ -162,7 +162,7 @@ const en: Dictionary = {
         {
           tag: "6 · National & Global Scale (12 days)",
           title: "From Lajeado and Estrela to any river basin",
-          body: "Because NISAR revisits the entire planet every 12 days (240 km swath, day and night), the same pipeline can monitor other basins across Brazil and the world.",
+          body: "Where suitable comparable acquisitions are available, the same bounded processing approach could be adapted to other basins; coverage and validation must be checked case by case.",
         },
       ],
     },

@@ -130,7 +130,7 @@ const pt = {
     slopes: {
       name: "Encostas, relevo e morros",
       body: "O que acontece nas áreas mais altas e inclinadas do vale quando chove forte sobre os morros.",
-      today: "Hoje no mapa: Relevo 3D e inclinação em graus (Copernicus DEM 30 m, de 18 m a 58+ m) + mudança de rugosidade na encosta (ponto Q6). Próximo passo: fase InSAR (GUNW).",
+      today: "Hoje no mapa: relevo 3D e inclinação do terreno (Copernicus DEM 30 m), além de um candidato de mudança no radar perto do ponto Q6; isso não comprova movimento de encosta. A interferometria fica para pesquisa futura.",
     },
     expansion: {
       badge: "Visão de futuro e escala",
@@ -139,8 +139,8 @@ const pt = {
       items: [
         {
           tag: "1 · Já ativo hoje",
-          title: "Água, lavouras, relevo 3D e rugosidade em encostas",
-          body: "Inspeção interativa nos quadradinhos Q1 a Q6 com imagem real de satélite, chuva de 3 dias (CHIRPS), boletim do rio (SGB), altitude/inclinação (Copernicus 30 m) e textura em encostas.",
+          title: "Mudança no radar, contexto de uso do solo e relevo 3D",
+          body: "Inspeção interativa nos pontos Q1 a Q6 com radar de satélite, chuva estimada de 3 dias (CHIRPS), boletim datado do SGB, altitude/inclinação (Copernicus DEM) e mudanças do radar sem classificação de causa.",
         },
         {
           tag: "2 · Integração hidrológica planejada",
@@ -149,12 +149,12 @@ const pt = {
         },
         {
           tag: "3 · Próximo Salto de Radar (NISAR GUNW)",
-          title: "Deslizamentos e movimento milimétrico de encostas",
+          title: "Pesquisa de deslocamento por interferometria",
           body: "O GCOV destaca possíveis mudanças no sinal, mas não mede deslocamento de encostas. Pesquisas futuras com interferometria exigem produtos compatíveis, calibração e validação independente antes de qualquer conclusão de risco.",
         },
         {
           tag: "4 · Apoio à Defesa Civil e Cidadãos",
-          title: "Infraestrutura crítica e rotas seguras por altitude",
+          title: "Pesquisa de infraestrutura crítica (sem rotas)",
           body: "Estudar como mapas de perigo validados poderiam ser relacionados à infraestrutura crítica; não indicar rotas de evacuação ou decisões de segurança sem validação oficial.",
         },
         {
@@ -165,7 +165,7 @@ const pt = {
         {
           tag: "6 · Escala Nacional e Global (12 dias)",
           title: "De Lajeado e Estrela para qualquer bacia hidrográfica",
-          body: "Como o NISAR revisita todo o planeta a cada 12 dias (faixa de 240 km, dia e noite), o mesmo pipeline pode monitorar outras bacias do RS, do Brasil e do mundo.",
+          body: "Onde houver aquisições compatíveis, a abordagem de processamento poderá ser adaptada a outras bacias, com verificação específica de cobertura e validação.",
         },
       ],
     },
