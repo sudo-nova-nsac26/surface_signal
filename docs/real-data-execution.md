@@ -174,3 +174,13 @@ Share `report.json` and `artifacts/` through the team's file-transfer method. Re
 and receipts on the processing disk, including unpaired/preexisting files. Git distributes
 code and catalog metadata; generated archives and credentials stay ignored. Do not commit
 tokens, `.netrc`, raw HDF5 or private observations.
+
+## Completed local execution and MVP enrichment — 2026-11-15
+
+This entry supersedes the earlier access blocker for this development machine without deleting
+its history. Local inventory: 19 retained real HDF5, 131,386,572,800 bytes; 10 descending
+track53/frame103 observations and 9 ascending track103/frame163 observations; 17 completed
+consecutive comparisons. Report remains `data/history/vale-do-taquari/report.json`.
+All 17 existing delta TIFFs were enriched by `derive build` without raw reprocessing or download.
+The snapshot exports 19 scenes and 17 analyses. Exact verification and package measurements
+are recorded in backend-mvp.md. Neither execution nor integrity establishes scientific validation.

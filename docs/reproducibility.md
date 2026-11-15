@@ -31,3 +31,12 @@ observations or installed automatically into the default API catalog.
 To add another AOI, copy the pilot Feature structure, replace geometry with a documented valid
 polygon, unique area_id/name/source_url and bounded max_pixels, then search by new area_id.
 The offline suite uses a separate synthetic AOI without modifying processing algorithms.
+
+## Derived processing and publication — 2026-11-15
+
+Keep original manifests and TIFFs intact. `derive build --area vale-do-taquari` produces
+content-addressed supplementary outputs without reopening HDF5. `publish build` verifies
+original processed files and derivatives before export; see [commands](static-publication.md).
+Derived identity uses original manifest/delta hashes, algorithm version and parameters.
+Identical reruns preserve generation time and bytes. `history verify` still checks the original
+history, including streaming raw hashes; it is an offline operator command, never an API request.

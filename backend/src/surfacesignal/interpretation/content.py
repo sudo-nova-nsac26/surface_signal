@@ -1,0 +1,111 @@
+"""Reviewed, versioned bilingual copy. No runtime text generation services."""
+
+SOURCES = ["https://nisar-docs.asf.alaska.edu/gcov/", "https://science.nasa.gov/mission/nisar/"]
+LIMITATIONS = {
+    "pt": [
+        "Esta análise exploratória não determina a causa da mudança nem confirma danos, enchentes ou desmatamento.",
+        "Limiares heurísticos não são probabilidades nem testes de significância estatística.",
+        "Componentes conectados são grupos de pixels, não eventos ambientais.",
+        "Ausência de candidatos não demonstra ausência de enchente ou de mudança.",
+        "Contexto hidrológico não valida espacialmente os pixels.",
+        "Não somamos áreas de períodos diferentes: um mesmo local pode aparecer repetidamente.",
+        "Geometrias ascendentes e descendentes não formam uma série quantitativa contínua.",
+        "Integridade técnica não equivale a validação científica. Produtos provisórios e condições de observação limitam a interpretação.",
+    ],
+    "en": [
+        "This exploratory analysis does not determine the cause of change or confirm damage, flooding or deforestation.",
+        "Heuristic thresholds are neither probabilities nor statistical significance tests.",
+        "Connected components are pixel groups, not environmental events.",
+        "No candidates does not demonstrate absence of flooding or change.",
+        "Hydrological context does not spatially validate pixels.",
+        "Areas from different periods are not summed: the same location can recur.",
+        "Ascending and descending geometries do not form a continuous quantitative series.",
+        "Technical integrity is not scientific validation. Provisional products and observation conditions limit interpretation.",
+    ],
+}
+TOPICS = [
+    (
+        "surface_signal",
+        "O que é o SurfaceSignal?",
+        "What is SurfaceSignal?",
+        "Uma ferramenta para compreender mudanças da superfície terrestre, comparando observações de radar e explicando seus limites.",
+        "A tool to understand Earth’s surface changes by comparing radar observations and explaining their limits.",
+    ),
+    (
+        "nisar",
+        "O que é o NISAR?",
+        "What is NISAR?",
+        "Uma missão de radar da NASA e da ISRO que observa a superfície da Terra.",
+        "A NASA and ISRO radar mission that observes Earth’s surface.",
+    ),
+    (
+        "sar",
+        "Como funciona um radar SAR?",
+        "How does SAR work?",
+        "O radar envia sinais e mede o retorno. O movimento do satélite ajuda a formar imagens da superfície.",
+        "Radar sends signals and measures their return. The satellite’s motion helps form surface images.",
+    ),
+    (
+        "compare",
+        "Por que comparar observações?",
+        "Why compare observations?",
+        "Comparar passagens compatíveis revela onde a intensidade do sinal mudou entre duas datas.",
+        "Comparing compatible passes reveals where signal intensity changed between two dates.",
+    ),
+    (
+        "increase",
+        "O que significa aumento do sinal?",
+        "What does an increase mean?",
+        "Mais energia voltou ao radar. Isso pode ter diferentes causas e não identifica sozinho um fenômeno.",
+        "More energy returned to the radar. This can have different causes and alone identifies no specific phenomenon.",
+    ),
+    (
+        "decrease",
+        "O que significa diminuição do sinal?",
+        "What does a decrease mean?",
+        "Menos energia voltou ao radar. Uma superfície mais lisa é uma possível explicação, mas não a única.",
+        "Less energy returned to the radar. A smoother surface is one possible explanation, among others.",
+    ),
+    (
+        "detection",
+        "Como identificamos mudanças?",
+        "How do we identify changes?",
+        "Aplicamos critérios explícitos de intensidade e tamanho aos pixels válidos. Os critérios são exploratórios.",
+        "We apply explicit intensity and size criteria to valid pixels. These criteria are exploratory.",
+    ),
+    (
+        "observation",
+        "O que foi observado diretamente?",
+        "What was directly observed?",
+        "O produto de radar registra intensidade do retorno. Diferenças e áreas são calculadas a partir desses registros.",
+        "The radar product records return intensity. Differences and areas are calculated from those records.",
+    ),
+    (
+        "interpretation",
+        "O que é interpretação?",
+        "What is interpretation?",
+        "É uma hipótese sobre o que pode explicar o sinal, como variação da água, vegetação ou umidade.",
+        "It is a hypothesis about what may explain the signal, such as changes in water, vegetation or moisture.",
+    ),
+    (
+        "causes",
+        "Por que a causa não está confirmada?",
+        "Why is the cause unconfirmed?",
+        "Causas diferentes podem gerar sinais parecidos. São necessárias referências independentes e alinhadas no espaço e no tempo.",
+        "Different causes can produce similar signals. Independent references aligned in space and time are needed.",
+    ),
+    (
+        "future",
+        "O que poderemos estudar?",
+        "What could we study next?",
+        "Vegetação, agricultura, umidade e áreas urbanas exigem métodos e referências adicionais. Movimento do terreno requer produtos e técnicas apropriados.",
+        "Vegetation, agriculture, moisture and urban areas require additional methods and references. Ground motion needs appropriate products and techniques.",
+    ),
+    (
+        "alerts",
+        "Por que não são alertas oficiais?",
+        "Why are these not official alerts?",
+        "Os resultados são exploratórios, sem validação operacional. Não substituem os serviços oficiais nem orientações de emergência.",
+        "Results are exploratory and lack operational validation. They do not replace official services or emergency guidance.",
+    ),
+]

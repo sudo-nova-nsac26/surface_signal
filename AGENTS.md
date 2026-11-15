@@ -196,3 +196,14 @@ code change (data comes through `src/data/source.ts`).
 7. **Delivery (others for now):** deploy, public repo + licence, 7-slide English demo, English submission
    texts, AI-use declaration, FortiGuard classification of the site. Submission closes Sunday 2026-11-15
    23:59 (owner's time).
+
+## Backend MVP update — 2026-11-15
+
+Backend 0.2.0 provides general gamma0 changes, independent water candidates, deterministic PT/EN
+narratives, capabilities, region history and verified static export. Keep original `artifacts/`
+immutable; derivatives live in `data/derived/<analysis>/<derived>/`. Never run derivation or
+publication from HTTP. `derive build` and `publish build` are serial offline CLI jobs.
+The 19-scene/17-comparison local run is technical evidence, not scientific validation.
+The full vector snapshot is distributed outside Git; preserve the isolated synthetic demo.
+Read docs/backend-mvp.md and docs/static-publication.md for handoff. Existing frontend visual
+components remain unchanged; general-layer rendering is a separate frontend integration task.

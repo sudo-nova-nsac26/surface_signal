@@ -90,6 +90,19 @@ def parser():
                 default=action.default,
                 choices=action.choices,
             )
+    derive = groups.add_parser("derive").add_subparsers(dest="command", required=True)
+    build = derive.add_parser("build")
+    build.add_argument("--area", required=True)
+    build.add_argument("--threshold-db", type=float, default=3.0)
+    build.add_argument("--min-component-pixels", type=int, default=9)
+    publish = groups.add_parser("publish").add_subparsers(dest="command", required=True)
+    build = publish.add_parser("build")
+    build.add_argument("--area", required=True)
+    build.add_argument("--output", type=Path, required=True)
+    build.add_argument("--validate", action="store_true")
+    build.add_argument("--exclude-synthetic", action="store_true")
+    build.add_argument("--include-previews", action="store_true")
+    build.add_argument("--max-export-bytes", type=int, default=100_000_000)
     return root
 
 
@@ -168,6 +181,35 @@ def main(argv=None):
                         "error",
                     )
                 }
+        elif args.group == "derive":
+            from surfacesignal.api.service import Repository
+            from surfacesignal.processing.general_change import derive_analysis
+
+            result = {
+                "area_id": args.area,
+                "derived": [
+                    derive_analysis(
+                        settings.root,
+                        a.analysis_id,
+                        threshold_db=args.threshold_db,
+                        min_component_pixels=args.min_component_pixels,
+                        max_pixels=selected_area.max_pixels,
+                    )
+                    for a in Repository(settings).analyses(area_id=args.area)
+                ],
+            }
+        elif args.group == "publish":
+            from surfacesignal.publication import build_publication
+
+            result = build_publication(
+                settings,
+                args.area,
+                args.output,
+                validate=args.validate,
+                exclude_synthetic=args.exclude_synthetic,
+                include_previews=args.include_previews,
+                max_export_bytes=args.max_export_bytes,
+            )
         elif args.group == "scenes":
             if args.command == "search":
                 start, end = datetime.fromisoformat(args.start), datetime.fromisoformat(args.end)
