@@ -1,13 +1,25 @@
 <div align="center">
 
-<p><a href="https://sudonova.surfacesignal.earth"><img src="assets/sudo-nova-logo.png" alt="Sudo Nova" width="150" align="middle" /></a>&nbsp;&nbsp;&nbsp;<a href="https://surfacesignal.earth"><img src="assets/surface-signal-logo.png" alt="SurfaceSignal" width="210" align="middle" /></a></p>
+<p align="center">
+  <a href="https://sudonova.surfacesignal.earth/"><img src="assets/sudo-nova-logo.png" alt="Logotipo da equipe Sudo Nova" width="200" align="middle" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://surfacesignal.earth/"><img src="assets/surface-signal-logo.png" alt="Logotipo do projeto SurfaceSignal" width="200" align="middle" /></a>
+</p>
 
 <h1>SurfaceSignal</h1>
+
 <p><strong>Tornando as mudanças da Terra compreensíveis</strong></p>
-<p>NASA Space Apps Challenge 2026 · Dancing with the SARs · Sudo Nova</p>
+<p>Explorando mudanças ambientais com radar de satélite e contexto científico.</p>
+<p><strong>NASA Space Apps Challenge 2026 · Dancing with the SARs · Sudo Nova</strong></p>
+
 <p><a href="./README.md">English</a> · <strong>Português</strong></p>
-<p><a href="https://surfacesignal.earth"><img src="https://img.shields.io/badge/APLICA%C3%87%C3%83O_ONLINE-00DBE7?style=for-the-badge&amp;labelColor=071824&amp;logo=cloudflare&amp;logoColor=white" alt="Explorar aplicação" /></a> <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf"><img src="https://img.shields.io/badge/APRESENTA%C3%87%C3%83O_PDF-172A38?style=for-the-badge&amp;logo=adobeacrobatreader&amp;logoColor=white" alt="Ver apresentação" /></a></p>
-<p><a href="https://surfacesignal.earth">Site</a> · <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf">Apresentação</a> · <a href="https://sudonova.surfacesignal.earth">Equipe</a> · <a href="https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project">Projeto NASA</a></p>
+
+<p>
+  <a href="https://surfacesignal.earth/"><img src="https://img.shields.io/badge/EXPLORAR_APLICA%C3%87%C3%83O-00DBE7?style=for-the-badge&labelColor=071824&logo=cloudflare&logoColor=white" alt="EXPLORAR APLICAÇÃO" /></a>
+  <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf"><img src="https://img.shields.io/badge/VER_APRESENTA%C3%87%C3%83O-172A38?style=for-the-badge&labelColor=071824&logo=adobeacrobatreader&logoColor=white" alt="VER APRESENTAÇÃO" /></a>
+</p>
+
+<p><a href="https://surfacesignal.earth/">Aplicação publicada</a> · <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf">Apresentação (PDF)</a> · <a href="https://sudonova.surfacesignal.earth/">Portfólio da equipe</a> · <a href="https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project">Inscrição Space Apps</a></p>
 
 </div>
 
