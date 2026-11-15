@@ -226,10 +226,10 @@ function Landscape({
           </g>
         )}
 
-        {/* After the rain: two scars where soil slid down a slope outside town.
+        {/* After the rain: two scars where soil slid down a slope between the towns.
             Each has a bare head at the top, a narrow track and a fan of mud. */}
         {flooded && (
-          <g transform="translate(245 -4)">
+          <g transform="translate(-77 21)">
             <g fill="var(--slopes)" opacity="0.5">
               <ellipse cx="676" cy="220" rx="11" ry="5" transform="rotate(-18 676 220)" />
               <ellipse cx="712" cy="226" rx="13" ry="6" transform="rotate(-10 712 226)" />
@@ -283,7 +283,7 @@ function Landscape({
           <Pin x={spots.houses[0]} y={spots.houses[1]} dy={44} text={impacts.houses} />
           <Pin x={spots.streets[0]} y={spots.streets[1]} dy={44} text={impacts.streets} />
           <Pin x={spots.bridge[0]} y={spots.bridge[1]} dx={110} dy={-22} text={impacts.bridge} />
-          <Pin x={963} y={192} dx={-6} dy={-50} text={impacts.landslide} />
+          <Pin x={641} y={217} dx={92} dy={-8} text={impacts.landslide} />
           <Pin x={spots.crops[0]} y={spots.crops[1]} dx={-50} dy={34} text={impacts.crops} />
         </g>
       )}
