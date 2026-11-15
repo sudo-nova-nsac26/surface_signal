@@ -107,6 +107,165 @@ export interface ApiAnalysis {
 /** File served at /api/v1/analyses/{id}/artifacts/change-candidates.geojson */
 export const CHANGE_CANDIDATES_ARTIFACT = "change-candidates.geojson";
 
+// ---------------------------------------------------------------------------
+// Backend MVP (2026-11-15): overview, timeline, statistics, layers, stories.
+// Mirrors docs/static-publication.md and the published static bundle. Only the
+// fields the interface reads are typed; the rest stays open.
+
+export type Lang = "pt" | "en";
+export type Localized = Record<Lang, string>;
+export type ValidationStatus = "not_validated" | (string & {});
+
+/** One layer of a comparison, as listed by /analyses/{id}/layers. */
+export interface ApiLayer {
+  layer_id: string;
+  name: Localized;
+  description: Localized;
+  limitations: Localized;
+  status: "available" | "exploratory" | "unavailable" | (string & {});
+  available: boolean;
+  artifact_url?: string | null;
+  geometry_type?: string | null;
+  legend?: { class: string; color: string }[];
+  measurement?: string;
+  method?: string;
+  validation_status?: ValidationStatus;
+}
+
+export interface ApiLayerList {
+  analysis_id: string;
+  items: ApiLayer[];
+}
+
+/** Area/percent numbers are null when not measured, never 0 by default. */
+export interface ApiGeneralChangeStats {
+  valid_area_km2: number | null;
+  total_area_km2: number | null;
+  invalid_area_km2: number | null;
+  changed_area_km2: number | null;
+  changed_percent: number | null;
+  increase_area_km2: number | null;
+  increase_components: number | null;
+  decrease_area_km2: number | null;
+  decrease_components: number | null;
+  discarded_area_km2: number | null;
+  [key: string]: unknown;
+}
+
+export interface ApiOpenWaterStats {
+  candidate_area_km2: number | null;
+  candidate_components: number | null;
+  candidate_percent: number | null;
+  valid_area_km2: number | null;
+  classification?: string;
+  [key: string]: unknown;
+}
+
+/** GET /api/v1/analyses/{id}/statistics */
+export interface ApiAnalysisStatistics {
+  analysis_id: string;
+  general_change: {
+    method: string;
+    parameters: Record<string, number>;
+    statistics: ApiGeneralChangeStats;
+  } | null;
+  open_water: {
+    method: string;
+    parameters: Record<string, number | string>;
+    statistics: ApiOpenWaterStats;
+    status: string;
+  } | null;
+}
+
+/** GET /api/v1/analyses/{id}/story?lang= */
+export interface ApiStory {
+  analysis_id: string;
+  language: Lang;
+  title: string;
+  summary: string;
+  observation: string;
+  result: string;
+  interpretation: string;
+  water_interpretation?: string;
+  alternative_explanations: string[];
+  limitations: string[];
+  sources: string[];
+  key_metrics: { key: string; label: string; unit: string; value: number | null }[];
+  general_state: string;
+  water_state: string;
+  data_status: "real" | "synthetic" | (string & {});
+  synthetic: boolean;
+  validation_status: ValidationStatus;
+  is_operational_alert: boolean;
+  methodology: Record<string, unknown>;
+}
+
+export interface ApiTimelineComparison {
+  comparison_id: string;
+  group_id: string;
+  before_time: string;
+  after_time: string;
+  before_scene_id: string;
+  after_scene_id: string;
+  direction: "ASCENDING" | "DESCENDING" | (string & {});
+  track: number;
+  frame: number;
+  availability: string;
+  analysis_ids: string[];
+  validation_status: ValidationStatus;
+  summaries: Record<string, Localized>;
+  /** Numbers per analysis, as the backend measured them (null = not measured). */
+  statistics?: Record<
+    string,
+    {
+      general_change?: { statistics?: { valid_area_km2?: number | null } } | null;
+      open_water?: {
+        statistics?: { candidate_area_km2?: number | null; valid_area_km2?: number | null };
+      } | null;
+    }
+  >;
+}
+
+export interface ApiTimelineGroup {
+  group_id: string;
+  status: string;
+  scene_ids: string[];
+  metadata: { direction: string; track: number; frame: number; [key: string]: unknown };
+}
+
+export interface ApiTimelineEvent {
+  observed_at: string;
+  station: string;
+  note: string;
+  source_url: string;
+  level_m: number | null;
+  role: string;
+  time_offset_hours?: number | null;
+}
+
+/** GET /api/v1/areas/{id}/timeline?lang= */
+export interface ApiTimeline {
+  area_id: string;
+  data_status: string;
+  comparison_count: number;
+  comparisons: ApiTimelineComparison[];
+  groups: ApiTimelineGroup[];
+  events: ApiTimelineEvent[];
+  interpretation: { summary: string; limitations: string[]; language: Lang };
+}
+
+/** GET /api/v1/areas/{id}/overview?lang= */
+export interface ApiOverview {
+  area_id: string;
+  area: ApiArea;
+  availability: string;
+  data_status: string;
+  comparison_count: number;
+  analysis_count: number;
+  group_count: number;
+  [key: string]: unknown;
+}
+
 /** Prepared environmental context; mirrored from context/models.py. */
 export type ContextAvailability = "available" | "partial" | "unavailable" | "not_checked";
 export interface EvidenceSource {
@@ -128,12 +287,79 @@ export interface AnalysisValidation {
   coverage?: unknown; limitations: string[]; provenance?: Record<string, unknown>;
 }
 /** Prior complete UTC date labels; never acquisition-hour rainfall windows. */
+export interface DailyRainfallPoint {
+  date_label_utc: string;
+  mean_mm: number | null;
+  max_mm: number | null;
+  min_mm: number | null;
+  valid_coverage_fraction: number | null;
+  pixel_count: number | null;
+}
+
 export interface DailyRainfallSummary {
   end_label_exclusive: string;
   totals_mm: Record<string, number | null>;
   coverage_by_days: Record<string, number>;
+  days?: DailyRainfallPoint[];
   semantics: string;
 }
+
+export interface IbgeMunicipalitySummary {
+  code?: string;
+  municipality_code?: string;
+  name: string;
+  state?: string;
+  intersection_km2?: number;
+  intersection_area_km2?: number;
+}
+
+export interface IbgeSpatialSummary {
+  source_id: string;
+  reference_year: number | null;
+  municipality_count: number;
+  municipalities_intersecting_aoi?: IbgeMunicipalitySummary[];
+  municipalities_intersecting_candidate?: IbgeMunicipalitySummary[];
+  candidate_union_area_km2?: number | null;
+}
+
+export interface WorldCoverSummary {
+  source_id: string;
+  reference_year: number | null;
+  valid_pixel_count: number;
+  classes: Array<{ class_id: string; label: string; percent: number | null }>;
+}
+
+export interface JrcGswSummary {
+  source_id: string;
+  reference_start_year?: number | null;
+  reference_year: number | null;
+  valid_pixel_count: number;
+  mean_frequency: number | null;
+  max_frequency: number | null;
+}
+
+export interface CopernicusDemSummary {
+  source_id: string;
+  elevation_m: number | null;
+  min_elevation_m: number | null;
+  max_elevation_m: number | null;
+  slope_deg: number | null;
+  valid_pixel_count: number;
+}
+
+export interface EnvironmentalSpatialSummaries {
+  ibge?: IbgeSpatialSummary;
+  worldcover?: WorldCoverSummary;
+  "jrc-gsw"?: JrcGswSummary;
+  "copernicus-dem"?: CopernicusDemSummary;
+}
+
+export interface EnvironmentalProvenance {
+  spatial_summaries?: EnvironmentalSpatialSummaries;
+  candidate_summaries?: EnvironmentalSpatialSummaries;
+  [key: string]: unknown;
+}
+
 export interface EnvironmentalContextReport {
   schema_version: string; area_id: string; analysis_id: string;
   observed_at: string; generated_at: string; data_status: ContextAvailability;
@@ -157,7 +383,7 @@ export interface EnvironmentalContextReport {
   topography: {status: ContextAvailability; elevation_m: number | null;
     slope_deg: number | null; limitations: string[]};
   validation: AnalysisValidation; sources: EvidenceSource[]; limitations: string[];
-  is_operational_alert: false; provenance: Record<string, unknown>;
+  is_operational_alert: false; provenance: EnvironmentalProvenance;
 }
 export interface ReferenceLayer {
   layer_id: string; status: ContextAvailability; title: string;

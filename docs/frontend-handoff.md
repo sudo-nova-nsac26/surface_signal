@@ -135,6 +135,13 @@ Judging criteria: Impact, Creativity, Validity, Relevance, Presentation. Project
 is allowed but must be declared; generated images need a visible watermark and may not use NASA branding. No images
 or voices of people under 18. Content submitted must be open source (OSI licence; Apache-2.0 if none is chosen).
 
+## Front-end status after the real-data work — 2026-11-15
+
+The map now reads the 17 real comparisons. The current state, decisions, pitfalls and what is left are in
+[`frontend-data-integration-plan.md`](frontend-data-integration-plan.md): read it before starting. Sections 4 and 7
+above describe the situation before this work and are partly out of date (the timeline and the compare panel
+were rebuilt around the backend history; the before/after fade is gone).
+
 ## Backend MVP handoff — 2026-11-15
 
 The backend now prepares all 17 real comparisons from the existing 19-scene history.

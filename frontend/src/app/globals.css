@@ -140,6 +140,36 @@ body {
  * Header buttons: an icon with a short label inside a visible frame, so they
  * read as buttons (the first version had no frame and looked like plain text).
  */
+/* The header sits in the middle of the page; once the map opens it spreads
+   to the edges, like the controls laid over the map. */
+.site-header-inner {
+  max-width: 72rem;
+  padding-inline: 1rem;
+  transition:
+    max-width 450ms ease,
+    padding-inline 450ms ease;
+}
+
+html[data-stage="map"] .site-header-inner {
+  max-width: 100%;
+  padding-inline: 1.25rem;
+}
+
+/* A short pulse that says "this is a button you can press". */
+@keyframes hint-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--highlight) 80%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 0.55rem color-mix(in srgb, var(--highlight) 0%, transparent);
+  }
+}
+
+.hint-pulse {
+  animation: hint-pulse 1.1s ease-out 5;
+}
+
 .tool-button {
   display: inline-flex;
   min-width: 2.75rem;
@@ -640,6 +670,14 @@ body {
 /* Dots fade out while the camera is flying. */
 .map-dots {
   transition: opacity 200ms ease-out;
+}
+
+.map-dots[data-locked="true"] {
+  pointer-events: none;
+}
+
+.map-dots[data-locked="true"] * {
+  pointer-events: none !important;
 }
 
 .map-dots[data-flying="true"] {

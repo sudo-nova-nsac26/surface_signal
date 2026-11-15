@@ -1,5 +1,27 @@
-import { assertEnvironmentalReport, filterEnvironmentalEvents, validReference, validContextSource, validEvent } from "./environmental";
-import type { EnvironmentalContextReport, EnvironmentalEvent, ReferenceLayer, AnalysisValidation, ContextSource, ApiAnalysis, ApiArea, ApiScene, Page } from "./api-types";
+import {
+  assertEnvironmentalReport,
+  filterEnvironmentalEvents,
+  validReference,
+  validContextSource,
+  validEvent,
+} from "./environmental";
+import type {
+  AnalysisValidation,
+  ApiAnalysis,
+  ApiAnalysisStatistics,
+  ApiArea,
+  ApiLayerList,
+  ApiOverview,
+  ApiScene,
+  ApiStory,
+  ApiTimeline,
+  ContextSource,
+  EnvironmentalContextReport,
+  EnvironmentalEvent,
+  Lang,
+  Page,
+  ReferenceLayer,
+} from "./api-types";
 
 /**
  * The single door to data. Every component asks this module; none reads a
@@ -133,6 +155,62 @@ export function getArtifactJson<T>(
 ): Promise<T> {
   return getJson<T>(artifactUrl(analysisId, name), signal);
 }
+
+// ---------------------------------------------------------------------------
+// Backend MVP resources. The static bundle stores language variants as
+// name.pt.json / name.en.json (docs/static-publication.md).
+
+function resource<T>(apiPath: string, staticPath: string, signal?: AbortSignal) {
+  return getJson<T>(
+    dataSourceMode === "api" ? `${API_BASE}/api/v1/${apiPath}` : `${STATIC_ROOT}/${staticPath}`,
+    signal,
+  );
+}
+
+const enc = encodeURIComponent;
+
+export function getAreaOverview(areaId: string, lang: Lang, signal?: AbortSignal) {
+  return resource<ApiOverview>(
+    `areas/${enc(areaId)}/overview?lang=${lang}`,
+    `areas/${enc(areaId)}/overview.${lang}.json`,
+    signal,
+  );
+}
+
+export function getAreaTimeline(areaId: string, lang: Lang, signal?: AbortSignal) {
+  return resource<ApiTimeline>(
+    `areas/${enc(areaId)}/timeline?lang=${lang}`,
+    `areas/${enc(areaId)}/timeline.${lang}.json`,
+    signal,
+  );
+}
+
+export function getAnalysisStatistics(analysisId: string, signal?: AbortSignal) {
+  return resource<ApiAnalysisStatistics>(
+    `analyses/${enc(analysisId)}/statistics`,
+    `analyses/${enc(analysisId)}/statistics.json`,
+    signal,
+  );
+}
+
+export function getAnalysisLayers(analysisId: string, signal?: AbortSignal) {
+  return resource<ApiLayerList>(
+    `analyses/${enc(analysisId)}/layers`,
+    `analyses/${enc(analysisId)}/layers.json`,
+    signal,
+  );
+}
+
+export function getAnalysisStory(analysisId: string, lang: Lang, signal?: AbortSignal) {
+  return resource<ApiStory>(
+    `analyses/${enc(analysisId)}/story?lang=${lang}`,
+    `analyses/${enc(analysisId)}/story.${lang}.json`,
+    signal,
+  );
+}
+
+/** General change polygons (increase and decrease in one file, by properties.class). */
+export const GENERAL_CHANGE_ARTIFACT = "general-change.geojson";
 
 /** Only bounded, published internal GeoJSON paths are permitted for reference overlays. */
 export function referenceArtifactUrl(value: string): string {

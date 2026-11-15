@@ -9,10 +9,10 @@ import type { LngLat } from "@/data/region";
 import {
   BASEMAP_STYLE,
   TERRAIN_ATTRIBUTION,
-  TERRAIN_TILES,
   type ViewMode,
 } from "./camera";
 import type { MotionLevel } from "@/preferences/store";
+import { CLEAN_TERRAIN_TILES, registerCleanDem } from "./clean-dem";
 import type { Outline, Place } from "./places";
 
 export interface MapViewHandle {
@@ -20,6 +20,8 @@ export interface MapViewHandle {
   rotateBy: (degrees: number) => void;
   tiltBy: (degrees: number) => void;
   resetView: () => void;
+  focusAt: (center: LngLat, zoom?: number) => void;
+  restoreSavedView: () => void;
 }
 
 export interface MapMarker {
@@ -28,6 +30,15 @@ export interface MapMarker {
   point: LngLat;
   /** False for places that are shown but cannot be opened yet. */
   available: boolean;
+}
+
+export interface MapHotspotPin {
+  id: string;
+  code: string;
+  kind?: "floodplain" | "river_corridor" | "hillslope";
+  title: string;
+  point: LngLat;
+  selected: boolean;
 }
 
 export interface MapViewProps {
@@ -41,11 +52,14 @@ export interface MapViewProps {
   motion: MotionLevel;
   /** Before the visitor starts: a slowly turning globe behind the intro. */
   intro: boolean;
-  /** Change shapes (GeoJSON URL) of the selected comparison, if any. */
-  changes: string | null;
-  /** How much of the change shapes shows: 0 = before, 1 = after. */
-  changeOpacity: number;
+  /** Change layers of the selected comparison (URLs and switches). */
+  changes: ChangeLayers;
+  /** Optional bounded reference outline (independent of the change layers). */
   reference?: FeatureCollection | null;
+  /** Optional clickable inspection squares (hotspots) at the close-up. */
+  hotspots?: FeatureCollection | null;
+  hotspotPins?: MapHotspotPin[];
+  onHotspotSelect?: (id: string) => void;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -55,18 +69,92 @@ export interface MapViewProps {
   onSelect: (id: string) => void;
   onReady: () => void;
   onError: () => void;
+  /** Gentle sparkle moving along the river at the close-up (off for weak devices). */
+  waterMotion?: boolean;
+  /** True while the camera runs a transition the visitor must not interrupt. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 // Copied from the installed package by scripts/copy-map-worker.mjs.
 setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
+registerCleanDem();
 
 const AREA_SOURCE = "analysed-area";
 const OUTLINE_SOURCE = "place-outline";
 const OUTLINE_LAYERS = ["outline-fill", "outline-glow", "outline-line"];
 const OUTLINE_COLOR = "#19e3ff";
-const CHANGES_SOURCE = "change-candidates";
-// Where the radar started seeing water. Okabe-Ito sky blue, readable on navy.
-const WATER_COLOR = "#56b4e9";
+const GENERAL_SOURCE = "general-change";
+const WATER_SOURCE = "water-candidates";
+// Okabe-Ito colours, the same the backend legend uses. Each layer also has a
+// symbol and a text label in the panel, so colour is never the only signal.
+export const CHANGE_COLORS = {
+  radar_increase: "#D55E00",
+  radar_decrease: "#0072B2",
+  open_water: "#56B4E9",
+} as const;
+const CHANGE_LAYER_IDS = ["increase-fill", "decrease-fill", "water-fill", "water-line"];
+
+// Little glints that run down the river, drawn by shifting a dash pattern.
+// Each frame moves the dashes forward along the line, which OpenStreetMap
+// draws downstream. Seven units per cycle.
+const RIVER_SOURCE = "river-flow";
+const RIVER_LAYERS = ["river-flow", "river-flow-a", "river-flow-b"];
+const RIVER_URL = "/data/boundaries/taquari-river.geojson";
+const RIVER_FRAMES: number[][] = [
+  [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0],
+  [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
+];
+
+function ensureRiverLayers(map: MapLibreMap) {
+  if (map.getSource(RIVER_SOURCE)) return;
+  map.addSource(RIVER_SOURCE, { type: "geojson", data: RIVER_URL });
+  const before = map.getLayer("increase-fill") ? "increase-fill" : undefined;
+  const width: unknown = ["interpolate", ["linear"], ["zoom"], 11, 1.2, 13, 2, 15, 3.5];
+  const offset = (px: number): unknown => ["interpolate", ["linear"], ["zoom"], 11, px * 0.3, 13, px, 15, px * 3.2];
+  const make = (id: string, lineOffset: number, opacity: number) =>
+    map.addLayer(
+      {
+        id,
+        type: "line",
+        source: RIVER_SOURCE,
+        layout: { visibility: "none", "line-cap": "butt" },
+        paint: {
+          "line-color": "#d9f3ff",
+          "line-opacity": opacity,
+          "line-width": width as never,
+          "line-offset": offset(lineOffset) as never,
+          "line-blur": 0.4,
+          "line-dasharray": RIVER_FRAMES[0],
+        },
+      },
+      before,
+    );
+  make("river-flow", 0, 0.6);
+  make("river-flow-a", -6, 0.38);
+  make("river-flow-b", 6, 0.38);
+}
+
+/** What the map draws for the chosen comparison. */
+export interface ChangeLayers {
+  /** general-change.geojson: increase and decrease, told apart by properties.class. */
+  generalUrl: string | null;
+  /** change-candidates.geojson: possible open water. */
+  waterUrl: string | null;
+  increase: boolean;
+  decrease: boolean;
+  water: boolean;
+  /** "Show the changes": 0 hides the patches, 1 shows them fully. */
+  opacity: number;
+}
+
+export const NO_CHANGES: ChangeLayers = {
+  generalUrl: null,
+  waterUrl: null,
+  increase: false,
+  decrease: false,
+  water: false,
+  opacity: 0,
+};
 const TERRAIN_SOURCE = "terrain";
 const RELIEF_SOURCE = "relief";
 const FLIGHT_MS = 3200;
@@ -181,51 +269,74 @@ function ensureAreaLayers(map: MapLibreMap, area: GeoJsonPolygon | null) {
 }
 
 /**
- * Shows the change shapes of the selected comparison. They come from the
- * backend's change-candidates.geojson, so real results draw here as soon as
- * they are published; an empty file simply draws nothing.
+ * Draws the chosen comparison: one source with the general changes feeds two
+ * layers filtered by class (signal increase, signal decrease), and a second
+ * source holds the possible open water. MapLibre fetches each file itself and
+ * always keeps the latest one asked for, so a quick change of comparison never
+ * shows an older answer. Only the close-up shows them.
  */
-function setChangeLayers(
-  map: MapLibreMap,
-  url: string | null,
-  visible: boolean,
-  opacity: number,
-) {
-  const source = map.getSource(CHANGES_SOURCE) as
-    { setData: (data: string) => void } | undefined;
-  if (url && !source) {
-    map.addSource(CHANGES_SOURCE, { type: "geojson", data: url });
-    map.addLayer({
-      id: "changes-fill",
-      type: "fill",
-      source: CHANGES_SOURCE,
-      paint: { "fill-color": WATER_COLOR, "fill-opacity": 0.55 * opacity },
-    });
-    map.addLayer({
-      id: "changes-line",
-      type: "line",
-      source: CHANGES_SOURCE,
-      paint: {
-        "line-color": "#d9f3ff",
-        "line-width": 1.2,
-        "line-opacity": opacity,
+function setChangeLayers(map: MapLibreMap, changes: ChangeLayers, visible: boolean) {
+  const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
+  const put = (id: string, url: string | null) => {
+    const source = map.getSource(id) as { setData: (data: string | GeoJSON.FeatureCollection) => void } | undefined;
+    if (!source) map.addSource(id, { type: "geojson", data: url ?? empty });
+    else source.setData(url ?? empty);
+  };
+  const before = map.getLayer("analysed-area-line") ? "analysed-area-line" : undefined;
+  put(GENERAL_SOURCE, changes.generalUrl);
+  put(WATER_SOURCE, changes.waterUrl);
+  if (!map.getLayer("increase-fill")) {
+    map.addLayer(
+      {
+        id: "increase-fill",
+        type: "fill",
+        source: GENERAL_SOURCE,
+        filter: ["==", ["get", "class"], "radar_increase"],
+        paint: { "fill-color": CHANGE_COLORS.radar_increase, "fill-opacity": 0.75 },
       },
-    });
-  } else if (url && source) {
-    source.setData(url);
+      before,
+    );
+    map.addLayer(
+      {
+        id: "decrease-fill",
+        type: "fill",
+        source: GENERAL_SOURCE,
+        filter: ["==", ["get", "class"], "radar_decrease"],
+        paint: { "fill-color": CHANGE_COLORS.radar_decrease, "fill-opacity": 0.75 },
+      },
+      before,
+    );
+    map.addLayer(
+      {
+        id: "water-fill",
+        type: "fill",
+        source: WATER_SOURCE,
+        paint: { "fill-color": CHANGE_COLORS.open_water, "fill-opacity": 0.9 },
+      },
+      before,
+    );
+    map.addLayer(
+      {
+        id: "water-line",
+        type: "line",
+        source: WATER_SOURCE,
+        paint: { "line-color": "#ffffff", "line-width": 1.2 },
+      },
+      before,
+    );
   }
-  if (map.getLayer("changes-fill")) {
-    map.setPaintProperty("changes-fill", "fill-opacity", 0.55 * opacity);
-    map.setPaintProperty("changes-line", "line-opacity", opacity);
-  }
-  for (const layer of ["changes-fill", "changes-line"]) {
-    if (map.getLayer(layer)) {
-      map.setLayoutProperty(
-        layer,
-        "visibility",
-        url && visible ? "visible" : "none",
-      );
-    }
+  map.setPaintProperty("increase-fill", "fill-opacity", 0.75 * changes.opacity);
+  map.setPaintProperty("decrease-fill", "fill-opacity", 0.75 * changes.opacity);
+  map.setPaintProperty("water-fill", "fill-opacity", 0.9 * changes.opacity);
+  map.setPaintProperty("water-line", "line-opacity", changes.opacity);
+  const show: Record<string, boolean> = {
+    "increase-fill": changes.increase && Boolean(changes.generalUrl),
+    "decrease-fill": changes.decrease && Boolean(changes.generalUrl),
+    "water-fill": changes.water && Boolean(changes.waterUrl),
+    "water-line": changes.water && Boolean(changes.waterUrl),
+  };
+  for (const layer of CHANGE_LAYER_IDS) {
+    map.setLayoutProperty(layer, "visibility", visible && show[layer] ? "visible" : "none");
   }
 }
 
@@ -318,8 +429,10 @@ export default function MapView({
   motion,
   intro,
   changes,
-  changeOpacity,
   reference,
+  hotspots,
+  hotspotPins = [],
+  onHotspotSelect,
   area,
   label,
   dotHint,
@@ -328,12 +441,15 @@ export default function MapView({
   onSelect,
   onReady,
   onError,
+  onBusyChange,
+  waterMotion = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const loadedRef = useRef(false);
   const dotRefs = useRef(new Map<string, HTMLButtonElement>());
+  const hotspotRefs = useRef(new Map<string, HTMLButtonElement>());
   const flightTimer = useRef<number | undefined>(undefined);
   const freeRef = useRef(false);
   const fadeRef = useRef<HTMLDivElement>(null);
@@ -352,38 +468,109 @@ export default function MapView({
   const latest = useRef({
     place,
     markers,
+    hotspotPins,
     view,
     motion,
     intro,
     changes,
-    changeOpacity,
     area,
+    waterMotion,
   });
   useEffect(() => {
     latest.current = {
       place,
       markers,
+      hotspotPins,
       view,
       motion,
       intro,
       changes,
-      changeOpacity,
       area,
+      waterMotion,
     };
   });
-  const callbacks = useRef({ onReady, onError });
+  const callbacks = useRef({ onReady, onError, onBusyChange, onHotspotSelect });
+  // While a transition runs (2D <-> 3D, flying into a place), dragging or
+  // zooming would cut the camera move in half and leave the view broken, so
+  // every gesture and camera button is off until it ends.
+  const riverFrame = useRef(0);
+  function syncRiver(map: MapLibreMap, show: boolean) {
+    window.cancelAnimationFrame(riverFrame.current);
+    ensureRiverLayers(map);
+    const on = show && latest.current.waterMotion;
+    for (const id of RIVER_LAYERS) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    if (!on) return;
+    let last = 0;
+    let step = 0;
+    const tick = (now: number) => {
+      riverFrame.current = window.requestAnimationFrame(tick);
+      if (now - last < 85 || document.hidden) return;
+      last = now;
+      step = (step + 1) % RIVER_FRAMES.length;
+      RIVER_LAYERS.forEach((id, i) => {
+        if (map.getLayer(id)) {
+          map.setPaintProperty(id, "line-dasharray", RIVER_FRAMES[(step + i * 5) % RIVER_FRAMES.length]);
+        }
+      });
+    };
+    riverFrame.current = window.requestAnimationFrame(tick);
+  }
+  const lockedRef = useRef(false);
+  const lockTimer = useRef(0);
+  function lockInput(ms: number) {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!lockedRef.current) {
+      lockedRef.current = true;
+      for (const handler of [
+        map.dragPan,
+        map.scrollZoom,
+        map.boxZoom,
+        map.doubleClickZoom,
+        map.keyboard,
+        map.touchZoomRotate,
+        map.dragRotate,
+        map.touchPitch,
+      ]) {
+        handler.disable();
+      }
+      if (overlayRef.current) overlayRef.current.dataset.locked = "true";
+      callbacks.current.onBusyChange?.(true);
+    }
+    window.clearTimeout(lockTimer.current);
+    lockTimer.current = window.setTimeout(unlockInput, ms);
+  }
+  function unlockInput() {
+    const map = mapRef.current;
+    window.clearTimeout(lockTimer.current);
+    if (!map || !lockedRef.current) return;
+    lockedRef.current = false;
+    map.dragPan.enable();
+    map.scrollZoom.enable();
+    map.boxZoom.enable();
+    map.doubleClickZoom.enable();
+    map.keyboard.enable();
+    map.touchZoomRotate.enable();
+    setFreeCamera(map, freeRef.current);
+    if (overlayRef.current) overlayRef.current.dataset.locked = "false";
+    callbacks.current.onBusyChange?.(false);
+  }
+  const savedCameraRef = useRef<{ center: LngLat; zoom: number; pitch: number; bearing: number } | null>(null);
+
   useEffect(() => {
-    callbacks.current = { onReady, onError };
+    callbacks.current = { onReady, onError, onBusyChange, onHotspotSelect };
   });
 
   useImperativeHandle(ref, () => ({
     zoomBy(delta) {
+      if (lockedRef.current) return;
       mapRef.current?.easeTo({
         zoom: mapRef.current.getZoom() + delta,
         duration: latest.current.motion === "none" ? 0 : 300,
       });
     },
     rotateBy(degrees) {
+      if (lockedRef.current) return;
       const map = mapRef.current;
       map?.easeTo({
         bearing: map.getBearing() + degrees,
@@ -391,6 +578,7 @@ export default function MapView({
       });
     },
     tiltBy(degrees) {
+      if (lockedRef.current) return;
       const map = mapRef.current;
       map?.easeTo({
         pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() + degrees)),
@@ -398,11 +586,60 @@ export default function MapView({
       });
     },
     resetView() {
+      if (lockedRef.current) return;
+      savedCameraRef.current = null;
       mapRef.current?.easeTo({
         bearing: 0,
         pitch: latest.current.view === "3d" ? DETAIL_PITCH : 0,
         duration: latest.current.motion === "none" ? 0 : 500,
       });
+    },
+    focusAt(center, zoom = 13.7) {
+      if (lockedRef.current) return;
+      const map = mapRef.current;
+      if (!map) return;
+      if (!savedCameraRef.current) {
+        const c = map.getCenter();
+        savedCameraRef.current = {
+          center: [c.lng, c.lat],
+          zoom: map.getZoom(),
+          pitch: map.getPitch(),
+          bearing: map.getBearing(),
+        };
+      }
+      const isWide = typeof window !== "undefined" && window.innerWidth >= 1024;
+      map.easeTo({
+        center,
+        zoom: Math.max(map.getZoom(), zoom),
+        offset: isWide ? [40, -25] : [0, -60],
+        duration: latest.current.motion === "none" ? 0 : 650,
+      });
+    },
+    restoreSavedView() {
+      if (lockedRef.current) return;
+      const map = mapRef.current;
+      if (!map) return;
+      const prev = savedCameraRef.current;
+      savedCameraRef.current = null;
+      if (prev) {
+        map.easeTo({
+          center: prev.center,
+          zoom: prev.zoom,
+          pitch: prev.pitch,
+          bearing: prev.bearing,
+          duration: latest.current.motion === "none" ? 0 : 650,
+        });
+      } else if (latest.current.place.detail) {
+        const d = latest.current.place.detail;
+        const is3d = latest.current.view === "3d";
+        map.easeTo({
+          center: d.center,
+          zoom: is3d ? d.zoom : d.zoom - 0.3,
+          pitch: is3d ? DETAIL_PITCH : 0,
+          bearing: 0,
+          duration: latest.current.motion === "none" ? 0 : 650,
+        });
+      }
     },
   }));
 
@@ -413,7 +650,7 @@ export default function MapView({
     if (!map || !container) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
-    const { markers, view } = latest.current;
+    const { markers, hotspotPins: pins, view } = latest.current;
     const center = map.getCenter();
     for (const marker of markers) {
       const element = dotRefs.current.get(marker.id);
@@ -432,6 +669,18 @@ export default function MapView({
       element.style.visibility = !hidden && inside ? "visible" : "hidden";
       element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
       element.dataset.side = point.x > width * 0.62 ? "left" : "right";
+    }
+    for (const pin of pins) {
+      const element = hotspotRefs.current.get(pin.id);
+      if (!element) continue;
+      const point = map.project(pin.point);
+      const inside =
+        point.x > 16 &&
+        point.x < width - 16 &&
+        point.y > 16 &&
+        point.y < height - 16;
+      element.style.visibility = inside ? "visible" : "hidden";
+      element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
     }
   }
 
@@ -505,12 +754,8 @@ export default function MapView({
     }
 
     ensureAreaLayers(map, area);
-    setChangeLayers(
-      map,
-      latest.current.changes,
-      Boolean(detail),
-      latest.current.changeOpacity,
-    );
+    setChangeLayers(map, latest.current.changes, Boolean(detail));
+    syncRiver(map, Boolean(detail));
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
@@ -557,6 +802,7 @@ export default function MapView({
 
     if (animate && motion !== "none") {
       setFlying(true);
+      lockInput((motion === "full" ? flightMs : 700) + 150);
       if (motion === "full") {
         map.flyTo({
           ...camera,
@@ -659,6 +905,8 @@ export default function MapView({
       return;
     }
 
+    // The globe comes forward (1.6 s) and, in 2D, unfolds (about 2.5 s).
+    lockInput(1600 + 2600);
     map.easeTo({
       center: SPOTLIGHT,
       zoom: worldZoom(container.clientWidth),
@@ -732,6 +980,8 @@ export default function MapView({
       applyView(true);
       return;
     }
+    // Glow out (0.2 s), unfold (1.5 s), final framing (0.7 s).
+    lockInput(2600);
     const run = () => {
       const zoom = map.getZoom();
       // Flat -> globe zooms out by UNFOLD_ZOOM, globe -> flat zooms in by it.
@@ -846,7 +1096,7 @@ export default function MapView({
       // tilt, or hold Shift while scrolling to rotate.
       let orbit: { x: number; y: number; id: number } | null = null;
       const onPointerDown = (event: PointerEvent) => {
-        if (event.button !== 1 || !freeRef.current) return;
+        if (event.button !== 1 || !freeRef.current || lockedRef.current) return;
         event.preventDefault();
         map.stop();
         orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
@@ -882,6 +1132,11 @@ export default function MapView({
       };
       const onWheel = (event: WheelEvent) => {
         if (!event.shiftKey || !freeRef.current) return;
+        if (lockedRef.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         map.setBearing(
@@ -903,7 +1158,7 @@ export default function MapView({
         recolourBasemap(map);
         map.addSource(TERRAIN_SOURCE, {
           type: "raster-dem",
-          tiles: [TERRAIN_TILES],
+          tiles: [CLEAN_TERRAIN_TILES],
           encoding: "terrarium",
           tileSize: 256,
           maxzoom: 14,
@@ -911,7 +1166,7 @@ export default function MapView({
         });
         map.addSource(RELIEF_SOURCE, {
           type: "raster-dem",
-          tiles: [TERRAIN_TILES],
+          tiles: [CLEAN_TERRAIN_TILES],
           encoding: "terrarium",
           tileSize: 256,
           maxzoom: 14,
@@ -1009,6 +1264,7 @@ export default function MapView({
         loadedRef.current = false;
         applied.current = {};
         mapRef.current = null;
+        window.cancelAnimationFrame(riverFrame.current);
         map.remove();
       };
     }
@@ -1020,12 +1276,13 @@ export default function MapView({
     latest.current = {
       place,
       markers,
+      hotspotPins,
       view,
       motion,
       intro,
       changes,
-      changeOpacity,
       area,
+      waterMotion,
     };
     const viewChanged = lastView.current !== view;
     lastView.current = view;
@@ -1039,17 +1296,19 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id, view, area, intro]);
 
-  // A different comparison picked on the timeline, or the before/after slider.
+  // A different comparison picked on the timeline, a layer switch or "show the changes".
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
-    setChangeLayers(
-      map,
-      changes,
-      Boolean(latest.current.place.detail),
-      changeOpacity,
-    );
-  }, [changes, changeOpacity]);
+    setChangeLayers(map, changes, Boolean(latest.current.place.detail));
+  }, [changes]);
+
+  // The sparkle starts or stops when motion settings or the device report change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    syncRiver(map, Boolean(latest.current.place.detail));
+  }, [waterMotion]);
 
   // Reference outlines are independent of the SAR before/after opacity and camera.
   useEffect(() => {
@@ -1073,10 +1332,73 @@ export default function MapView({
     return () => { map.off("style.load", apply); map.off("idle", applyOnce); };
   }, [reference, place.detail]);
 
+  // Clickable inspection squares (hotspots) at the close-up.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const srcId = "env-hotspots";
+    const fillId = "env-hotspots-fill";
+    const lineId = "env-hotspots-line";
+    const apply = () => {
+      if (!map.isStyleLoaded()) return;
+      if (map.getLayer(lineId)) map.removeLayer(lineId);
+      if (map.getLayer(fillId)) map.removeLayer(fillId);
+      if (map.getSource(srcId)) map.removeSource(srcId);
+      if (!hotspots || !place.detail) return;
+      map.addSource(srcId, { type: "geojson", data: hotspots });
+      map.addLayer({
+        id: fillId,
+        type: "fill",
+        source: srcId,
+        paint: {
+          "fill-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
+          "fill-opacity": ["case", ["==", ["get", "selected"], true], 0.18, 0.07],
+        },
+      });
+      map.addLayer({
+        id: lineId,
+        type: "line",
+        source: srcId,
+        paint: {
+          "line-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
+          "line-width": ["case", ["==", ["get", "selected"], true], 3, 2],
+          "line-dasharray": [2, 2],
+        },
+      });
+    };
+    const handleClick = (e: { features?: Array<{ properties?: Record<string, unknown> }> }) => {
+      const id = e.features?.[0]?.properties?.id;
+      if (typeof id === "string") callbacks.current.onHotspotSelect?.(id);
+    };
+    const handleEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const handleLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
+    apply();
+    map.on("style.load", apply);
+    map.on("idle", applyOnce);
+    map.on("click", fillId, handleClick as never);
+    map.on("mouseenter", fillId, handleEnter);
+    map.on("mouseleave", fillId, handleLeave);
+    function applyOnce() {
+      apply();
+      map?.off("idle", applyOnce);
+    }
+    return () => {
+      map.off("style.load", apply);
+      map.off("idle", applyOnce);
+      map.off("click", fillId, handleClick as never);
+      map.off("mouseenter", fillId, handleEnter);
+      map.off("mouseleave", fillId, handleLeave);
+    };
+  }, [hotspots, place.detail]);
+
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
     updateDots();
-  }, [markers]);
+  }, [markers, hotspotPins]);
 
   return (
     // MapLibre sets its own positioning on the element it is given, so the
@@ -1124,6 +1446,28 @@ export default function MapView({
                 <span className="map-dot-note">{upcomingLabel}</span>
               )}
             </span>
+          </button>
+        ))}
+        {hotspotPins.map((pin) => (
+          <button
+            key={pin.id}
+            ref={(element) => {
+              if (element) hotspotRefs.current.set(pin.id, element);
+              else hotspotRefs.current.delete(pin.id);
+            }}
+            type="button"
+            aria-pressed={pin.selected}
+            aria-label={pin.title}
+            title={pin.title}
+            onClick={() => onHotspotSelect?.(pin.id)}
+            className={`pointer-events-auto invisible absolute left-0 top-0 flex items-center gap-1 rounded-lg border-2 px-2 py-0.5 text-xs font-extrabold shadow-lg transition-colors ${
+              pin.selected
+                ? "border-amber-300 bg-amber-400 text-slate-950"
+                : "border-cyan-300/90 bg-slate-950/90 text-cyan-200 hover:border-amber-300 hover:text-white"
+            }`}
+          >
+            <span>▣</span>
+            <span>{pin.code}</span>
           </button>
         ))}
       </div>

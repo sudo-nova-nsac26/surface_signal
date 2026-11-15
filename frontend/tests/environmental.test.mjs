@@ -78,13 +78,27 @@ test('unmeasured and measured candidate areas retain null and real zero in timel
   // Resolve runtime siblings through the same TypeScript loader.
   mod.require = id => id === './source' ? {} : id.startsWith('./') ? load(id.slice(2)) : createRequire(filename)(id);
   mod._compile(ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,filename);
-  const scenes=[{start_time:'2026-07-11T00:00:00Z'},{start_time:'2026-07-23T00:00:00Z'}];
-  const a={analysis_id:'a',scenes,synthetic:false,evidence:{synthetic:false},artifacts:{},provenance:{},statistics:{candidate_area_km2:0,valid_area_km2:2}};
-  const result=mod.exports.buildTimeline([], [a]);
-  assert.equal(result.steps[0].analysis.candidateAreaKm2,0);
-  assert.equal(result.steps[0].analysis.validAreaKm2,2);
-  a.statistics={};
-  assert.equal(mod.exports.buildTimeline([], [a]).steps[0].analysis.candidateAreaKm2,null);
+  // The story timeline carries the numbers the backend measured for each comparison.
+  const timeline = (stats) => ({
+    area_id: 'x', data_status: 'real', comparison_count: 1, groups: [], events: [],
+    interpretation: { summary: '', limitations: [], language: 'pt' },
+    comparisons: [{
+      comparison_id: 'c1', group_id: 'g1', direction: 'DESCENDING', track: 53, frame: 103,
+      before_time: '2026-07-11T21:33:51Z', after_time: '2026-07-23T21:33:50Z',
+      before_scene_id: 'b', after_scene_id: 'a', availability: 'available',
+      analysis_ids: ['a'], validation_status: 'not_validated', summaries: {},
+      statistics: { a: stats },
+    }],
+  });
+  const measured = mod.exports.buildStoryTimeline(timeline({
+    general_change: { statistics: { valid_area_km2: 2 } },
+    open_water: { statistics: { candidate_area_km2: 0, valid_area_km2: 2 } },
+  }));
+  assert.equal(measured.steps[0].analysis.candidateAreaKm2, 0);
+  assert.equal(measured.steps[0].analysis.validAreaKm2, 2);
+  const unmeasured = mod.exports.buildStoryTimeline(timeline({}));
+  assert.equal(unmeasured.steps[0].analysis.candidateAreaKm2, null);
+  assert.equal(unmeasured.steps[0].analysis.validAreaKm2, null);
 });
 test('object-valued display fields become recoverable data errors', async () => {
   const value = JSON.parse(fs.readFileSync('tests/fixtures/environmental-context.synthetic.json','utf8'));
@@ -112,4 +126,20 @@ test('environmental timeline markers aggregate by UTC day and kind without alter
   const rain=markers.find(m=>m.kind==='rainfall_window');
   assert.ok(rain.endPercent>rain.startPercent);
   assert.deepEqual(values,original);
+});
+test('daily rainfall and candidate crossings extract real July flood metrics accurately', () => {
+  const report = JSON.parse(
+    fs.readFileSync('public/data/compact/api/v1/analyses/5e434ec81b10578ba7ba6dfb/environmental-context.json', 'utf8'),
+  );
+  const rain = e.extractDailyRainfallComparison(report);
+  assert.equal(rain.hasDailyData, true);
+  assert.equal(rain.windows.find(w => w.key === '3d').beforeMm, 0);
+  assert.ok(rain.windows.find(w => w.key === '3d').afterMm > 87);
+  assert.equal(rain.peakAfterDay.dateLabel, '2026-07-21');
+
+  const crossings = e.extractCandidateCrossings(report);
+  assert.equal(crossings.municipalitiesInCandidates[0].name, 'Estrela');
+  assert.equal(crossings.municipalitiesInCandidates[1].name, 'Lajeado');
+  assert.ok(crossings.candidateElevationM < 20 && crossings.aoiElevationM > 45);
+  assert.ok(crossings.rarelyWetSharePercent > 85);
 });

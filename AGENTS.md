@@ -25,6 +25,9 @@ when you finish or change something listed here, update this file in the same ch
 
 > **Taking over?** Read [`docs/frontend-handoff.md`](docs/frontend-handoff.md) after this file: current state,
 > decisions already made, pitfalls, how to test, and the ordered next tasks (written 2026-11-14 at a hand-off).
+> **Then read [`docs/frontend-data-integration-plan.md`](docs/frontend-data-integration-plan.md)**: the map now
+> reads the real backend results; it says what is done, what was decided, what is left and in which order
+> (written 2026-11-15, branch `feature/frontend-data-integration`).
 
 ## What we are building
 
@@ -161,6 +164,95 @@ Open questions for the team: hosting (Vercel works as is; Mateus's `ci/firebase-
 `frontend/dist` that Next.js does not produce), licence (Apache-2.0 suggested, not applied), pre-event
 eligibility of the backend, the root README still describes the frontend as Vite on port 5173, and a
 **deadline with Mateus** for the real data (see roadmap 1).
+
+## Real data integration (started 2026-11-15)
+
+**Update (backend PR #10, merged into `feature/frontend-data-integration`):** the site now reads a committed
+compact real snapshot, `public/data/compact/api/v1/` (11 MB, all 17 comparisons), by default; the full bundle
+below is optional (`NEXT_PUBLIC_STATIC_SNAPSHOT=full`). The public build is a static export (`out/`), `npm test`
+exists, and Mateus's environmental panel and ruler markers are wired into our time bar. See
+`docs/frontend-data-integration-plan.md` section 2 (including the Windows line-ending note).
+
+Mateus's backend MVP (PRs #7 and #9) publishes 17 real comparisons. The full static bundle (~142 MB, 68 GeoJSON)
+stays OUT of Git: unpack the `.tar.gz` the team shares (check its `.sha256` first) so that its `api/v1/`
+folder becomes `frontend/public/data/api/v1/` (git-ignored). The synthetic sample lives in
+`public/data/demo/api/v1/` and must NOT be used as an automatic fallback (backend decision).
+Plan to follow: the backend team's 10-step integration plan (data/types -> timeline -> general layers ->
+statistics and stories -> regional view -> accessibility, performance, deploy).
+
+Done so far: MVP types in `api-types.ts` and `source.ts` functions (overview, timeline, statistics, layers,
+story, static `.pt/.en.json` paths). A dev-only **data lab** at `/pt/lab` (404 in production) shows one
+comparison at a time on the map with increase/decrease/possible water, the numbers, the PT/EN story, sizes and
+timings. Findings: valid area 78.1 km2 in all 17; every comparison has water candidates (2 to 72 groups);
+all `not_validated`; general-change.geojson already holds increase + decrease (use one source with two
+filtered layers, never fetch the three files); raw sizes 0.6 to 11 MB, but gzip shrinks them about 7x (the
+heaviest transfers ~1.5 MB, ~3,800 polygons, ~1.5 s to draw on a desktop); polygons are 10 m pixel blocks,
+so they look blocky beyond zoom ~14; fast clicking never showed an old answer (AbortController per pick).
+The host must serve GeoJSON compressed. Phone performance not measured yet.
+
+Map wired to real data (2026-11-15): the timeline reads `/areas/{id}/timeline` (backend comparison_id and
+group_id, no pairs rebuilt from scenes) and shows a **curated story of 5 comparisons** (owner: more than 3, not all
+17), all from the same descending group so geometries never mix: before the flood (29 Jun -> 11 Jul), during
+(11 -> 23 Jul, the guided start), after (23 Jul -> 16 Aug), largest signal increase (9 -> 21 Sep) and largest
+signal decrease (21 Sep -> 3 Oct). The list lives in `src/data/featured.ts` (matched by dates; "largest" is area,
+never severity). Picking one loads statistics + layers + story together (`loadComparisonDetail`, cancelled on
+the next pick); the map draws general-change.geojson as two layers filtered by `properties.class` plus the water
+candidates, only when the backend lists them as available. ComparePanel: "Mostrar as mudanças" (shows/hides the
+patches; the copy says the background map is current, not the earlier date), three layer switches with colour +
+symbol + text, backend numbers with null as "indisponível", the PT/EN story with an expandable full explanation,
+other layers with their status and limits. Load errors show a plain message and "Tentar de novo" (tested by hiding
+the bundle). Not done yet: section 02 "Camadas" still lists the old fixed layers, the regional overview, the
+How-it-works impact pins (they promise more than the backend measures; owner to decide), phone checks.
+
+Owner round on the real-data map (2026-11-15, done): (1) **No input during transitions**: `lockInput` in MapView
+turns every MapLibre gesture, the custom orbit, the camera buttons and the dots off while the intro, a 2D/3D unfold
+or a flight into a place runs, and `onBusyChange` disables 2D/3D and the navigation buttons in MapStage (dragging
+mid-flight used to leave the view broken). (2) **Layout like roamingeye.org, in our style**: at the close-up a
+compact time bar along the bottom (stop chip with a menu, prev/next, mono dates, play, month ruler with clickable
+featured markers), a right panel "O que você quer ver?" and a small left card (raised under the 2D/3D switch; on
+phones everything stacks in a scrolling bottom sheet, time bar first). (3) **Plain words first**: the panel opens
+with a summary built only from backend numbers (changed km2 and % of the analysed area, possible water) with
+football pitches (105 x 68 m) as an everyday size; cards say "Possível água nova", "Refletiu menos o radar (pode
+ser água, umidade ou plantas)" and "Refletiu mais o radar", wording taken from the backend's alternative
+explanations. The full explanation, other layers and exact numbers/method sit in collapsible sections.
+(4) The analysed area (dashed circle) **cannot be changed in the browser**: it is the backend's 5 km buffer and
+every result was computed inside it; a new area means new processing by the backend.
+
+Next owner round (2026-11-15, done): (1) the time ruler only draws the 7 passes of the 5 featured comparisons, so
+nothing before the first one (29 Jun) or after the last looks reachable. (2) **Layer cards in plain words**:
+"Água" (possível água nova), "Ficou mais escuro" and "Ficou mais claro" (the radar's measurement of the ground,
+"não é uma foto"), each with "Possível: ..." taken from the backend's own alternative explanations. We did NOT use
+"Terra molhada" or "Deslizamento" on purpose: the backend does not detect landslides (ground motion is
+unavailable) and a radar decrease/increase does not tell wet from dry, so those words would be invented. The
+cards have a sliding switch that pulses a few times plus the line "Toque nos cartões para ligar ou desligar".
+(3) The three collapsible sections became one "Saber mais" button that opens a dialog with three tabs
+(explanation, other layers, technical details). (4) The header (`.site-header-inner`) widens to the screen edges
+when the map has the stage (`html[data-stage="map"]`, set by MapStage). (5) **3D spike fixed**: the free elevation
+tiles have wrong points near the Taquari bridge (+257 m next to ~30 m ground at z10, -365 m at z11); tiles go
+through `clean-dem.ts` (MapLibre protocol `cleandem://`) which replaces points that differ from the median of
+their 5x5 neighbours by more than 120 m, only for zoom 10 to 13, up to 3 passes, and falls back to the original
+tile if anything fails. Testing note: a hidden Browser pane freezes map animations and transitions (the map
+looks stuck in its intro); show the pane (`show_pane` preview) before judging motion.
+
+Last round (2026-11-15, done): the explanation topics ("Entender esta comparação", "Outras camadas", "Detalhes
+técnicos") open **inside the left card, below each button** (an accordion that scrolls), not in a box over the
+map (`InfoAccordion` in `ComparisonInfo.tsx`; the card widens a little while one is open).
+
+The left card is a column: its middle scrolls and its footer (Voltar / Ir para) is pinned, and its height stops above
+the time bar (checked at 1440, 1280 and 1100 px wide).
+
+Details round (2026-11-15, done): the FAQ answer "Por que fizemos este site?" now states the challenge (show the
+changes a satellite sees on a region's surface in a simple way anyone can understand). Cards were renamed again:
+"Água", "Sinal mais fraco", "Sinal mais forte" (owner: "mais escuro/claro" made no sense), all with the same
+"Possível: água, umidade ou plantas" in the same order, plus the explicit reason we show them ("onde a superfície
+mudou entre as duas datas; mostram onde olhar, não dizem se ficou melhor ou pior"). The "tap" emoji is gone, the
+"Resultado real · ainda não conferido em campo" note is the LAST thing in the right panel, and the "Real x Exemplo"
+box of section 04 was removed (the data is real now). The three info buttons (Entender, Outras camadas, Detalhes
+técnicos) live in the left card; their content opens in a box right above the time bar (from 1280 px; below that
+it opens inside the left card), see `ComparisonInfo.tsx`. **Water movement**: three thin glint lines
+(`river-flow*` layers, a shifting dash pattern, ~12 fps) run down the Taquari inside the analysed circle only,
+from `public/data/boundaries/taquari-river.geojson` (OSM, clipped to the circle). It is shown only with full
+motion and not on devices measured as weak (`waterMotion` prop).
 
 ## Owner decisions on the map (2026-11-14, done)
 

@@ -1,11 +1,25 @@
 import type {
   ApiAnalysis,
+  ApiAnalysisStatistics,
   ApiArea,
   ApiHydroContext,
+  ApiLayer,
   ApiScene,
+  ApiStory,
+  ApiTimeline,
+  Lang,
+  Localized,
 } from "./api-types";
 import { CHANGE_CANDIDATES_ARTIFACT } from "./api-types";
-import { listAnalyses, listScenes } from "./source";
+import { FEATURED, type FeaturedReason } from "./featured";
+import {
+  getAnalysisLayers,
+  getAnalysisStatistics,
+  getAnalysisStory,
+  getAreaTimeline,
+  listAnalyses,
+  listScenes,
+} from "./source";
 
 /**
  * Turns backend responses into what the interface needs to say. This is the
@@ -190,148 +204,148 @@ export async function loadRegionView(
 }
 
 /* ---------------------------------------------------------------------- */
-/* Timeline: the satellite passes over a place, taken two at a time. Each  */
-/* step compares one pass with the previous pass of the same kind, so the  */
-/* visitor can move forward and back through what happened.                */
+/* Timeline: the comparisons the backend prepared for a region. Identity,  */
+/* grouping and links come from the backend (comparison_id, group_id); the */
+/* guided story shows a curated subset (featured.ts), never mixing groups. */
 /* ---------------------------------------------------------------------- */
 
 export interface TimelinePass {
-  sceneId: string;
   /** ISO 8601 UTC acquisition time. */
   at: string;
-  /** "ASCENDING" or "DESCENDING" when known. */
-  direction: string | null;
+  groupId: string | null;
 }
 
+/** What the environmental panel needs to know about the comparison's analysis. */
 export interface TimelineAnalysis {
-  candidateAreaKm2: number | null;
-  validAreaKm2: number | null;
   analysisId: string;
   illustrative: boolean;
   hasChangeShapes: boolean;
+  candidateAreaKm2: number | null;
+  validAreaKm2: number | null;
 }
 
 export interface TimelineStep {
-  /** Stable identifier: the two acquisition times. */
+  /** The backend comparison_id. */
   id: string;
+  groupId: string;
+  analysisId: string | null;
   beforeAt: string;
   afterAt: string;
-  direction: string | null;
-  /** The prepared comparison for this step, when the backend has one. */
+  direction: string;
+  reason: FeaturedReason | null;
+  validation: string;
+  /** Short backend summary in both languages, when present. */
+  summary: Localized | null;
+  /** The analysis behind this comparison, for the environmental panel. */
   analysis: TimelineAnalysis | null;
 }
 
 export interface TimelineEvent {
-  /** ISO 8601 UTC time of the observation. */
   at: string;
-  source: string;
   url: string;
   stations: string[];
+  note: string;
 }
 
 export interface TimelineView {
   passes: TimelinePass[];
   steps: TimelineStep[];
   events: TimelineEvent[];
+  dataStatus: string;
 }
 
-const stepId = (beforeAt: string, afterAt: string) => `${beforeAt}|${afterAt}`;
+const dayOf = (iso: string) => iso.slice(0, 10);
 
-export function buildTimeline(
-  scenes: ApiScene[],
-  analyses: ApiAnalysis[],
-): TimelineView {
-  const real = scenes.filter((scene) => !scene.synthetic);
-
-  const passes = new Map<string, TimelinePass>();
-  for (const scene of real) {
-    passes.set(scene.start_time, {
-      sceneId: scene.scene_id,
-      at: scene.start_time,
-      direction: scene.direction,
+export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
+  const byDates = new Map(
+    timeline.comparisons.map((c) => [`${dayOf(c.before_time)}|${dayOf(c.after_time)}`, c]),
+  );
+  const steps: TimelineStep[] = [];
+  for (const pick of FEATURED) {
+    const c = byDates.get(`${pick.before}|${pick.after}`);
+    if (!c) continue;
+    const analysisId = c.analysis_ids[0] ?? null;
+    steps.push({
+      id: c.comparison_id,
+      groupId: c.group_id,
+      analysisId,
+      beforeAt: c.before_time,
+      afterAt: c.after_time,
+      direction: c.direction,
+      reason: pick.reason,
+      validation: c.validation_status,
+      summary: analysisId ? (c.summaries[analysisId] ?? null) : null,
+      analysis: analysisId
+        ? {
+            analysisId,
+            illustrative: timeline.data_status !== "real",
+            hasChangeShapes: true,
+            candidateAreaKm2:
+              c.statistics?.[analysisId]?.open_water?.statistics?.candidate_area_km2 ?? null,
+            validAreaKm2:
+              c.statistics?.[analysisId]?.general_change?.statistics?.valid_area_km2 ??
+              c.statistics?.[analysisId]?.open_water?.statistics?.valid_area_km2 ??
+              null,
+          }
+        : null,
     });
   }
-
-  // Analyses and river bulletins from the backend.
-  const prepared = new Map<string, TimelineAnalysis>();
+  // The passes of the comparisons the story shows, as dots on the ruler.
+  // Earlier or later passes cannot be reached, so they are not drawn.
+  const passes = steps.flatMap((step) => [
+    { at: step.beforeAt, groupId: step.groupId },
+    { at: step.afterAt, groupId: step.groupId },
+  ]);
+  const uniquePasses = [...new Map(passes.map((p) => [p.at, p])).values()].sort(
+    (a, b) => Date.parse(a.at) - Date.parse(b.at),
+  );
   const events = new Map<string, TimelineEvent>();
-  for (const analysis of analyses) {
-    const [before, after] = analysis.scenes;
-    if (!before || !after) continue;
-    prepared.set(stepId(before.start_time, after.start_time), {
-      candidateAreaKm2: analysis.statistics.candidate_area_km2 ?? null,
-      validAreaKm2: analysis.statistics.valid_area_km2 ?? null,
-      analysisId: analysis.analysis_id,
-      illustrative: analysis.synthetic || analysis.evidence.synthetic,
-      hasChangeShapes: CHANGE_CANDIDATES_ARTIFACT in analysis.artifacts,
-    });
-    for (const record of analysis.provenance.hydrological_context ?? []) {
-      const key = `${record.observed_at}|${record.source_url}`;
-      const event = events.get(key) ?? {
-        at: record.observed_at,
-        source: "SGB",
-        url: record.source_url,
-        stations: [],
-      };
-      if (!event.stations.includes(record.station)) {
-        event.stations.push(record.station);
-      }
-      events.set(key, event);
-    }
+  for (const event of timeline.events) {
+    const key = `${event.observed_at}|${event.source_url}`;
+    const entry = events.get(key) ?? {
+      at: event.observed_at,
+      url: event.source_url,
+      stations: [],
+      note: event.note,
+    };
+    if (!entry.stations.includes(event.station)) entry.stations.push(event.station);
+    events.set(key, entry);
   }
-
-  // Consecutive passes of the same kind: same track, frame, direction...
-  const groups = new Map<string, ApiScene[]>();
-  for (const scene of real) {
-    const key = PAIR_KEYS.map((name) => String(scene[name])).join("|");
-    groups.set(key, [...(groups.get(key) ?? []), scene]);
-  }
-  const steps = new Map<string, TimelineStep>();
-  for (const group of groups.values()) {
-    const sorted = [...group].sort(
-      (a, b) => Date.parse(a.start_time) - Date.parse(b.start_time),
-    );
-    for (let i = 1; i < sorted.length; i += 1) {
-      const before = sorted[i - 1];
-      const after = sorted[i];
-      if (!comparable(before, after)) continue;
-      const id = stepId(before.start_time, after.start_time);
-      steps.set(id, {
-        id,
-        beforeAt: before.start_time,
-        afterAt: after.start_time,
-        direction: after.direction,
-        analysis: prepared.get(id) ?? null,
-      });
-    }
-  }
-  // A prepared comparison between passes that are not neighbours still counts.
-  for (const [id, analysis] of prepared) {
-    if (steps.has(id)) continue;
-    const [beforeAt, afterAt] = id.split("|");
-    steps.set(id, { id, beforeAt, afterAt, direction: null, analysis });
-  }
-
-  const byTime = (a: { at: string }, b: { at: string }) =>
-    Date.parse(a.at) - Date.parse(b.at);
   return {
-    passes: [...passes.values()].sort(byTime),
-    steps: [...steps.values()].sort(
-      (a, b) =>
-        Date.parse(a.afterAt) - Date.parse(b.afterAt) ||
-        Date.parse(a.beforeAt) - Date.parse(b.beforeAt),
-    ),
-    events: [...events.values()].sort(byTime),
+    passes: uniquePasses,
+    steps,
+    events: [...events.values()].sort((a, b) => Date.parse(a.at) - Date.parse(b.at)),
+    dataStatus: timeline.data_status,
   };
 }
 
-export async function loadTimeline(
+export async function loadStoryTimeline(
   areaId: string,
+  lang: Lang,
   signal?: AbortSignal,
 ): Promise<TimelineView> {
-  const [scenes, analyses] = await Promise.all([
-    listScenes(areaId, signal),
-    listAnalyses(areaId, signal),
+  return buildStoryTimeline(await getAreaTimeline(areaId, lang, signal));
+}
+
+/* ---------------------------------------------------------------------- */
+/* One comparison in detail: numbers, layers and the explanation.         */
+/* ---------------------------------------------------------------------- */
+
+export interface ComparisonDetail {
+  stats: ApiAnalysisStatistics;
+  layers: ApiLayer[];
+  story: ApiStory;
+}
+
+export async function loadComparisonDetail(
+  analysisId: string,
+  lang: Lang,
+  signal?: AbortSignal,
+): Promise<ComparisonDetail> {
+  const [stats, layers, story] = await Promise.all([
+    getAnalysisStatistics(analysisId, signal),
+    getAnalysisLayers(analysisId, signal),
+    getAnalysisStory(analysisId, lang, signal),
   ]);
-  return buildTimeline(scenes, analyses);
+  return { stats, layers: layers.items, story };
 }

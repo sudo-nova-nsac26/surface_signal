@@ -14,7 +14,7 @@ export function SiteHeader({
 }) {
   return (
     <header className="relative border-b border-line bg-bg-raised hc:border-b-2">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="site-header-inner mx-auto flex flex-wrap items-center justify-between gap-3 py-3">
         {/* A plain link on purpose: a full page load, as if reloading the site. */}
         <a
           href={`/${lang}`}

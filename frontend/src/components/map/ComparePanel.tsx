@@ -1,238 +1,249 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { HillIcon, PlantIcon, WaterIcon } from "@/components/icons";
-import type { LayerId, LayerStatus } from "@/data/region";
-import type { TimelineStep } from "@/data/region";
+import type { ApiLayer, EnvironmentalContextReport } from "@/data/api-types";
+import { extractCandidateCrossings, extractDailyRainfallComparison } from "@/data/environmental";
+import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { makeFormat } from "./ComparisonInfo";
+import { CHANGE_COLORS, type ChangeLayers } from "./MapView";
 
 type Labels = Dictionary["map"]["compare"];
-type LayerLabels = Dictionary["layers"];
+type Featured = Dictionary["map"]["featured"];
+type MapLayerId = "radar_increase" | "radar_decrease" | "open_water";
+
+// Water first: it is what people look for after a flood.
+const MAP_LAYERS: { id: MapLayerId; key: "increase" | "decrease" | "water" }[] = [
+  { id: "open_water", key: "water" },
+  { id: "radar_decrease", key: "decrease" },
+  { id: "radar_increase", key: "increase" },
+];
+/** A football pitch of 105 m × 68 m, to give areas an everyday size. */
+const PITCH_KM2 = 0.00714;
 
 function fill(template: string, values: Record<string, string | number>) {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
-    String(values[key] ?? ""),
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
+
+function pitches(km2: number) {
+  const n = km2 / PITCH_KM2;
+  if (n < 20) return Math.max(1, Math.round(n));
+  if (n < 100) return Math.round(n / 5) * 5;
+  return Math.round(n / 10) * 10;
+}
+
+/** A sliding switch that looks pressable; `pulse` blinks it a few times. */
+function Switch({ on, pulse }: { on: boolean; pulse?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-white/90 p-0.5 ${
+        on ? "justify-end bg-white/30" : "justify-start bg-black/30"
+      } ${pulse ? "hint-pulse" : ""}`}
+    >
+      <span className={`size-4 rounded-full ${on ? "bg-white" : "bg-white/70"}`} />
+    </span>
   );
 }
 
-const LAYERS: { id: LayerId; status: LayerStatus }[] = [
-  { id: "water", status: "available" },
-  { id: "vegetation", status: "exploratory" },
-  { id: "slopes", status: "unavailable" },
-];
-
-const ICONS = {
-  water: <WaterIcon className="size-6" />,
-  vegetation: <PlantIcon className="size-6" />,
-  slopes: <HillIcon className="size-6" />,
-};
-
-const COLOR_CLASS: Record<LayerId, string> = {
-  water: "text-water",
-  vegetation: "text-vegetation",
-  slopes: "text-slopes",
-};
-
 /**
- * Before and after, plus the layers that can be shown.
- *
- * The slider fades the change shapes of the chosen comparison in: at "before"
- * the map is as it was, at "after" it shows what appeared. Only the water
- * layer has data today (the backend's change candidates); vegetation and
- * slopes are listed with their honest status, so the panel does not change
- * when their data exists.
+ * What the chosen comparison shows, plain words first: a short summary built
+ * from the backend numbers, then one card per kind of change that you can turn
+ * on and off on the map. Everything else waits behind "Learn more". The
+ * browser computes no new result: only unit conversions of backend numbers,
+ * and null stays "unavailable".
  */
 export function ComparePanel({
   labels,
-  layers,
+  featured,
   lang,
   step,
-  shapeCount,
-  value,
-  onValue,
-  waterOn,
-  onWaterOn,
+  detail,
+  status,
+  onRetry,
+  changes,
+  onChanges,
+  environmentalReport,
 }: {
   labels: Labels;
-  layers: LayerLabels;
+  featured: Featured;
   lang: Locale;
   step: TimelineStep | null;
-  /** Number of change shapes in the chosen comparison; null while unknown. */
-  shapeCount: number | null;
-  /** 0 = before, 1 = after. */
-  value: number;
-  onValue: (next: number) => void;
-  waterOn: boolean;
-  onWaterOn: (next: boolean) => void;
+  detail: ComparisonDetail | null;
+  status: "loading" | "error" | "ready";
+  onRetry: () => void;
+  changes: ChangeLayers;
+  onChanges: (next: ChangeLayers) => void;
+  environmentalReport?: EnvironmentalContextReport | null;
 }) {
-  const frame = useRef(0);
-  useEffect(() => () => window.cancelAnimationFrame(frame.current), []);
+  const { number, area } = makeFormat(lang, labels);
 
-  const locale = lang === "pt" ? "pt-BR" : "en-US";
-  const dateFormat = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "long",
-    timeZone: "America/Sao_Paulo",
-  });
-  const date = (iso: string) => dateFormat.format(new Date(iso));
+  if (status === "loading" && !detail) {
+    return <p className="text-base text-ink-soft">{labels.loading}</p>;
+  }
+  if (status === "error" || !detail || !step) {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <p className="text-base">{labels.error}</p>
+        <button type="button" onClick={onRetry} className="tool-button">
+          {labels.retry}
+        </button>
+      </div>
+    );
+  }
 
-  const hasShapes = Boolean(step?.analysis?.hasChangeShapes) && (shapeCount ?? 0) > 0;
-  const note = !step?.analysis
-    ? labels.notPrepared
-    : shapeCount === 0
-      ? labels.noShapes
-      : null;
-
-  const state =
-    value <= 0.05
-      ? labels.stateBefore
-      : value >= 0.95
-        ? labels.stateAfter
-        : labels.stateBetween;
-
-  // The buttons glide to the end; the slider is direct.
-  const glideTo = (target: number) => {
-    window.cancelAnimationFrame(frame.current);
-    const from = value;
-    const start = performance.now();
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / 450);
-      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      onValue(from + (target - from) * eased);
-      if (t < 1) frame.current = window.requestAnimationFrame(step);
-    };
-    frame.current = window.requestAnimationFrame(step);
+  const g = detail.stats.general_change?.statistics;
+  const w = detail.stats.open_water?.statistics;
+  const story = detail.story;
+  const layerById = new Map<string, ApiLayer>(detail.layers.map((layer) => [layer.layer_id, layer]));
+  const visible = changes.opacity > 0;
+  const stop = step.reason ? featured[step.reason] : null;
+  const areaOf: Record<MapLayerId, number | null | undefined> = {
+    open_water: w?.candidate_area_km2,
+    radar_decrease: g?.decrease_area_km2,
+    radar_increase: g?.increase_area_km2,
   };
 
-  const buttonClass =
-    "pressable min-h-12 flex-1 rounded-xl border-2 px-3 text-lg font-bold";
+  const changed = g?.changed_area_km2;
+  const water = w?.candidate_area_km2;
+  const summary: string[] = [];
+  if (changed != null && g?.changed_percent != null) {
+    summary.push(
+      fill(labels.summaryChanged, {
+        area: number(changed),
+        percent: number(g.changed_percent, 1),
+        fields: number(pitches(changed), 0),
+      }),
+    );
+  }
+  if (water != null && water > 0 && water < PITCH_KM2) {
+    summary.push(fill(labels.summaryWaterTiny, { area: number(water, 3) }));
+  } else if (water != null && water > 0) {
+    summary.push(fill(labels.summaryWater, { area: number(water), fields: number(pitches(water), 0) }));
+  } else if (w?.candidate_components === 0) {
+    summary.push(labels.summaryNoWater);
+  }
+  if (summary.length === 0) summary.push(labels.summaryMissing);
+
+  const rainView = environmentalReport ? extractDailyRainfallComparison(environmentalReport) : null;
+  const crossings = environmentalReport ? extractCandidateCrossings(environmentalReport) : null;
+  const rain3dAfter = rainView?.windows.find((win) => win.key === "3d")?.afterMm ?? null;
+  const rain3dBefore = rainView?.windows.find((win) => win.key === "3d")?.beforeMm ?? null;
+  const topMunis = crossings?.municipalitiesInCandidates ?? [];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="text-lg font-bold">{labels.title}</h3>
-        {step && (
-          <p className="text-sm text-ink-soft">
-            {labels.before}: {date(step.beforeAt)} · {labels.after}:{" "}
-            {date(step.afterAt)}
-          </p>
+    <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
+      {/* Plain words first. */}
+      <div className="rounded-2xl border border-line bg-surface p-3 hc:border-ink">
+        {stop && <h3 className="text-base font-bold text-brand-text">{stop.title}</h3>}
+        <div aria-live="polite" className="mt-1 flex flex-col gap-1.5 text-base leading-snug">
+          {summary.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+        {stop && <p className="mt-2 text-sm text-ink-soft">{stop.body}</p>}
+        {(rain3dAfter !== null || topMunis.length > 0 || crossings?.candidateElevationM !== null) && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-line pt-2 text-xs">
+            {rain3dAfter !== null && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {lang === "pt" ? "Chuva (3 dias):" : "Rain (3d):"}{" "}
+                <strong>{number(rain3dAfter, 1)} mm</strong>
+                {rain3dBefore !== null ? ` (${lang === "pt" ? "antes:" : "prior:"} ${number(rain3dBefore, 1)} mm)` : ""}
+              </span>
+            )}
+            {topMunis.length > 0 && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {topMunis
+                  .map((m) => `${m.name}${m.sharePercent !== null ? ` ${number(m.sharePercent, 0)}%` : ""}`)
+                  .join(" · ")}
+              </span>
+            )}
+            {crossings?.candidateElevationM != null && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {lang === "pt" ? "Terreno nas manchas:" : "Patch height:"}{" "}
+                <strong>~{number(crossings.candidateElevationM, 0)} m</strong>
+              </span>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-base font-bold">{labels.whatToSee}</h4>
         <button
           type="button"
-          onClick={() => glideTo(0)}
-          aria-pressed={value <= 0.05}
-          disabled={!hasShapes}
-          className={`${buttonClass} ${
-            value <= 0.05
-              ? "border-brand bg-brand text-brand-ink"
-              : "border-line bg-surface hc:border-ink"
-          } disabled:opacity-40`}
+          role="switch"
+          aria-checked={visible}
+          onClick={() => onChanges({ ...changes, opacity: visible ? 0 : 1 })}
+          className="flex min-h-11 items-center gap-2 rounded-full border-2 border-line px-3 text-sm font-bold hover:border-brand hc:border-ink"
         >
-          {labels.before}
-        </button>
-        <button
-          type="button"
-          onClick={() => glideTo(1)}
-          aria-pressed={value >= 0.95}
-          disabled={!hasShapes}
-          className={`${buttonClass} ${
-            value >= 0.95
-              ? "border-brand bg-brand text-brand-ink"
-              : "border-line bg-surface hc:border-ink"
-          } disabled:opacity-40`}
-        >
-          {labels.after}
-        </button>
-      </div>
-
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        value={Math.round(value * 100)}
-        onChange={(event) => {
-          window.cancelAnimationFrame(frame.current);
-          onValue(Number(event.target.value) / 100);
-        }}
-        disabled={!hasShapes}
-        aria-label={labels.slider}
-        aria-valuetext={state}
-        className="timeline-range w-full disabled:opacity-40"
-      />
-      <p aria-live="polite" className="text-sm font-bold">
-        {fill(labels.showing, { state })}
-      </p>
-
-      {note ? (
-        <p className="rounded-xl border-l-4 border-highlight bg-bg-raised px-3 py-2 text-sm text-ink-soft">
-          {note}
-        </p>
-      ) : (
-        <p className="flex items-center gap-2 text-sm text-ink-soft">
+          {labels.showChanges}
           <span
             aria-hidden="true"
-            className="size-3 rounded-full bg-water"
-          />
-          {labels.legendWater}
-        </p>
-      )}
-
-      <div className="border-t border-line pt-3">
-        <h4 className="mb-2 text-base font-bold">{labels.layersTitle}</h4>
-        <ul className="flex flex-col gap-2">
-          {LAYERS.map(({ id, status }) => {
-            const interactive = id === "water";
-            const on = interactive && waterOn;
-            return (
-              <li key={id}>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
-                  aria-disabled={!interactive}
-                  onClick={() => {
-                    if (interactive) onWaterOn(!waterOn);
-                  }}
-                  className={`flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-3 py-2 text-left ${
-                    on ? "border-brand bg-brand-soft" : "border-line bg-surface"
-                  } ${interactive ? "" : "opacity-70"} hc:border-ink`}
-                >
-                  <span className={COLOR_CLASS[id]}>{ICONS[id]}</span>
-                  <span className="flex-1">
-                    <span className="block font-bold leading-tight">
-                      {layers[id].name}
-                    </span>
-                    <span className="block text-sm text-ink-soft">
-                      {interactive
-                        ? on
-                          ? labels.switchOn
-                          : labels.switchOff
-                        : `${layers.status[status]} · ${labels.locked}`}
-                    </span>
-                  </span>
-                  {interactive && (
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-7 w-12 shrink-0 items-center rounded-full border-2 border-ink p-0.5 ${
-                        on ? "justify-end bg-brand" : "justify-start bg-surface"
-                      }`}
-                    >
-                      <span
-                        className={`size-5 rounded-full ${on ? "bg-brand-ink" : "bg-ink"}`}
-                      />
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+            className={`flex h-5 w-9 items-center rounded-full border-2 border-ink p-0.5 ${
+              visible ? "justify-end bg-brand" : "justify-start bg-surface"
+            }`}
+          >
+            <span className={`size-3 rounded-full ${visible ? "bg-brand-ink" : "bg-ink"}`} />
+          </span>
+        </button>
       </div>
+
+      <p className="text-sm font-bold text-highlight">{labels.tapHint}</p>
+
+      {/* One card per kind of change; pressing it turns the layer on or off. */}
+      <ul className="grid grid-cols-2 gap-2">
+        {MAP_LAYERS.map(({ id, key }, i) => {
+          const layer = layerById.get(id);
+          const usable = Boolean(layer?.available);
+          const on = usable && changes[key];
+          const card = labels.cards[id];
+          return (
+            <li key={id} className={i === 0 ? "col-span-2" : ""}>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={on}
+                disabled={!usable}
+                onClick={() => onChanges({ ...changes, [key]: !changes[key] })}
+                className={`pressable flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-2xl border-2 text-left disabled:opacity-50 ${
+                  on ? "border-brand" : "border-line hover:border-ink-soft"
+                } bg-surface hc:border-ink`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-12 items-center justify-between gap-2 px-3 text-xl font-bold text-white"
+                  style={{
+                    background: on
+                      ? `linear-gradient(135deg, ${CHANGE_COLORS[id]}, ${CHANGE_COLORS[id]}99)`
+                      : "var(--line)",
+                  }}
+                >
+                  {labels.symbols[id]}
+                  <span className="flex items-center gap-2 text-xs">
+                    {on ? labels.on : labels.off}
+                    <Switch on={on} pulse={usable} />
+                  </span>
+                </span>
+                <span className="flex flex-1 flex-col gap-0.5 p-2.5">
+                  <span className="text-lg font-bold leading-tight">{card.title}</span>
+                  <span className="text-xs leading-snug text-ink-soft">{card.note}</span>
+                  <span className="mt-auto pt-1 text-sm font-bold">{area(areaOf[id])}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-ink-soft">
+        {labels.signalNote} {labels.showChangesHint}
+      </p>
+
+      {/* The least urgent note comes last. */}
+      <p className="rounded-xl border border-line px-3 py-2 text-xs text-ink-soft">
+        {story.synthetic ? labels.synthetic : labels.notValidated}
+      </p>
+
     </div>
   );
 }
