@@ -264,3 +264,5 @@ in `src/data/source.ts`; original camera/unfold and before/after behavior are pr
 absence stays null and synthetic data remains explicit. Reference V1 primarily uses statistics;
 no raw environmental raster goes to the browser. See `docs/environmental-data-integration.md`
 for accepted formats, local package and tested versus outstanding real-data requirements.
+
+Environmental timeline markers are now wired: separate station/reference symbols and rainfall windows, grouped by UTC day/category with full individual observations retained in the panel. Ten frontend data/presentation tests cover this integration.

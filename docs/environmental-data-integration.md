@@ -138,7 +138,7 @@ remain blocked pending verified accessible catalogs/products; no imagery is simu
   windows, raster classes/CRS/nodata, DSM slope, reference eligibility, prepared
   store corruption, budgets and HTTP/static equivalence. Warnings are dependency
   deprecations (Starlette test client and Shapely in spatial test fixtures).
-- Frontend: nine Node adapter/presentation tests, TypeScript, ESLint and production
+- Frontend: ten Node adapter/presentation tests, TypeScript, ESLint and production
   build passed. Tests use the existing TypeScript compiler and Node test runner;
   no new dependency was added.
 - Chrome smoke: desktop PT and 390×844 PT/EN, reduced-motion preference, navigation
@@ -161,3 +161,5 @@ The full real-input Definition of Done in the source plan is still dependent on
 verified environmental imports, source access/license review and independent spatial
 reference qualification. The implemented unavailable state is intentional, not evidence
 that external sources have no observations.
+
+Environmental timeline markers now use a separate row: station readings are diamonds, rainfall is a time band, and reference products are squares. Dense observations group by UTC day/category for drawing; the panel retains individual observations and times. Comparison order and SAR selection are unchanged.

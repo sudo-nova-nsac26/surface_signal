@@ -98,3 +98,18 @@ test('object-valued display fields become recoverable data errors', async () => 
   global.fetch=async()=>Response.json({items:[{name:{bad:'value'}}],total:1});
   await assert.rejects(s.listContextSources(),error=>error.status===503);
 });
+test('environmental timeline markers aggregate by UTC day and kind without altering comparisons', () => {
+  const values = [
+    {event_id:'1',kind:'station_measurement',observed_at:'2026-07-23T10:00:00Z'},
+    {event_id:'2',kind:'station_measurement',observed_at:'2026-07-23T15:00:00Z'},
+    {event_id:'3',kind:'rainfall_window',observed_at:'2026-07-23T16:00:00Z',observed_start:'2026-07-22T16:00:00Z'},
+    {event_id:'bad',kind:'reference',observed_at:'invalid'},
+  ];
+  const original=structuredClone(values);
+  const markers=e.environmentalMarkers(values,'2026-07-01T00:00:00Z','2026-08-01T00:00:00Z');
+  assert.equal(markers.length,2);
+  assert.equal(markers.find(m=>m.kind==='station_measurement').count,2);
+  const rain=markers.find(m=>m.kind==='rainfall_window');
+  assert.ok(rain.endPercent>rain.startPercent);
+  assert.deepEqual(values,original);
+});

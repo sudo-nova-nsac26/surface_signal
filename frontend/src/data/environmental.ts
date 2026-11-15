@@ -86,3 +86,22 @@ export function validEvent(item: EnvironmentalEvent): boolean {
     [item.station_id, item.station_name, item.unit, item.observed_start, item.observed_end].every(value => value == null || typeof value === "string") &&
     (item.value == null || typeof item.value === "number" && Number.isFinite(item.value)) && typeof item.synthetic === "boolean";
 }
+
+/** Decorative daily groups; the panel retains all individual observations. */
+export function environmentalMarkers(events: EnvironmentalEvent[], start: string, end: string) {
+  const from = Date.parse(start), until = Date.parse(end);
+  const groups = new Map<string, {kind: EnvironmentalEvent["kind"]; start: number; end: number; count: number}>();
+  if (!Number.isFinite(from) || !Number.isFinite(until) || from >= until) return [];
+  for (const event of events) {
+    const at = Date.parse(event.observed_at);
+    if (!Number.isFinite(at) || at < from || at > until) continue;
+    const key = `${event.kind}:${new Date(at).toISOString().slice(0,10)}`;
+    const begin = event.kind === "rainfall_window" && event.observed_start ? Date.parse(event.observed_start) : at;
+    const group = groups.get(key) ?? {kind:event.kind, start:at, end:at, count:0};
+    group.start = Math.min(group.start, Number.isFinite(begin) ? Math.max(from, begin) : at);
+    group.end = Math.max(group.end, at); group.count += 1;
+    groups.set(key, group);
+  }
+  return [...groups].map(([key,group]) => ({key, kind:group.kind, count:group.count,
+    startPercent:100*(group.start-from)/(until-from), endPercent:100*(group.end-from)/(until-from)}));
+}

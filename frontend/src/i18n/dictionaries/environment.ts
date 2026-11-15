@@ -1,4 +1,5 @@
 export const environmentPt = {
+  eventDetails: "As leituras e os horários completos estão em Entenda esta mudança.",
   candidateArea: "Área de possível mudança em água", validArea: "Área com medições válidas nas duas passagens", spatialScope: "Resumo da área estudada, considerando somente a cobertura válida do mapa de referência.",
   title: "Entenda esta mudança", satellite: "O que o satélite observou", between: "Comparação entre",
   observation: "O radar registrou mudanças no reflexo do sinal. Isso pode ter diferentes causas.",
@@ -26,6 +27,7 @@ export const environmentPt = {
   classes: {water: "Água", tree_cover: "Árvores", cropland: "Cultivo", built_up: "Construções", other: "Outros tipos", unknown: "Não identificado"},
 };
 export const environmentEn: typeof environmentPt = {
+  eventDetails: "Individual readings and complete times are in Understand this change.",
   candidateArea: "Possible water-change area", validArea: "Area with valid measurements in both passes", spatialScope: "Study-area summary, using only valid reference-map coverage.",
   title: "Understand this change", satellite: "What the satellite observed", between: "Comparison between",
   observation: "The radar recorded changes in the reflected signal. These can have different causes.",

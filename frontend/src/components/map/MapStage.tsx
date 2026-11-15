@@ -505,6 +505,8 @@ export function MapStage({
                 />
                 {environmentPanel}
                 <Timeline
+                  environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                  environmentLabels={environment}
                   data={timeline}
                   lang={lang}
                   labels={labels.timeline}
@@ -543,6 +545,8 @@ export function MapStage({
           {closeUp && timeline && (
             <div className="glass rise-in pointer-events-auto absolute bottom-8 left-[27rem] right-20 hidden max-w-3xl rounded-3xl p-4 lg:block">
               <Timeline
+                environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                environmentLabels={environment}
                 data={timeline}
                 lang={lang}
                 labels={labels.timeline}

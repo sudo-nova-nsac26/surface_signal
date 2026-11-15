@@ -162,3 +162,5 @@ No map camera/projection/terrain operation was added to the environmental UI.
 Run `node --test tests/environmental.test.mjs`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 The small generated report in `tests/fixtures/` is synthetic and used only for tests. Live external
 sources still require operator imports and product terms. See `environmental-data-integration.md`.
+
+Environmental events also decorate the existing timeline with distinct station/reference symbols and rainfall bands. Visual groups use UTC day/category; individual records stay in the panel. `environmentalMarkers` does not mutate events or comparison steps.
