@@ -9,6 +9,7 @@ Start with the [English README](../README.md) or [Portuguese README](../README.p
 | Get started (static or optional API) | [Project README](../README.md), [Frontend](../frontend/README.md), [Backend operations](backend-operations.md) |
 | Runtime architecture | [Architecture](architecture.md), [API contract](api-contract.md), [Backend deployment](backend-deployment.md) |
 | Scientific algorithms and interpretation | [Scientific method](scientific-method.md), [General radar changes](general-change-analysis.md), [Interpretation model](interpretation-model.md) |
+| Earthdata account and authenticated downloads | **[Full Earthdata / ASF setup and HDF5 processing](earthdata-access.md)** |
 | Real acquisition, processing and reproducibility | [NISAR history](real-data-execution.md), [Reproducibility](reproducibility.md), [ASF scene catalog](evidence/asf-catalog.json) |
 | Environmental data | [Sources and licenses](data-sources.md), [Acquisition evidence](public-source-evidence.md), [Environmental integration](environmental-data-integration.md) |
 | Prepared data and publication | [Snapshot delivery](snapshot-delivery.md), [Static publication](static-publication.md), [Delivery evidence](public-data-delivery-report.md) |

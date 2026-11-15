@@ -2,6 +2,8 @@
 
 **Current status:** 19 authentic provisional HDF5 acquisitions were downloaded and retained (131,386,572,800 bytes), with 17 completed compatible temporal comparisons. The initial access test below documents a resolved local authentication obstacle; it is not the status of the published project. A complete batch does **not** imply field validation.
 
+The up-to-date instructions for creating an account, using private credentials, performing an authenticated full run and verifying HDF5 are in **[Earthdata access and download](earthdata-access.md)**. This document retains the original acquisition evidence, including a resolved early access error.
+
 ## Initial catalog/access check (historical processing step)
 
 Python 3.12; asf-search 14.1.0. Available disk at initial check: 59 GiB.

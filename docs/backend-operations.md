@@ -35,6 +35,8 @@ curl http://127.0.0.1:8000/openapi.json
 
 Use `http://127.0.0.1:8000/docs` for interactive OpenAPI. Set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` **in frontend/.env.local**, and `SURFACESIGNAL_CORS_ORIGINS` in root `.env`. CORS is not authentication. Do not expose this API publicly without a security review.
 
+**First time downloading NASA data?** Use [Earthdata / ASF authentication and NISAR acquisition](earthdata-access.md) for account setup, private `.netrc`, fish/Bash token commands and 401/403 troubleshooting. FastAPI and the public website do **not** need these credentials.
+
 ## Real SAR acquisition and processing
 
 Requires authorized Earthdata access, Python 3.12, uv and adequate disk. The 19 provisional NISAR HDF5 files total **131,386,572,800 bytes**. An approximate **180 GB** of free space is suggested for the history run. This is **never** needed merely to view the public app.

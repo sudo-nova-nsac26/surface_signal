@@ -6,7 +6,7 @@ The scientific manifest also records runtime numpy/rasterio/h5py/pyproj/scipy/Pi
 
 Offline catalog demonstration: `surfacesignal scenes import --file ../docs/evidence/asf-catalog.json` (run from `backend/`) imports **scene metadata only**, not HDF5 data or scientific output. The optional API still serves committed public comparisons via its snapshot fallback if original scientific artifacts are absent; do not confuse that with a newly processed catalog.
 
-Real acquisition identifiers, file sizes, dates and the resolved initial authentication obstacle are documented in
+For a secure, complete reproduction of the satellite download, begin with the [Earthdata operator guide](earthdata-access.md). Real acquisition identifiers, file sizes, dates and the resolved initial authentication obstacle are documented in
 [real-data-execution.md](real-data-execution.md). Real data and generated outputs are Git-ignored.
 For reproducible processing obtain those exact release IDs, not a silently substituted release.
 

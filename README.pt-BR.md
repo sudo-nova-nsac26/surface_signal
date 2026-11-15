@@ -30,6 +30,26 @@ O **[SurfaceSignal](https://surfacesignal.earth)** é uma aplicação bilíngue 
 
 As mudanças no sinal de radar são **candidatos exploratórios**, não inundações, danos ou riscos confirmados. O projeto **não** é um sistema de alerta ou previsão de desastres.
 
+## Mapa da documentação
+
+O README apresenta os passos essenciais. Os documentos abaixo explicam os procedimentos, a origem dos dados e suas limitações.
+
+| Assunto | Guia |
+|---|---|
+| **Rodar o site sem backend** | [Modo estático abaixo](#opção-1--frontend-estático), [guia do frontend](frontend/README.md) |
+| **Rodar com a API opcional** | [FastAPI abaixo](#opção-2--backend-somente-leitura), [operações do backend](docs/backend-operations.md), [contrato da API](docs/api-contract.md) |
+| **Criar conta Earthdata, autorizar ASF e configurar credenciais com segurança** | **[Passo a passo Earthdata: .netrc, fish/Bash/Windows e erros 401/403](docs/earthdata-access.md)** |
+| **Baixar HDF5 NISAR, processar o histórico e verificar os arquivos** | [Processamento científico abaixo](#baixar-e-processar-novos-hdf5--opcional), [execução real](docs/real-data-execution.md), [reprodutibilidade](docs/reproducibility.md) |
+| **Conhecer as fontes utilizadas e o tratamento dos dados** | [Fontes e licenças](docs/data-sources.md), [evidências de aquisição](docs/public-source-evidence.md), [contexto ambiental](docs/environmental-data-integration.md) |
+| **Entender estatísticas e incertezas do radar** | [Método científico](docs/scientific-method.md), [variações de sinal](docs/general-change-analysis.md), [níveis de validação](docs/validation.md), [limitações](docs/limitations.md) |
+| **Gerar relatórios de interpretação e preparação** | [Análise local](docs/local-analysis-preparation.md), [regras de interpretação](docs/interpretation-model.md) |
+| **Gerar, publicar e verificar dados pré-processados** | [Publicação estática](docs/static-publication.md), [snapshots compactos/completos](docs/snapshot-delivery.md), [evidências de publicação](docs/public-data-delivery-report.md) |
+| **Publicar e configurar a aplicação** | [Cloudflare Pages](docs/cloudflare-pages.md), [deploy da API opcional](docs/backend-deployment.md), [arquitetura](docs/architecture.md) |
+| **Configurar variáveis de ambiente e segurança** | [Exemplo .env do backend](.env.example), [exemplo .env do frontend](frontend/.env.example), [SECURITY.md](SECURITY.md) |
+| **Conferir SEO/GEO, licenças e contribuições** | [Auditoria SEO/GEO](docs/seo-geo-review.md), [Apache-2.0](LICENSE), [créditos de terceiros](NOTICE), [colaboradores](AGENTS.md), [checklist de submissão](docs/submission-checklist.md) |
+
+[Índice técnico completo](docs/README.md)
+
 ## Como executar — com ou sem API
 
 | | Estático (padrão) | Com FastAPI (opcional) |
@@ -123,7 +143,7 @@ uv run --project backend --frozen surfacesignal --root "$PWD" history run \
   --hydro-csv config/hydrology/sgb-2026-07-23.csv --dry-run
 ```
 
-Configure localmente `~/.netrc` com permissão `0600` ou `SURFACESIGNAL_EARTHDATA_TOKEN` (o alias `EARTHDATA_TOKEN` também funciona) para executar sem `--dry-run`. Nunca comite credenciais. Veja [operações](docs/backend-operations.md), [reprodutibilidade](docs/reproducibility.md) e [distribuição de snapshots](docs/snapshot-delivery.md).
+**Se for o primeiro download, siga o [passo a passo Earthdata e download NISAR](docs/earthdata-access.md)**: crie sua conta NASA, confirme a autorização ASF, configure `~/.netrc` privado (permissão `0600`) ou um token temporário local (`SURFACESIGNAL_EARTHDATA_TOKEN`, também aceita `EARTHDATA_TOKEN`), e execute sem `--dry-run`. Nunca comite senhas, tokens ou HDF5. Para usar frontend ou API com o snapshot publicado, **não** é necessário Earthdata. Veja [operações](docs/backend-operations.md), [reprodutibilidade](docs/reproducibility.md) e [distribuição de snapshots](docs/snapshot-delivery.md).
 
 ## Estrutura
 
