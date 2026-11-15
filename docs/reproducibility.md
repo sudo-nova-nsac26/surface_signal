@@ -1,14 +1,12 @@
 # Reproducibility
 
-Follow the exact README commands using Python 3.12 and `uv sync --frozen --extra dev`.
+Use the [main README](../README.md) for the two read modes. The default public frontend loads the committed verified compact snapshot without Python or satellite downloads. For **scientific reprocessing**, use Python 3.12 and `uv sync --frozen --extra dev` inside `backend/`.
 `backend/uv.lock` pins the full dependency graph and hashes; Docker uses uv 0.13.6.
 The scientific manifest also records runtime numpy/rasterio/h5py/pyproj/scipy/Pillow versions.
 
-Offline catalog demonstration: `surfacesignal scenes import --file
-../docs/evidence/asf-catalog.json` from backend. This imports **real metadata only**,
-not HDF5 data or analysis results. `/api/v1/analyses` remains empty until processing.
+Offline catalog demonstration: `surfacesignal scenes import --file ../docs/evidence/asf-catalog.json` (run from `backend/`) imports **scene metadata only**, not HDF5 data or scientific output. The optional API still serves committed public comparisons via its snapshot fallback if original scientific artifacts are absent; do not confuse that with a newly processed catalog.
 
-Real acquisition identifiers, file sizes, dates and auth blocker are documented in
+Real acquisition identifiers, file sizes, dates and the resolved initial authentication obstacle are documented in
 [real-data-execution.md](real-data-execution.md). Real data and generated outputs are Git-ignored.
 For reproducible processing obtain those exact release IDs, not a silently substituted release.
 
