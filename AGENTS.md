@@ -225,6 +225,19 @@ their 5x5 neighbours by more than 120 m, only for zoom 10 to 13, up to 3 passes,
 tile if anything fails. Testing note: a hidden Browser pane freezes map animations and transitions (the map
 looks stuck in its intro); show the pane (`show_pane` preview) before judging motion.
 
+Details round (2026-11-15, done): the FAQ answer "Por que fizemos este site?" now states the challenge (show the
+changes a satellite sees on a region's surface in a simple way anyone can understand). Cards were renamed again:
+"Água", "Sinal mais fraco", "Sinal mais forte" (owner: "mais escuro/claro" made no sense), all with the same
+"Possível: água, umidade ou plantas" in the same order, plus the explicit reason we show them ("onde a superfície
+mudou entre as duas datas; mostram onde olhar, não dizem se ficou melhor ou pior"). The "tap" emoji is gone, the
+"Resultado real · ainda não conferido em campo" note is the LAST thing in the right panel, and the "Real x Exemplo"
+box of section 04 was removed (the data is real now). The three info buttons (Entender, Outras camadas, Detalhes
+técnicos) live in the left card; their content opens in a box right above the time bar (from 1280 px; below that
+it opens inside the left card), see `ComparisonInfo.tsx`. **Water movement**: three thin glint lines
+(`river-flow*` layers, a shifting dash pattern, ~12 fps) run down the Taquari inside the analysed circle only,
+from `public/data/boundaries/taquari-river.geojson` (OSM, clipped to the circle). It is shown only with full
+motion and not on devices measured as weak (`waterMotion` prop).
+
 ## Owner decisions on the map (2026-11-14, done)
 
 - Place tree is **World > Country > State > Region of the state**. No continent or

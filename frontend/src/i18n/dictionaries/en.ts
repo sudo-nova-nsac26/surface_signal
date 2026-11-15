@@ -158,8 +158,8 @@ const en: Dictionary = {
       summaryMissing: "This comparison has no numbers available.",
       cards: {
         open_water: { title: "Water", note: "Possible new water" },
-        radar_decrease: { title: "Got darker", note: "Possible: water, moisture or plants" },
-        radar_increase: { title: "Got brighter", note: "Possible: moisture, plants or water" },
+        radar_decrease: { title: "Weaker signal", note: "Where the surface changed. Possible: water, moisture or plants." },
+        radar_increase: { title: "Stronger signal", note: "Where the surface changed. Possible: water, moisture or plants." },
       },
       tapHint: "Tap a card to turn each layer on or off.",
       learnMore: "Learn more",
@@ -189,7 +189,7 @@ const en: Dictionary = {
         open_water: "May be new open water (a hypothesis)",
       },
       signalNote:
-        "Darker and brighter is how the satellite's radar measured the ground: it is not a photo. On their own they do not mean better, worse or damage.",
+        "Why we show this: the patches mark where the ground surface changed between the two dates, for example where water arrived, the soil got wetter or plants changed. They show where to look; on their own they do not say whether it got better or worse.",
       otherLayers: "Other layers",
       status: {
         available: "Available",
@@ -362,7 +362,7 @@ const en: Dictionary = {
     items: [
       {
         q: "Why did we make this site?",
-        a: "The Taquari River has overflowed several times in recent years. Many people, especially older adults and deaf people, do not get or do not understand warnings and technical maps. We wanted to show what a NASA satellite saw in a way anyone can understand: large letters, plain colors and no technical terms.",
+        a: "Our challenge is to show the changes a satellite sees on the surface of a region in a simple way anyone can understand. We chose the Taquari Valley because the river has overflowed several times in recent years and many people, especially older adults and deaf people, do not get or do not understand warnings and technical maps. Hence large letters, plain colors and no technical terms.",
       },
       {
         q: "How can a satellite see through clouds?",

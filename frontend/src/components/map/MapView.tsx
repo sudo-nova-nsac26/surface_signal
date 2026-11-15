@@ -51,6 +51,8 @@ export interface MapViewProps {
   onSelect: (id: string) => void;
   onReady: () => void;
   onError: () => void;
+  /** Gentle sparkle moving along the river at the close-up (off for weak devices). */
+  waterMotion?: boolean;
   /** True while the camera runs a transition the visitor must not interrupt. */
   onBusyChange?: (busy: boolean) => void;
 }
@@ -73,6 +75,46 @@ export const CHANGE_COLORS = {
   open_water: "#56B4E9",
 } as const;
 const CHANGE_LAYER_IDS = ["increase-fill", "decrease-fill", "water-fill", "water-line"];
+
+// Little glints that run down the river, drawn by shifting a dash pattern.
+// Each frame moves the dashes forward along the line, which OpenStreetMap
+// draws downstream. Seven units per cycle.
+const RIVER_SOURCE = "river-flow";
+const RIVER_LAYERS = ["river-flow", "river-flow-a", "river-flow-b"];
+const RIVER_URL = "/data/boundaries/taquari-river.geojson";
+const RIVER_FRAMES: number[][] = [
+  [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0],
+  [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
+];
+
+function ensureRiverLayers(map: MapLibreMap) {
+  if (map.getSource(RIVER_SOURCE)) return;
+  map.addSource(RIVER_SOURCE, { type: "geojson", data: RIVER_URL });
+  const before = map.getLayer("increase-fill") ? "increase-fill" : undefined;
+  const width: unknown = ["interpolate", ["linear"], ["zoom"], 11, 1.2, 13, 2, 15, 3.5];
+  const offset = (px: number): unknown => ["interpolate", ["linear"], ["zoom"], 11, px * 0.3, 13, px, 15, px * 3.2];
+  const make = (id: string, lineOffset: number, opacity: number) =>
+    map.addLayer(
+      {
+        id,
+        type: "line",
+        source: RIVER_SOURCE,
+        layout: { visibility: "none", "line-cap": "butt" },
+        paint: {
+          "line-color": "#d9f3ff",
+          "line-opacity": opacity,
+          "line-width": width as never,
+          "line-offset": offset(lineOffset) as never,
+          "line-blur": 0.4,
+          "line-dasharray": RIVER_FRAMES[0],
+        },
+      },
+      before,
+    );
+  make("river-flow", 0, 0.6);
+  make("river-flow-a", -6, 0.38);
+  make("river-flow-b", 6, 0.38);
+}
 
 /** What the map draws for the chosen comparison. */
 export interface ChangeLayers {
@@ -378,6 +420,7 @@ export default function MapView({
   onReady,
   onError,
   onBusyChange,
+  waterMotion = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -407,6 +450,7 @@ export default function MapView({
     intro,
     changes,
     area,
+    waterMotion,
   });
   useEffect(() => {
     latest.current = {
@@ -417,12 +461,35 @@ export default function MapView({
       intro,
       changes,
       area,
+      waterMotion,
     };
   });
   const callbacks = useRef({ onReady, onError, onBusyChange });
   // While a transition runs (2D <-> 3D, flying into a place), dragging or
   // zooming would cut the camera move in half and leave the view broken, so
   // every gesture and camera button is off until it ends.
+  const riverFrame = useRef(0);
+  function syncRiver(map: MapLibreMap, show: boolean) {
+    window.cancelAnimationFrame(riverFrame.current);
+    ensureRiverLayers(map);
+    const on = show && latest.current.waterMotion;
+    for (const id of RIVER_LAYERS) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    if (!on) return;
+    let last = 0;
+    let step = 0;
+    const tick = (now: number) => {
+      riverFrame.current = window.requestAnimationFrame(tick);
+      if (now - last < 85 || document.hidden) return;
+      last = now;
+      step = (step + 1) % RIVER_FRAMES.length;
+      RIVER_LAYERS.forEach((id, i) => {
+        if (map.getLayer(id)) {
+          map.setPaintProperty(id, "line-dasharray", RIVER_FRAMES[(step + i * 5) % RIVER_FRAMES.length]);
+        }
+      });
+    };
+    riverFrame.current = window.requestAnimationFrame(tick);
+  }
   const lockedRef = useRef(false);
   const lockTimer = useRef(0);
   function lockInput(ms: number) {
@@ -601,6 +668,7 @@ export default function MapView({
 
     ensureAreaLayers(map, area);
     setChangeLayers(map, latest.current.changes, Boolean(detail));
+    syncRiver(map, Boolean(detail));
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
@@ -1109,6 +1177,7 @@ export default function MapView({
         loadedRef.current = false;
         applied.current = {};
         mapRef.current = null;
+        window.cancelAnimationFrame(riverFrame.current);
         map.remove();
       };
     }
@@ -1125,6 +1194,7 @@ export default function MapView({
       intro,
       changes,
       area,
+      waterMotion,
     };
     const viewChanged = lastView.current !== view;
     lastView.current = view;
@@ -1144,6 +1214,13 @@ export default function MapView({
     if (!map || !loadedRef.current) return;
     setChangeLayers(map, changes, Boolean(latest.current.place.detail));
   }, [changes]);
+
+  // The sparkle starts or stops when motion settings or the device report change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    syncRiver(map, Boolean(latest.current.place.detail));
+  }, [waterMotion]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {

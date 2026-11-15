@@ -161,8 +161,8 @@ const pt = {
       summaryMissing: "Esta comparação não tem números disponíveis.",
       cards: {
         open_water: { title: "Água", note: "Possível água nova" },
-        radar_decrease: { title: "Ficou mais escuro", note: "Possível: água, umidade ou plantas" },
-        radar_increase: { title: "Ficou mais claro", note: "Possível: umidade, plantas ou água" },
+        radar_decrease: { title: "Sinal mais fraco", note: "Onde a superfície mudou. Possível: água, umidade ou plantas." },
+        radar_increase: { title: "Sinal mais forte", note: "Onde a superfície mudou. Possível: água, umidade ou plantas." },
       },
       tapHint: "Toque nos cartões para ligar ou desligar cada camada.",
       learnMore: "Saber mais",
@@ -192,7 +192,7 @@ const pt = {
         open_water: "Pode ser água aberta nova (hipótese)",
       },
       signalNote:
-        "Mais escuro e mais claro é como o radar do satélite mediu o chão: não é uma foto. Sozinhos, não querem dizer melhora, piora ou dano.",
+        "Por que mostramos: as manchas marcam onde a superfície do chão mudou entre as duas datas, por exemplo onde chegou água, a terra ficou mais úmida ou as plantas mudaram. Elas mostram onde olhar; sozinhas, não dizem se ficou melhor ou pior.",
       otherLayers: "Outras camadas",
       status: {
         available: "Disponível",
@@ -365,7 +365,7 @@ const pt = {
     items: [
       {
         q: "Por que fizemos este site?",
-        a: "O Rio Taquari já transbordou várias vezes nos últimos anos. Muita gente, principalmente pessoas idosas e surdas, não recebe ou não entende os avisos e os mapas técnicos. Queríamos mostrar o que um satélite da NASA viu de um jeito que qualquer pessoa entenda: letras grandes, cores simples e nenhum termo técnico.",
+        a: "Nosso desafio é mostrar as mudanças que um satélite vê na superfície de uma região de um jeito simples, que qualquer pessoa entenda. Escolhemos o Vale do Taquari porque o rio já transbordou várias vezes nos últimos anos e muita gente, principalmente pessoas idosas e surdas, não recebe ou não entende os avisos e os mapas técnicos. Por isso: letras grandes, cores simples e nenhum termo técnico.",
       },
       {
         q: "Como um satélite vê através das nuvens?",

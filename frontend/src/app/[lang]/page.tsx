@@ -206,25 +206,6 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
               ))}
             </ul>
           </Reveal>
-          <Reveal>
-            <div className="mt-6 rounded-3xl border border-line bg-surface p-6 hc:border-2">
-              <h3 className="text-xl font-bold">{dict.sources.honestTitle}</h3>
-              <dl className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="flex gap-3">
-                  <dt className="h-fit shrink-0 rounded-full border border-brand bg-brand px-3 py-1 text-base font-bold text-brand-ink">
-                    {dict.sources.real}
-                  </dt>
-                  <dd className="text-ink-soft">{dict.sources.realBody}</dd>
-                </div>
-                <div className="flex gap-3">
-                  <dt className="h-fit shrink-0 rounded-full border border-highlight px-3 py-1 text-base font-bold text-highlight">
-                    {dict.sources.sample}
-                  </dt>
-                  <dd className="text-ink-soft">{dict.sources.sampleBody}</dd>
-                </div>
-              </dl>
-            </div>
-          </Reveal>
         </div>
       </section>
 

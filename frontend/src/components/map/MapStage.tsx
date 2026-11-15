@@ -34,6 +34,7 @@ import {
   type PlaceId,
 } from "./places";
 import { ComparePanel } from "./ComparePanel";
+import { InfoButtons, InfoContent, type InfoTab } from "./ComparisonInfo";
 import { Timeline } from "./Timeline";
 
 // The map library is large, so it is kept out of the first download and
@@ -124,6 +125,8 @@ export function MapStage({
   }, [phase]);
   // True while the camera runs a transition: navigation waits until it ends.
   const [busy, setBusy] = useState(false);
+  // Which extra information is open above the time bar, if any.
+  const [infoTab, setInfoTab] = useState<InfoTab | null>(null);
   const motion = useMotionLevel();
 
   const places = useMemo(() => {
@@ -313,6 +316,7 @@ export function MapStage({
           onReady={() => setStatus("ready")}
           onError={() => setStatus("error")}
           onBusyChange={setBusy}
+          waterMotion={motion === "full" && tier !== "low"}
         />
       )}
 
@@ -479,7 +483,7 @@ export function MapStage({
             aria-live="polite"
             className={`glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col rounded-3xl sm:inset-x-auto sm:left-4 sm:bottom-6 ${
               closeUp
-                ? "max-h-[60svh] gap-2 overflow-y-auto p-3 sm:w-[19rem] lg:bottom-auto lg:top-[13.75rem] lg:max-h-none xl:top-[5rem]"
+                ? "max-h-[60svh] gap-2 overflow-y-auto p-3 sm:w-[19rem] lg:bottom-auto lg:top-[13.75rem] lg:max-h-[calc(100svh-22.5rem)] xl:top-[5rem] xl:max-h-[calc(100svh-14.5rem)]"
                 : "gap-3 p-4 sm:w-[24rem]"
             }`}
           >
@@ -503,6 +507,22 @@ export function MapStage({
                 />
                 {labels.area}
               </p>
+            )}
+            {closeUp && currentDetail && (
+              <>
+                <InfoButtons labels={labels.compare} tab={infoTab} onTab={setInfoTab} />
+                {infoTab && (
+                  <div className="rounded-2xl border border-line bg-surface p-3 xl:hidden">
+                    <InfoContent
+                      labels={labels.compare}
+                      lang={lang}
+                      detail={currentDetail}
+                      tab={infoTab}
+                      onClose={() => setInfoTab(null)}
+                    />
+                  </div>
+                )}
+              </>
             )}
             {closeUp && timelineStatus === "error" && (
               <div className="flex flex-col items-start gap-2 border-t border-line pt-3">
@@ -571,15 +591,28 @@ export function MapStage({
 
           {/* Bottom: the timeline of passes and comparisons (wide screens). */}
           {closeUp && timeline && (
-            <div className="glass rise-in pointer-events-auto absolute bottom-6 left-4 right-[26.5rem] hidden rounded-3xl px-4 py-3 lg:block">
-              <Timeline
-                data={timeline}
-                lang={lang}
-                labels={labels.timeline}
-                featured={labels.featured}
-                selectedId={selectedId}
-                onSelect={(step) => setSelectedId(step.id)}
-              />
+            <div className="pointer-events-none absolute bottom-6 left-4 right-[26.5rem] hidden flex-col gap-2 lg:flex">
+              {infoTab && currentDetail && (
+                <div className="glass rise-in pointer-events-auto ml-[19.5rem] hidden max-h-[calc(100svh-18rem)] overflow-y-auto rounded-3xl p-4 xl:block">
+                  <InfoContent
+                    labels={labels.compare}
+                    lang={lang}
+                    detail={currentDetail}
+                    tab={infoTab}
+                    onClose={() => setInfoTab(null)}
+                  />
+                </div>
+              )}
+              <div className="glass rise-in pointer-events-auto rounded-3xl px-4 py-3">
+                <Timeline
+                  data={timeline}
+                  lang={lang}
+                  labels={labels.timeline}
+                  featured={labels.featured}
+                  selectedId={selectedId}
+                  onSelect={(step) => setSelectedId(step.id)}
+                />
+              </div>
             </div>
           )}
 

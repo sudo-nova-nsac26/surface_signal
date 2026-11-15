@@ -1,16 +1,15 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
-import type { ApiLayer, ApiStory } from "@/data/api-types";
+import type { ApiLayer } from "@/data/api-types";
 import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { makeFormat } from "./ComparisonInfo";
 import { CHANGE_COLORS, type ChangeLayers } from "./MapView";
 
 type Labels = Dictionary["map"]["compare"];
 type Featured = Dictionary["map"]["featured"];
 type MapLayerId = "radar_increase" | "radar_decrease" | "open_water";
-type Row = { label: string; value: string; extra?: string | null };
 
 // Water first: it is what people look for after a flood.
 const MAP_LAYERS: { id: MapLayerId; key: "increase" | "decrease" | "water" }[] = [
@@ -18,7 +17,6 @@ const MAP_LAYERS: { id: MapLayerId; key: "increase" | "decrease" | "water" }[] =
   { id: "radar_decrease", key: "decrease" },
   { id: "radar_increase", key: "increase" },
 ];
-const SHOWN_ELSEWHERE = new Set(["general_change", ...MAP_LAYERS.map((layer) => layer.id)]);
 /** A football pitch of 105 m × 68 m, to give areas an everyday size. */
 const PITCH_KM2 = 0.00714;
 
@@ -44,185 +42,6 @@ function Switch({ on, pulse }: { on: boolean; pulse?: boolean }) {
     >
       <span className={`size-4 rounded-full ${on ? "bg-white" : "bg-white/70"}`} />
     </span>
-  );
-}
-
-/**
- * The extra information, away from the main panel: the backend's full
- * explanation, the other layers and the exact numbers. One button opens it.
- */
-function LearnMore({
-  labels,
-  lang,
-  story,
-  others,
-  rows,
-  params,
-  number,
-}: {
-  labels: Labels;
-  lang: Locale;
-  story: ApiStory;
-  others: ApiLayer[];
-  rows: Row[];
-  params: Record<string, number> | undefined;
-  number: (value: number | null | undefined, digits?: number) => string;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const [tab, setTab] = useState<"story" | "layers" | "tech">("story");
-  const uid = useId();
-  const tabs = [
-    { id: "story" as const, name: labels.understand },
-    { id: "layers" as const, name: labels.otherLayers },
-    { id: "tech" as const, name: labels.technical },
-  ];
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => dialog.current?.showModal()}
-        className="pressable flex min-h-14 w-full flex-col items-start justify-center rounded-xl border-2 border-line bg-surface px-3 py-2 text-left hover:border-brand hc:border-ink"
-      >
-        <span className="font-bold">{labels.learnMore}</span>
-        <span className="text-xs text-ink-soft">{labels.learnMoreHint}</span>
-      </button>
-
-      <dialog
-        ref={dialog}
-        aria-labelledby={`${uid}-title`}
-        onClick={(event) => {
-          if (event.target === dialog.current) dialog.current?.close();
-        }}
-        className="m-auto max-h-[85svh] w-[min(42rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl border border-line bg-bg-raised p-5 text-ink backdrop:bg-black/70 hc:border-2 hc:border-ink"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <h2 id={`${uid}-title`} className="text-xl font-bold">
-            {story.title}
-          </h2>
-          <button type="button" onClick={() => dialog.current?.close()} className="tool-button shrink-0">
-            {labels.close}
-          </button>
-        </div>
-
-        <div role="tablist" aria-label={labels.tabs} className="mt-4 flex flex-wrap gap-2">
-          {tabs.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`${uid}-tab-${item.id}`}
-              aria-selected={tab === item.id}
-              aria-controls={`${uid}-panel`}
-              onClick={() => setTab(item.id)}
-              className={`min-h-11 rounded-full border-2 px-4 text-sm font-bold ${
-                tab === item.id
-                  ? "border-brand bg-brand text-brand-ink hc:border-highlight hc:bg-highlight hc:text-highlight-ink"
-                  : "border-line bg-surface hover:border-brand hc:border-ink"
-              }`}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-
-        <div
-          role="tabpanel"
-          id={`${uid}-panel`}
-          aria-labelledby={`${uid}-tab-${tab}`}
-          className="mt-4 flex flex-col gap-3 text-base"
-        >
-          {tab === "story" && (
-            <>
-              <p className="font-bold">{story.summary}</p>
-              <p>
-                <strong>{labels.observation}: </strong>
-                {story.observation}
-              </p>
-              <p>
-                <strong>{labels.interpretation}: </strong>
-                {story.interpretation}
-                {story.water_interpretation ? ` ${story.water_interpretation}` : ""}
-              </p>
-              <div>
-                <strong>{labels.alternatives}</strong>
-                <ul className="list-disc pl-5">
-                  {story.alternative_explanations.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <strong>{labels.limitations}</strong>
-                <ul className="list-disc pl-5">
-                  {story.limitations.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <strong>{labels.sources}</strong>
-                <ul className="list-disc pl-5">
-                  {story.sources.map((url) => (
-                    <li key={url} className="break-all">
-                      <a href={url} target="_blank" rel="noreferrer" className="text-brand-text underline">
-                        {url.replace(/^https?:\/\//, "")}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )}
-
-          {tab === "layers" && (
-            <ul className="flex flex-col gap-3">
-              {others.map((layer) => (
-                <li key={layer.layer_id}>
-                  <span className="font-bold">{layer.name[lang]}</span>
-                  {" · "}
-                  {labels.status[layer.status as keyof Labels["status"]] ?? layer.status}
-                  <span className="block text-sm text-ink-soft">{layer.limitations[lang]}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {tab === "tech" && (
-            <>
-              <p className="text-sm text-ink-soft">{labels.technicalNote}</p>
-              <dl className="flex flex-col gap-1.5">
-                {rows.map((row) => (
-                  <div key={row.label} className="flex items-start justify-between gap-3 border-b border-line pb-1.5">
-                    <dt>{row.label}</dt>
-                    <dd className="text-right font-bold">
-                      {row.value}
-                      {row.extra && <span className="block text-xs font-normal text-ink-soft">{row.extra}</span>}
-                    </dd>
-                  </div>
-                ))}
-                {params?.threshold_db != null && (
-                  <div className="flex justify-between gap-3 border-b border-line pb-1.5">
-                    <dt>{labels.threshold}</dt>
-                    <dd className="font-bold">± {number(params.threshold_db, 1)} dB</dd>
-                  </div>
-                )}
-                {params?.min_component_pixels != null && (
-                  <div className="flex justify-between gap-3 border-b border-line pb-1.5">
-                    <dt>{labels.minGroup}</dt>
-                    <dd className="font-bold">
-                      {number(params.min_component_pixels, 0)} {labels.pixelsUnit}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              <p className="text-sm text-ink-soft">{story.result}</p>
-              <p className="text-sm text-ink-soft">{labels.areaNote}</p>
-            </>
-          )}
-        </div>
-      </dialog>
-    </>
   );
 }
 
@@ -254,14 +73,7 @@ export function ComparePanel({
   changes: ChangeLayers;
   onChanges: (next: ChangeLayers) => void;
 }) {
-  const locale = lang === "pt" ? "pt-BR" : "en-US";
-  const number = (value: number | null | undefined, digits = 2) =>
-    value == null
-      ? labels.unavailable
-      : new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value);
-  // Small areas keep a third decimal so they never read as zero.
-  const area = (value: number | null | undefined) =>
-    value == null ? labels.unavailable : `${number(value, value < 0.1 ? 3 : 2)} ${labels.unit}`;
+  const { number, area } = makeFormat(lang, labels);
 
   if (status === "loading" && !detail) {
     return <p className="text-base text-ink-soft">{labels.loading}</p>;
@@ -280,9 +92,7 @@ export function ComparePanel({
   const g = detail.stats.general_change?.statistics;
   const w = detail.stats.open_water?.statistics;
   const story = detail.story;
-  const params = detail.stats.general_change?.parameters;
   const layerById = new Map<string, ApiLayer>(detail.layers.map((layer) => [layer.layer_id, layer]));
-  const others = detail.layers.filter((layer) => !SHOWN_ELSEWHERE.has(layer.layer_id));
   const visible = changes.opacity > 0;
   const stop = step.reason ? featured[step.reason] : null;
   const areaOf: Record<MapLayerId, number | null | undefined> = {
@@ -312,26 +122,6 @@ export function ComparePanel({
   }
   if (summary.length === 0) summary.push(labels.summaryMissing);
 
-  const rows: Row[] = [
-    { label: labels.validArea, value: area(g?.valid_area_km2) },
-    {
-      label: labels.increase,
-      value: area(g?.increase_area_km2),
-      extra: g?.increase_components == null ? null : fill(labels.groups, { count: number(g.increase_components, 0) }),
-    },
-    {
-      label: labels.decrease,
-      value: area(g?.decrease_area_km2),
-      extra: g?.decrease_components == null ? null : fill(labels.groups, { count: number(g.decrease_components, 0) }),
-    },
-    { label: labels.changed, value: area(g?.changed_area_km2) },
-    {
-      label: labels.water,
-      value: area(w?.candidate_area_km2),
-      extra: w?.candidate_components == null ? null : fill(labels.groups, { count: number(w.candidate_components, 0) }),
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
       {/* Plain words first. */}
@@ -343,9 +133,6 @@ export function ComparePanel({
           ))}
         </div>
         {stop && <p className="mt-2 text-sm text-ink-soft">{stop.body}</p>}
-        <p className="mt-2 inline-block rounded-full border border-highlight px-2.5 py-0.5 text-xs font-bold text-highlight">
-          {story.synthetic ? labels.synthetic : labels.notValidated}
-        </p>
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -369,10 +156,7 @@ export function ComparePanel({
         </button>
       </div>
 
-      <p className="flex items-center gap-2 text-sm font-bold text-highlight">
-        <span aria-hidden="true">☝</span>
-        {labels.tapHint}
-      </p>
+      <p className="text-sm font-bold text-highlight">{labels.tapHint}</p>
 
       {/* One card per kind of change; pressing it turns the layer on or off. */}
       <ul className="grid grid-cols-2 gap-2">
@@ -422,15 +206,11 @@ export function ComparePanel({
         {labels.signalNote} {labels.showChangesHint}
       </p>
 
-      <LearnMore
-        labels={labels}
-        lang={lang}
-        story={story}
-        others={others}
-        rows={rows}
-        params={params}
-        number={number}
-      />
+      {/* The least urgent note comes last. */}
+      <p className="rounded-xl border border-line px-3 py-2 text-xs text-ink-soft">
+        {story.synthetic ? labels.synthetic : labels.notValidated}
+      </p>
+
     </div>
   );
 }
