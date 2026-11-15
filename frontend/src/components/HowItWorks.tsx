@@ -45,16 +45,65 @@ function TownLabel({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
+type ImpactLabels = Labels["impacts"];
+
+/** A numbered-free marker: amber dot plus a short label beside it. */
+function Pin({
+  x,
+  y,
+  dx = 0,
+  dy = -34,
+  text,
+}: {
+  x: number;
+  y: number;
+  dx?: number;
+  dy?: number;
+  text: string;
+}) {
+  const width = text.length * 9.6 + 26;
+  const lx = x + dx;
+  const ly = y + dy;
+  return (
+    <g className="rise-in">
+      <line x1={x} y1={y} x2={lx} y2={ly} stroke="var(--highlight)" strokeWidth="2" />
+      <circle cx={x} cy={y} r="8" fill="var(--highlight)" stroke="var(--scene-stroke)" strokeWidth="2.5" />
+      <rect
+        x={lx - width / 2}
+        y={ly - 15}
+        width={width}
+        height="28"
+        rx="14"
+        fill="var(--scene-stroke)"
+        stroke="var(--highlight)"
+        strokeWidth="2"
+      />
+      <text x={lx} y={ly + 5} textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--highlight)">
+        {text}
+      </text>
+    </g>
+  );
+}
+
 /**
- * The valley seen from above at night. The river, the built-up areas of
- * Lajeado and Estrela, the main roads and the bridges are the real shapes
- * from OpenStreetMap (turned so Lajeado is on the left). `flooded` widens
- * the river over the low land: that extent is only an illustration.
+ * The valley seen from above at night. The river, the streets of Lajeado and
+ * Estrela, the main roads and the bridges over the river are real shapes from
+ * OpenStreetMap (turned so Lajeado is on the left); the houses sit on real
+ * streets. `flooded` shows what a flood does: water in the low streets,
+ * houses hit, the bridge broken, ground slid and a field covered. All of that
+ * is an illustration, not a measurement.
  */
-function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
+function Landscape({
+  flooded,
+  hatch,
+  impacts,
+}: {
+  flooded: boolean;
+  hatch: boolean;
+  impacts: ImpactLabels | null;
+}) {
   const id = flooded ? "after" : "before";
-  const river = VALLEY.rivers;
-  const lines = VALLEY.riverLines;
+  const { spots } = VALLEY;
   return (
     <svg
       viewBox={VIEW}
@@ -75,6 +124,15 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
         <clipPath id={`ground-${id}`}>
           <path d="M0 170 C200 150 420 168 640 156 C860 144 1020 164 1200 150 V500 H0 Z" />
         </clipPath>
+        {/* Where the flood reaches: a band around the river. */}
+        <mask id={`flood-${id}`} maskUnits="userSpaceOnUse" x="0" y="0" width="1200" height="500">
+          <rect width="1200" height="500" fill="black" />
+          <g fill="none" stroke="white" strokeWidth="140" strokeLinecap="round" strokeLinejoin="round">
+            {VALLEY.riverLines.map((d) => (
+              <path key={d} d={d} />
+            ))}
+          </g>
+        </mask>
         <pattern
           id={`hatch-${id}`}
           width="14"
@@ -82,8 +140,8 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
           patternUnits="userSpaceOnUse"
           patternTransform="rotate(45)"
         >
-          <rect width="14" height="14" fill="var(--water)" />
-          <rect width="6" height="14" fill="var(--highlight)" />
+          <rect width="14" height="14" fill="transparent" />
+          <rect width="3" height="14" fill="var(--highlight)" />
         </pattern>
       </defs>
 
@@ -109,24 +167,28 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
       <g clipPath={`url(#ground-${id})`}>
         <rect y="120" width="1200" height="380" fill={`url(#land-${id})`} />
 
-        {/* Small streams that feed the river. */}
+        {/* Fields: after the flood the first one is covered in mud. */}
+        {VALLEY.fields.map(([x, y, w, h], index) => (
+          <rect
+            key={`${x}-${y}`}
+            x={x}
+            y={y}
+            width={w}
+            height={h}
+            rx="4"
+            fill={flooded && index === 0 ? "var(--slopes)" : "var(--vegetation)"}
+            opacity={flooded && index === 0 ? 0.85 : 0.5}
+          />
+        ))}
+
         <g fill="none" stroke="var(--water)" strokeWidth="2" opacity="0.55" strokeLinecap="round" strokeLinejoin="round">
           {VALLEY.tributaries.map((d) => (
             <path key={d} d={d} />
           ))}
         </g>
-
-        {/* The streets of Lajeado and Estrela give the towns their texture. */}
-        <g fill="none" stroke="var(--scene-town)" strokeWidth="0.9" opacity="0.34" strokeLinecap="round" strokeLinejoin="round">
+        <g fill="none" stroke="var(--scene-town)" strokeWidth="0.9" opacity="0.3" strokeLinecap="round" strokeLinejoin="round">
           {VALLEY.streets.map((d) => (
             <path key="streets" d={d} />
-          ))}
-        </g>
-
-        {/* Built-up areas, then the main roads. */}
-        <g fill="var(--scene-town)" opacity="0.3">
-          {VALLEY.towns.map((d) => (
-            <path key={d} d={d} />
           ))}
         </g>
         <g fill="none" stroke="var(--scene-town)" strokeWidth="1.6" opacity="0.38" strokeLinecap="round" strokeLinejoin="round">
@@ -135,51 +197,96 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
           ))}
         </g>
 
-        {/* The river inside its banks. */}
-        <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
-          {river.map((d) => (
-            <path key={d} d={d} />
-          ))}
-        </g>
-        <g fill="none" stroke="var(--water)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round">
-          {lines.map((d) => (
-            <path key={d} d={d} />
+        {/* Houses and buildings on the real streets. */}
+        <g fill="var(--scene-town)" opacity="0.8">
+          {VALLEY.houses.map(([x, y, , tall]) => (
+            <rect key={`${x}-${y}`} x={x - 2.5} y={tall ? y - 7 : y - 2.5} width="5" height={tall ? 9.5 : 5} rx="0.8" />
           ))}
         </g>
 
         {flooded && (
-          <g>
-            <g fill="none" stroke="var(--water)" strokeWidth="64" strokeLinecap="round" strokeLinejoin="round" opacity="0.9">
-              {lines.map((d) => (
-                <path key={d} d={d} />
+          <g mask={`url(#flood-${id})`}>
+            {/* Water over the low streets and houses. */}
+            <rect width="1200" height="500" fill="var(--water)" opacity="0.5" />
+            <g fill="none" stroke="var(--water)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              {VALLEY.streets.map((d) => (
+                <path key="streets" d={d} />
               ))}
             </g>
-            {hatch && (
-              <g className="scene-pulse" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                {lines.map((d) => (
-                  <path key={d} d={d} stroke={`url(#hatch-${id})`} strokeWidth="64" />
-                ))}
-              </g>
-            )}
-            {/* The normal river stays solid: only what is new is hatched. */}
-            <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
-              {river.map((d) => (
-                <path key={d} d={d} />
+            {hatch && <rect className="scene-pulse" width="1200" height="500" fill={`url(#hatch-${id})`} opacity="0.4" />}
+          </g>
+        )}
+        {flooded && (
+          <g fill="var(--scene-town)" fillOpacity="0.45" stroke="var(--highlight)" strokeWidth="1.4">
+            {VALLEY.houses
+              .filter(([, , hit]) => hit)
+              .map(([x, y, , tall]) => (
+                <rect key={`${x}-${y}`} x={x - 3} y={tall ? y - 7.5 : y - 3} width="6" height={tall ? 10.5 : 6} rx="1" />
               ))}
-            </g>
           </g>
         )}
 
-        {/* Bridges, on top of the water. */}
-        <g fill="none" stroke="var(--scene-town)" strokeWidth="4" strokeLinecap="round">
-          {VALLEY.bridges.map((d) => (
+        {/* The river inside its banks. */}
+        <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
+          {VALLEY.rivers.map((d) => (
             <path key={d} d={d} />
           ))}
         </g>
+        <g fill="none" stroke="var(--water)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round">
+          {VALLEY.riverLines.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+
+        {/* Bridges over the river: whole before, broken after. */}
+        {VALLEY.bridges.map(({ deck, broken }) =>
+          flooded ? (
+            <g key={deck} fill="none" strokeLinecap="butt">
+              {broken.map((d) => (
+                <path key={d} d={d} stroke="var(--scene-stroke)" strokeWidth="9" />
+              ))}
+              {broken.map((d) => (
+                <path key={`${d}-deck`} d={d} stroke="var(--scene-town)" strokeWidth="5" />
+              ))}
+            </g>
+          ) : (
+            <g key={deck} fill="none" strokeLinecap="butt">
+              <path d={deck} stroke="var(--scene-stroke)" strokeWidth="9" />
+              <path d={deck} stroke="var(--scene-town)" strokeWidth="5" />
+            </g>
+          ),
+        )}
       </g>
+
+      {/* Ground that slid down the hillside. */}
+      {flooded && (
+        <g>
+          <path
+            d="M786 112 C792 128 806 146 836 176 C812 184 770 184 744 176 C764 158 778 132 786 112 Z"
+            fill="var(--slopes)"
+            opacity="0.8"
+          />
+          <path d="M786 120 C784 140 774 158 766 174 M790 128 C796 148 806 162 816 176" fill="none" stroke="var(--scene-stroke)" strokeWidth="2" opacity="0.35" />
+          <g fill="var(--slopes)">
+            <circle cx="758" cy="182" r="3" />
+            <circle cx="806" cy="186" r="2.5" />
+            <circle cx="828" cy="182" r="2" />
+          </g>
+        </g>
+      )}
 
       <TownLabel x={VALLEY.lajeado[0]} y={VALLEY.lajeado[1] - 46} text="Lajeado" />
       <TownLabel x={VALLEY.estrela[0]} y={VALLEY.estrela[1] - 46} text="Estrela" />
+
+      {impacts && (
+        <g>
+          <Pin x={spots.houses[0]} y={spots.houses[1]} dy={44} text={impacts.houses} />
+          <Pin x={spots.streets[0]} y={spots.streets[1]} dy={44} text={impacts.streets} />
+          <Pin x={spots.bridge[0]} y={spots.bridge[1]} dx={110} dy={-22} text={impacts.bridge} />
+          <Pin x={788} y={150} dx={-40} dy={-50} text={impacts.landslide} />
+          <Pin x={spots.crops[0]} y={spots.crops[1]} dx={-50} dy={34} text={impacts.crops} />
+        </g>
+      )}
     </svg>
   );
 }
@@ -291,12 +398,12 @@ export function HowItWorks({ labels }: { labels: Labels }) {
             dragging.current = false;
           }}
         >
-          <Landscape flooded={false} hatch={false} />
+          <Landscape flooded={false} hatch={false} impacts={null} />
           <div
             className="absolute inset-0"
             style={{ clipPath: `inset(0 0 0 ${split * 100}%)` }}
           >
-            <Landscape flooded hatch={step === 3} />
+            <Landscape flooded hatch={step === 3} impacts={step === 3 ? labels.impacts : null} />
           </div>
           <Sky step={step} still={reduced} />
 
