@@ -143,3 +143,127 @@ test('daily rainfall and candidate crossings extract real July flood metrics acc
   assert.ok(crossings.candidateElevationM < 20 && crossings.aoiElevationM > 45);
   assert.ok(crossings.rarelyWetSharePercent > 85);
 });
+
+function loadAny(relPath) {
+  const filename = path.resolve(relPath);
+  const mod = new Module(filename);
+  mod.filename = filename;
+  mod.paths = Module._nodeModulePaths(path.dirname(filename));
+  mod.require = (id) => {
+    if (id.startsWith('.')) {
+      const resolved = path.resolve(path.dirname(filename), id.endsWith('.ts') ? id : id + '.ts');
+      if (fs.existsSync(resolved)) return loadAny(resolved);
+    }
+    if (id.startsWith('@/')) {
+      const resolved = path.resolve('src', id.slice(2) + '.ts');
+      if (fs.existsSync(resolved)) return loadAny(resolved);
+    }
+    return createRequire(filename)(id);
+  };
+  mod._compile(
+    ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText,
+    filename,
+  );
+  return mod.exports;
+}
+
+test('PT and EN dictionaries have 100% identical key structure and non-empty strings', () => {
+  const pt = loadAny('src/i18n/dictionaries/pt.ts').default;
+  const en = loadAny('src/i18n/dictionaries/en.ts').default;
+
+  function assertParity(a, b, trail = 'root') {
+    assert.equal(typeof a, typeof b, `Type mismatch at ${trail}`);
+    if (typeof a === 'string') {
+      assert.ok(a.trim().length > 0, `Empty PT string at ${trail}`);
+      assert.ok(b.trim().length > 0, `Empty EN string at ${trail}`);
+      return;
+    }
+    if (Array.isArray(a)) {
+      assert.ok(Array.isArray(b), `Expected array at ${trail}`);
+      assert.equal(a.length, b.length, `Array length mismatch at ${trail}`);
+      for (let i = 0; i < a.length; i++) assertParity(a[i], b[i], `${trail}[${i}]`);
+      return;
+    }
+    if (a && typeof a === 'object') {
+      const keysA = Object.keys(a).sort();
+      const keysB = Object.keys(b).sort();
+      assert.deepEqual(keysA, keysB, `Keys mismatch at ${trail}`);
+      for (const k of keysA) assertParity(a[k], b[k], `${trail}.${k}`);
+    }
+  }
+
+  assertParity(pt, en);
+});
+
+test('all 6 valley hotspots (Q1-Q6) have valid bounds, bilingual copy, and compute live stats on real GeoJSON', () => {
+  const { VALLEY_HOTSPOTS, buildHotspotsGeoJson, computeHotspotLiveStats } = loadAny(
+    'src/components/map/hotspots.ts',
+  );
+  assert.equal(VALLEY_HOTSPOTS.length, 6);
+  const codes = VALLEY_HOTSPOTS.map((h) => h.code);
+  assert.deepEqual(codes, ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6']);
+
+  for (const spot of VALLEY_HOTSPOTS) {
+    const [w, s, eLon, n] = spot.bounds;
+    assert.ok(w < eLon && s < n, `Invalid bounds for ${spot.code}`);
+    assert.ok(spot.center[0] >= w && spot.center[0] <= eLon, `Center lng out of bounds for ${spot.code}`);
+    assert.ok(spot.center[1] >= s && spot.center[1] <= n, `Center lat out of bounds for ${spot.code}`);
+    assert.ok(spot.title.pt && spot.title.en);
+    assert.ok(spot.beforeAfter.pt && spot.beforeAfter.en);
+    assert.ok(spot.whatHappened.pt && spot.whatHappened.en);
+    assert.ok(spot.consequences.pt && spot.consequences.en);
+    assert.ok(spot.technicalNote.pt && spot.technicalNote.en);
+  }
+
+  const q3 = VALLEY_HOTSPOTS.find((h) => h.code === 'Q3');
+  const fc = buildHotspotsGeoJson(VALLEY_HOTSPOTS, 'pt', q3.id);
+  assert.equal(fc.type, 'FeatureCollection');
+  assert.equal(fc.features.length, 6);
+  assert.equal(fc.features.find((f) => f.properties.id === q3.id).properties.selected, true);
+
+  const waterGeo = JSON.parse(
+    fs.readFileSync(
+      'public/data/compact/api/v1/analyses/5e434ec81b10578ba7ba6dfb/artifacts/change-candidates.geojson',
+      'utf8',
+    ),
+  );
+  const stats = computeHotspotLiveStats(q3, waterGeo, null);
+  assert.ok(stats.waterPolygonCount > 0, 'Expected water polygons inside Q3 during July flood');
+});
+
+test('accessibility preferences default to standard site appearance and boot script syncs all options', () => {
+  const { DEFAULT_PREFERENCES } = loadAny('src/preferences/store.ts');
+  const { preferencesBootScript } = loadAny('src/preferences/boot-script.ts');
+
+  assert.equal(DEFAULT_PREFERENCES.contrast, 'default');
+  assert.equal(DEFAULT_PREFERENCES.textSize, 'md');
+  assert.equal(DEFAULT_PREFERENCES.motion, 'auto');
+  assert.equal(DEFAULT_PREFERENCES.colorblind, false);
+  assert.equal(DEFAULT_PREFERENCES.readingSpacing, false);
+  assert.equal(DEFAULT_PREFERENCES.speechSlow, false);
+
+  assert.match(preferencesBootScript, /dataset\.colorblind="true"/);
+  assert.match(preferencesBootScript, /dataset\.spacing="wide"/);
+  assert.match(preferencesBootScript, /dataset\.speech="slow"/);
+});
+
+test('all 17 public snapshot analyses parse and extract environmental crossings without error', () => {
+  const analysesList = JSON.parse(
+    fs.readFileSync('public/data/compact/api/v1/analyses.json', 'utf8'),
+  );
+  assert.equal(analysesList.items.length, 17);
+  for (const item of analysesList.items) {
+    const id = item.analysis_id;
+    const raw = JSON.parse(
+      fs.readFileSync(`public/data/compact/api/v1/analyses/${id}/environmental-context.json`, 'utf8'),
+    );
+    const verified = e.assertEnvironmentalReport(raw, id);
+    const rain = e.extractDailyRainfallComparison(verified);
+    const crossings = e.extractCandidateCrossings(verified);
+    assert.equal(typeof rain.hasDailyData, 'boolean');
+    assert.ok(Array.isArray(crossings.municipalitiesInCandidates));
+    assert.ok(Array.isArray(crossings.candidateLandCover));
+  }
+});

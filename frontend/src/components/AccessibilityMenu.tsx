@@ -100,7 +100,7 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         hidden={!open}
         role="group"
         aria-label={labels.title}
-        className="absolute inset-x-4 top-full z-20 mt-2 flex flex-col gap-4 rounded-3xl border-2 border-ink bg-surface p-4 shadow-2xl sm:inset-x-auto sm:right-0 sm:w-96"
+        className="absolute inset-x-4 top-full z-20 mt-2 flex max-h-[calc(100svh-5.5rem)] flex-col gap-3 overflow-y-auto rounded-3xl border-2 border-ink bg-surface p-4 shadow-2xl sm:inset-x-auto sm:right-0 sm:w-96"
       >
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-xl font-bold">{labels.title}</h2>
@@ -155,6 +155,30 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
           label={labels.contrast}
           hint={labels.contrastHint}
           stateLabel={prefs.contrast === "high" ? labels.on : labels.off}
+        />
+
+        <Switch
+          checked={Boolean(prefs.colorblind)}
+          onChange={(on) => setPreferences({ colorblind: on })}
+          label={labels.colorblind}
+          hint={labels.colorblindHint}
+          stateLabel={prefs.colorblind ? labels.on : labels.off}
+        />
+
+        <Switch
+          checked={Boolean(prefs.readingSpacing)}
+          onChange={(on) => setPreferences({ readingSpacing: on })}
+          label={labels.readingSpacing}
+          hint={labels.readingSpacingHint}
+          stateLabel={prefs.readingSpacing ? labels.on : labels.off}
+        />
+
+        <Switch
+          checked={Boolean(prefs.speechSlow)}
+          onChange={(on) => setPreferences({ speechSlow: on })}
+          label={labels.speechSlow}
+          hint={labels.speechSlowHint}
+          stateLabel={prefs.speechSlow ? labels.on : labels.off}
         />
 
         <Switch

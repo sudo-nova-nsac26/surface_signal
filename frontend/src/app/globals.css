@@ -120,6 +120,20 @@ html[data-text="xl"] {
   font-size: 137.5%;
 }
 
+/* Colorblind-safe high-distinction palette (Cyan / Gold / Magenta) */
+:root[data-colorblind="true"] {
+  --water: #00e5ff;
+  --vegetation: #ffd60a;
+  --slopes: #ff4d94;
+}
+
+/* Wider reading spacing for dyslexia and older adults */
+html[data-spacing="wide"] body {
+  letter-spacing: 0.03em;
+  word-spacing: 0.08em;
+  line-height: 1.8;
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
