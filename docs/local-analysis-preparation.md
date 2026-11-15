@@ -1,8 +1,10 @@
 # Local analysis and preparation — 2026-11-15
 
-This backend-only extension turns prepared Vale do Taquari comparisons into historical
-local evidence and proposed preparation plans for residents and municipal teams. It
-adds no frontend integration, prediction, operational monitoring or official approval.
+This offline backend module produces traceable local summaries and optional
+human-reviewed preparation suggestions for residents and municipal teams from prepared
+Taquari Valley comparisons. Prepared results can be read through the API and published
+for the frontend. It is **not** a forecast, emergency-alert service or independently
+validated environmental impact assessment.
 Generation uses no network, LLM, new dependency, raw HDF5 or raster reprocessing.
 
 ## Run offline
@@ -118,8 +120,7 @@ tasks: resident plans have four general actions, municipal plans have two.
 
 Technical integrity is not environmental validation. No contemporaneous independent
 spatial reference is introduced here. Real neighborhood/facility context remains an
-optional sourced input; human review/adoption and competition GO Team clearance
-remain separate from this backend implementation.
+optional sourced input; human review and adoption remain separate from data processing.
 
 Final checks on 2026-11-15: frozen development sync, Ruff lint and format check
 passed; full backend suite **151 passed**. One existing Starlette/httpx TestClient
@@ -127,4 +128,4 @@ deprecation warning remains. Independent review found two important issues, both
 reproduced with failing regressions and fixed: source size checks now precede full
 verification, and preparation identity reads area/analysis bytes without trusting
 timestamp/size metadata caches. The real report's identical offline reuse and
-verification passed after these fixes. No frontend tests or commands were run.
+verification passed after these fixes. This dated backend verification does not establish subsequent frontend or production performance.

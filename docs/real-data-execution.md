@@ -179,7 +179,7 @@ and receipts on the processing disk, including unpaired/preexisting files. Git d
 code and catalog metadata; generated archives and credentials stay ignored. Do not commit
 tokens, `.netrc`, raw HDF5 or private observations.
 
-## Completed local execution and MVP enrichment — 2026-11-15
+## Completed local execution and derived analysis — 2026-11-15
 
 This entry supersedes the earlier access blocker for this development machine without deleting
 its history. Local inventory: 19 retained real HDF5, 131,386,572,800 bytes; 10 descending
