@@ -133,7 +133,8 @@ every section (`ListenButton`, browser speech, one section at a time), WhatsApp 
 (`ShareButtons`), and "Sobre nós" (header + footer + section menu) linking to the team site (`src/links.ts`).
 
 Owner feedback on that round (2026-11-14, done): the "How it works" drawing is now a large night scene of the valley
-(Lajeado, Estrela, the bridge, hills, fields) across the full width, before/after as two stacked SVGs with a CSS
+(real river, streets, roads and bridges of Lajeado/Estrela from OpenStreetMap, turned so Lajeado is on the left;
+regenerate with `frontend/scripts/build-valley-scene.mjs`, see its header; the flooded extent is only an illustration) across the full width, before/after as two stacked SVGs with a CSS
 `clip-path` on the "after" one; the 4 steps are a row below it and the chosen step is told in one panel (no long
 text column, no empty space). FAQ keeps only: why we made the site, how radar sees through clouds, plans to cover
 other regions/countries (yes: that is why the map starts on a globe), who made it. **Emergency numbers are NOT

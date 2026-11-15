@@ -4,64 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useReducedMotion } from "@/preferences/store";
 import { ArrowRightIcon } from "./icons";
+import { VALLEY } from "./valley-scene-data";
 
 type Labels = Dictionary["how"];
 
 // One viewBox for every layer of the drawing, cropped from the sides on
 // narrow screens ("slice"), so the important part sits in the middle.
 const VIEW = "0 0 1200 500";
-const RIVER =
-  "M556 236 C626 276 506 316 596 352 S716 412 606 452 S548 492 586 530";
 
 function fill(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (_, key: string) =>
     String(values[key] ?? ""),
-  );
-}
-
-function House({
-  x,
-  y,
-  w,
-  h,
-  tall = false,
-}: {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  tall?: boolean;
-}) {
-  return (
-    <g>
-      <rect x={x} y={y} width={w} height={h} rx="2" fill="var(--scene-town)" />
-      {tall ? (
-        <g fill="var(--scene-sky)" opacity="0.55">
-          <rect x={x + 5} y={y + 7} width="5" height="6" />
-          <rect x={x + w - 10} y={y + 7} width="5" height="6" />
-          <rect x={x + 5} y={y + 20} width="5" height="6" />
-          <rect x={x + w - 10} y={y + 20} width="5" height="6" />
-        </g>
-      ) : (
-        <path
-          d={`M${x - 3} ${y + 1} L${x + w / 2} ${y - h * 0.55} L${x + w + 3} ${y + 1} Z`}
-          fill="var(--slopes)"
-        />
-      )}
-    </g>
-  );
-}
-
-function Tree({ x, y, r = 11 }: { x: number; y: number; r?: number }) {
-  return (
-    <g>
-      <rect x={x - 2} y={y + r * 0.6} width="4" height={r * 0.8} fill="var(--scene-stroke)" />
-      <path
-        d={`M${x} ${y - r * 1.6} L${x + r} ${y + r * 0.7} H${x - r} Z`}
-        fill="var(--vegetation)"
-        opacity="0.55"
-      />
-    </g>
   );
 }
 
@@ -92,18 +45,16 @@ function TownLabel({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
-const FLOOD = [
-  "M430 344 C470 312 548 318 586 346 C610 372 600 420 560 436 C510 452 446 430 424 400 C412 382 414 360 430 344 Z",
-  "M610 300 C654 282 742 290 782 318 C806 340 790 376 748 386 C700 396 640 384 616 360 C600 342 598 312 610 300 Z",
-];
-
 /**
- * The valley seen from above at night: hills, fields, Lajeado and Estrela on
- * each bank, the bridge between them. `flooded` draws the river out of its
- * banks over the low houses. Decorative; the text tells the same story.
+ * The valley seen from above at night. The river, the built-up areas of
+ * Lajeado and Estrela, the main roads and the bridges are the real shapes
+ * from OpenStreetMap (turned so Lajeado is on the left). `flooded` widens
+ * the river over the low land: that extent is only an illustration.
  */
 function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
   const id = flooded ? "after" : "before";
+  const river = VALLEY.rivers;
+  const lines = VALLEY.riverLines;
   return (
     <svg
       viewBox={VIEW}
@@ -121,6 +72,9 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
           <stop offset="0" stopColor="var(--scene-land)" />
           <stop offset="1" stopColor="var(--scene-hill)" />
         </linearGradient>
+        <clipPath id={`ground-${id}`}>
+          <path d="M0 170 C200 150 420 168 640 156 C860 144 1020 164 1200 150 V500 H0 Z" />
+        </clipPath>
         <pattern
           id={`hatch-${id}`}
           width="14"
@@ -137,7 +91,7 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
       <g fill="var(--scene-town)">
         {[
           [90, 40], [210, 92], [330, 30], [450, 70], [760, 46], [880, 96],
-          [990, 30], [1110, 80], [170, 150], [1040, 150],
+          [990, 30], [1110, 80], [170, 140], [1040, 130],
         ].map(([cx, cy]) => (
           <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" opacity="0.7" />
         ))}
@@ -145,91 +99,87 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
       <circle cx="1030" cy="70" r="22" fill="var(--scene-town)" opacity="0.85" />
       <circle cx="1040" cy="64" r="20" fill="var(--bg)" />
 
-      {/* The hills of the Serra, far and near. */}
+      {/* The hills of the Serra on the horizon. */}
       <path
-        d="M0 200 C140 140 250 180 380 150 C520 116 640 176 780 146 C930 112 1050 168 1200 136 V500 H0 Z"
+        d="M0 176 C140 124 250 160 380 134 C520 106 640 158 780 130 C930 100 1050 150 1200 120 V240 H0 Z"
         fill="var(--scene-hill)"
-        opacity="0.7"
-      />
-      <path
-        d="M0 236 C180 196 300 226 430 214 C560 202 700 236 860 214 C1000 196 1100 222 1200 210 V500 H0 Z"
-        fill="var(--scene-hill)"
-      />
-      <path
-        d="M0 268 C300 244 900 250 1200 262 V500 H0 Z"
-        fill={`url(#land-${id})`}
+        opacity="0.75"
       />
 
-      {/* Fields and trees. */}
-      <g fill="var(--vegetation)" opacity="0.22">
-        <rect x="90" y="330" width="150" height="46" rx="6" transform="rotate(-4 165 353)" />
-        <rect x="120" y="400" width="190" height="52" rx="6" transform="rotate(-3 215 426)" />
-        <rect x="900" y="350" width="170" height="48" rx="6" transform="rotate(3 985 374)" />
-        <rect x="940" y="420" width="190" height="50" rx="6" transform="rotate(4 1035 445)" />
-      </g>
-      {[
-        [80, 236], [130, 226], [300, 222], [880, 222], [1010, 214], [1100, 220],
-        [270, 300], [930, 300], [370, 440], [820, 440],
-      ].map(([x, y]) => (
-        <Tree key={`${x}-${y}`} x={x} y={y} />
-      ))}
+      <g clipPath={`url(#ground-${id})`}>
+        <rect y="120" width="1200" height="380" fill={`url(#land-${id})`} />
 
-      {/* Riverbanks and the river in its bed. */}
-      <path d={RIVER} fill="none" stroke="var(--water-soft)" strokeWidth="46" strokeLinecap="round" />
-
-      {/* Low houses by the river: the first to be reached by the water. */}
-      <House x={470} y={372} w={26} h={20} />
-      <House x={506} y={394} w={24} h={18} />
-      <House x={460} y={404} w={22} h={18} />
-      <House x={660} y={326} w={24} h={18} />
-      <House x={696} y={346} w={26} h={20} />
-      <House x={734} y={330} w={22} h={18} />
-
-      {flooded && (
-        <g>
-          <g fill="var(--water)" opacity="0.88">
-            {FLOOD.map((d) => (
-              <path key={d} d={d} />
-            ))}
-          </g>
-          <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="120" strokeLinecap="round" opacity="0.92" />
-          {hatch && (
-            <g className="scene-pulse">
-              {FLOOD.map((d) => (
-                <path key={d} d={d} fill={`url(#hatch-${id})`} />
-              ))}
-              <path d={RIVER} fill="none" stroke={`url(#hatch-${id})`} strokeWidth="120" strokeLinecap="round" />
-            </g>
-          )}
+        {/* Small streams that feed the river. */}
+        <g fill="none" stroke="var(--water)" strokeWidth="2" opacity="0.55" strokeLinecap="round" strokeLinejoin="round">
+          {VALLEY.tributaries.map((d) => (
+            <path key={d} d={d} />
+          ))}
         </g>
-      )}
-      <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="26" strokeLinecap="round" />
 
-      {/* Lajeado (left bank) and Estrela (right bank), on higher ground. */}
-      <g>
-        <House x={340} y={268} w={26} h={44} tall />
-        <House x={372} y={254} w={30} h={58} tall />
-        <House x={408} y={276} w={24} h={36} tall />
-        <House x={354} y={322} w={26} h={20} />
-        <House x={392} y={328} w={24} h={18} />
-        <House x={426} y={320} w={26} h={20} />
-        <House x={780} y={276} w={26} h={20} />
-        <House x={814} y={266} w={30} h={34} tall />
-        <House x={852} y={282} w={24} h={20} />
-        <House x={800} y={312} w={24} h={18} />
-        <House x={836} y={318} w={26} h={20} />
+        {/* The streets of Lajeado and Estrela give the towns their texture. */}
+        <g fill="none" stroke="var(--scene-town)" strokeWidth="0.9" opacity="0.34" strokeLinecap="round" strokeLinejoin="round">
+          {VALLEY.streets.map((d) => (
+            <path key="streets" d={d} />
+          ))}
+        </g>
+
+        {/* Built-up areas, then the main roads. */}
+        <g fill="var(--scene-town)" opacity="0.3">
+          {VALLEY.towns.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+        <g fill="none" stroke="var(--scene-town)" strokeWidth="1.6" opacity="0.38" strokeLinecap="round" strokeLinejoin="round">
+          {VALLEY.roads.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+
+        {/* The river inside its banks. */}
+        <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
+          {river.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+        <g fill="none" stroke="var(--water)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round">
+          {lines.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+
+        {flooded && (
+          <g>
+            <g fill="none" stroke="var(--water)" strokeWidth="64" strokeLinecap="round" strokeLinejoin="round" opacity="0.9">
+              {lines.map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+            {hatch && (
+              <g className="scene-pulse" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                {lines.map((d) => (
+                  <path key={d} d={d} stroke={`url(#hatch-${id})`} strokeWidth="64" />
+                ))}
+              </g>
+            )}
+            {/* The normal river stays solid: only what is new is hatched. */}
+            <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
+              {river.map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+          </g>
+        )}
+
+        {/* Bridges, on top of the water. */}
+        <g fill="none" stroke="var(--scene-town)" strokeWidth="4" strokeLinecap="round">
+          {VALLEY.bridges.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
       </g>
 
-      {/* The bridge between the two towns. */}
-      <g>
-        <rect x="508" y="342" width="190" height="9" rx="2" fill="var(--scene-town)" />
-        {[530, 576, 622, 668].map((x) => (
-          <rect key={x} x={x} y="351" width="6" height="16" fill="var(--scene-town)" opacity="0.8" />
-        ))}
-      </g>
-
-      <TownLabel x={390} y={222} text="Lajeado" />
-      <TownLabel x={826} y={236} text="Estrela" />
+      <TownLabel x={VALLEY.lajeado[0]} y={VALLEY.lajeado[1] - 46} text="Lajeado" />
+      <TownLabel x={VALLEY.estrela[0]} y={VALLEY.estrela[1] - 46} text="Estrela" />
     </svg>
   );
 }
