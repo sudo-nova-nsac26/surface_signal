@@ -1,4 +1,5 @@
-import type { ApiAnalysis, ApiArea, ApiScene, Page } from "./api-types";
+import { assertEnvironmentalReport, filterEnvironmentalEvents, validReference, validContextSource, validEvent } from "./environmental";
+import type { EnvironmentalContextReport, EnvironmentalEvent, ReferenceLayer, AnalysisValidation, ContextSource, ApiAnalysis, ApiArea, ApiScene, Page } from "./api-types";
 
 /**
  * The single door to data. Every component asks this module; none reads a
@@ -43,7 +44,8 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   if (!response.ok) {
     throw new DataSourceError(`Request failed: ${url}`, response.status);
   }
-  return (await response.json()) as T;
+  try { return (await response.json()) as T; }
+  catch { throw new DataSourceError("Invalid prepared JSON", 503); }
 }
 
 /** Reads every page of a list route (the backend caps a page at 200 items). */
@@ -118,4 +120,67 @@ export function getArtifactJson<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   return getJson<T>(artifactUrl(analysisId, name), signal);
+}
+
+/** Only bounded, published internal GeoJSON paths are permitted for reference overlays. */
+export function referenceArtifactUrl(value: string): string {
+  const match = value.match(/^\/(?:api\/v1|data\/api\/v1)\/areas\/([A-Za-z0-9_-]+)\/references\/([A-Za-z0-9_-]+\.geojson)$/);
+  if (!match) throw new DataSourceError("Invalid reference artifact address");
+  return `${dataSourceMode === "api" ? `${API_BASE}/api/v1` : STATIC_ROOT}/areas/${match[1]}/references/${match[2]}`;
+}
+function environmentalPath(path: string) {
+  return dataSourceMode === "api" ? `${API_BASE}/api/v1/${path}` : `${STATIC_ROOT}/${path}.json`;
+}
+export async function getEnvironmentalContext(analysisId: string, signal?: AbortSignal): Promise<EnvironmentalContextReport> {
+  const value = await getJson<EnvironmentalContextReport>(environmentalPath(`analyses/${encodeURIComponent(analysisId)}/environmental-context`), signal);
+  try { return assertEnvironmentalReport(value, analysisId); }
+  catch { throw new DataSourceError("Invalid prepared environmental context", 503); }
+}
+export async function listEnvironmentalEvents(areaId: string, start?: string, end?: string, signal?: AbortSignal): Promise<EnvironmentalEvent[]> {
+  try { filterEnvironmentalEvents([], start, end); } catch { throw new DataSourceError("Invalid UTC interval", 422); }
+  const path = `areas/${encodeURIComponent(areaId)}/environmental-events`;
+  const values = dataSourceMode === "api"
+    ? await getAllPages<EnvironmentalEvent>(path, { ...(start ? {start} : {}), ...(end ? {end} : {}) }, signal)
+    : await getStaticList<EnvironmentalEvent>(`${path}.json`, signal);
+  if (!Array.isArray(values) || !values.every(validEvent)) throw new DataSourceError("Invalid prepared events", 503);
+  return filterEnvironmentalEvents(values, start, end);
+}
+export async function listReferenceLayers(areaId: string, signal?: AbortSignal): Promise<ReferenceLayer[]> {
+  const value = await getJson<{area_id: string; items: ReferenceLayer[]}>(environmentalPath(`areas/${encodeURIComponent(areaId)}/reference-layers`), signal);
+  if (value.area_id !== areaId || !Array.isArray(value.items) || !value.items.every(validReference)) throw new DataSourceError("Invalid prepared references", 503);
+  return value.items.map(item => ({...item, artifact_url: item.artifact_url && item.redistribution_allowed ? referenceArtifactUrl(item.artifact_url) : null}));
+}
+export async function getAnalysisValidation(analysisId: string, signal?: AbortSignal): Promise<AnalysisValidation> {
+  const value = await getJson<AnalysisValidation>(environmentalPath(`analyses/${encodeURIComponent(analysisId)}/validation`), signal);
+  if (!value || typeof value.status !== "string" || !Array.isArray(value.limitations) || !(value.metrics === null || typeof value.metrics === "object")) throw new DataSourceError("Invalid prepared validation", 503);
+  return value;
+}
+export async function listContextSources(signal?: AbortSignal): Promise<ContextSource[]> {
+  const items = await (dataSourceMode === "api" ? getAllPages<ContextSource>("context/sources", {}, signal) : getStaticList<ContextSource>("context-sources.json", signal));
+  if (!Array.isArray(items) || !items.every(validContextSource)) throw new DataSourceError("Invalid prepared source inventory", 503);
+  return items;
+}
+export async function getReferenceGeoJson(url: string, signal?: AbortSignal): Promise<import("geojson").FeatureCollection> {
+  // A resolved API URL is allowed only on the configured API origin.
+  const path = API_BASE && url.startsWith(`${API_BASE}/`) ? url.slice(API_BASE.length) : url;
+  const response = await fetch(referenceArtifactUrl(path), {signal, headers: {Accept: "application/geo+json"}});
+  if (!response.ok) throw new DataSourceError("Could not load reference", response.status);
+  const maxBytes = 2_000_000;
+  if (Number(response.headers.get("content-length")) > maxBytes) throw new DataSourceError("Reference exceeds size budget", 503);
+  const reader = response.body?.getReader();
+  if (!reader) throw new DataSourceError("Missing reference body", 503);
+  let size = 0; const parts: Uint8Array[] = [];
+  while (true) {
+    const chunk = await reader.read(); if (chunk.done) break;
+    size += chunk.value.byteLength;
+    if (size > maxBytes) { await reader.cancel(); throw new DataSourceError("Reference exceeds size budget", 503); }
+    parts.push(chunk.value);
+  }
+  const bytes = new Uint8Array(size); let offset = 0;
+  for (const part of parts) { bytes.set(part, offset); offset += part.length; }
+  try {
+    const value = JSON.parse(new TextDecoder().decode(bytes));
+    if (value.type !== "FeatureCollection" || !Array.isArray(value.features) || value.features.length > 5000) throw new Error();
+    return value;
+  } catch { throw new DataSourceError("Invalid reference geometry", 503); }
 }

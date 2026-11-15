@@ -1,9 +1,11 @@
+import { environmentPt } from "./environment";
 /**
  * Portuguese copy. Written in plain language for readers with no technical
  * background: short sentences, no radar jargon, no acronyms without context.
  * The shape of this object is the contract every other language must follow.
  */
 const pt = {
+  environment: environmentPt,
   meta: {
     title: "SurfaceSignal — o que o satélite viu no Rio Taquari",
     description:

@@ -146,3 +146,19 @@ New general layers, statistics, PT/EN stories, regional overview and timeline ar
 future UI wiring using the documented endpoints; the existing visual layer controls still
 reflect their earlier water-focused implementation. Do not imply that general layers have
 already been wired into those controls. See static-publication.md and backend-mvp.md.
+
+## Environmental context handoff — 2026-11-15
+
+The additive environmental data contract is now implemented in `context/models.py` and OpenAPI.
+`source.ts` supports the five context routes in API and static modes; `environmental.ts` handles
+numbers, Brasília display time, UTC event filtering and report integrity. The `useEnvironmental`
+hook aborts obsolete requests and keys state by area/analysis. `EnvironmentalContextPanel` adds
+compact expandable PT/EN facts, missing/loading/error states, citations, validation and a separate
+event list; `EnvironmentalSources` distinguishes the inventory from actual comparison sources.
+Map references use an independent `env-reference` outline, an allowlisted internal URL and a
+2 MB/5,000-feature ceiling. The backend currently publishes reference summaries without overlays.
+No map camera/projection/terrain operation was added to the environmental UI.
+
+Run `node --test tests/environmental.test.mjs`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+The small generated report in `tests/fixtures/` is synthetic and used only for tests. Live external
+sources still require operator imports and product terms. See `environmental-data-integration.md`.
