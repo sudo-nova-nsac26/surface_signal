@@ -89,7 +89,9 @@ _ROWS = [
 
 
 def context_sources():
-    return [
+    from surfacesignal.providers.public_sources import CATALOG
+
+    registered = [
         {
             "source_id": sid,
             "name": name,
@@ -110,3 +112,26 @@ def context_sources():
         }
         for sid, name, url, role, status in _ROWS
     ]
+
+    for sid, catalog in CATALOG.items():
+        row = next((item for item in registered if item["source_id"] == sid), None)
+        values = {
+            "source_id": sid,
+            "name": catalog["dataset_id"],
+            "url": catalog["source_url"],
+            "role": "historical_context"
+            if sid in {"jrc-gsw", "worldcover"}
+            else "environmental_context",
+            "integration_status": "import_ready",
+            "terms_url": catalog["terms_url"],
+            "coverage_period": catalog["coverage_period"],
+            "redistribution_allowed": True,
+            "limitations": catalog["limitations"]
+            + ["Registration is not evidence of observations; run offline sources check/fetch."],
+            "update_note": "Credential-free bounded offline acquisition only; never fetched by GET requests.",
+        }
+        if row is None:
+            registered.append(values)
+        else:
+            row.update(values)
+    return registered

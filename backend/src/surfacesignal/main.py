@@ -70,6 +70,9 @@ def create_app(settings=None):
             503: {"description": "Prepared store unavailable or invalid"},
         },
     )
+    from surfacesignal.api.published import install_published_reader
+
+    install_published_reader(app, settings)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

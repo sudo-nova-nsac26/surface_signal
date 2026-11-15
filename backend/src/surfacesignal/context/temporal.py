@@ -35,3 +35,33 @@ def accumulate_rainfall(records, observed_at, *, windows=(24, 48, 72), minimum_c
         "coverage_by_window": coverage,
         "coverage_fraction": min(coverage.values()),
     }
+
+
+def summarize_daily_labels(records, observed_at):
+    """Sum prior complete date labels, never claim exact acquisition-hour rainfall."""
+    end = utc(observed_at).replace(hour=0, minute=0, second=0, microsecond=0)
+    intervals = [RainInterval.model_validate(r) for r in records]
+    by_day = {}
+    for item in intervals:
+        if (
+            (item.end - item.start).total_seconds() != 86400
+            or item.start != item.start.replace(hour=0, minute=0, second=0, microsecond=0)
+            or item.unit != "mm"
+        ):
+            raise ValueError("Complete UTC daily labels in mm required")
+        if item.start in by_day:
+            raise ValueError("Duplicate daily rainfall label")
+        by_day[item.start] = item
+    totals, coverage = {}, {}
+    for days in (1, 2, 3):
+        selected = [by_day.get(end - timedelta(days=n)) for n in range(1, days + 1)]
+        valid = [r for r in selected if r and r.value is not None and r.quality_status == "valid"]
+        key = f"{days}d"
+        coverage[key] = len(valid) / days
+        totals[key] = sum(r.value for r in valid) if len(valid) == days else None
+    return {
+        "end_label_exclusive": end.isoformat(),
+        "totals_mm": totals,
+        "coverage_by_days": coverage,
+        "semantics": "Prior complete UTC date labels; mixed station observation windows; not acquisition-hour totals.",
+    }

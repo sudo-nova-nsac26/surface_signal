@@ -46,7 +46,7 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
             settings.artifacts_dir / analysis.analysis_id / "manifest.json"
         ),
         "imports": [digest(i) for i in selected],
-        "method_version": "environmental-context-v1.1",
+        "method_version": "environmental-context-v1.2-public-attribution",
         "software_versions": {
             name: version(name) for name in ("numpy", "rasterio", "shapely", "pyproj", "pydantic")
         },
@@ -63,7 +63,7 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
         synthetic=analysis.synthetic,
         provenance={
             "input_sha256": [i["dataset"]["source_sha256"] for i in selected],
-            "method_version": "environmental-context-v1.1",
+            "method_version": "environmental-context-v1.2-public-attribution",
             "software_versions": {
                 name: version(name)
                 for name in ("numpy", "rasterio", "shapely", "pyproj", "pydantic")
@@ -89,6 +89,8 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
                 name=dataset.provider,
                 url=dataset.source_url,
                 product=dataset.dataset_id,
+                attribution=dataset.parameters.get("attribution"),
+                terms_url=dataset.parameters.get("terms_url"),
                 dataset_version=dataset.dataset_version,
                 license_id=dataset.license_id,
                 reference_year=dataset.parameters.get("reference_year"),
@@ -129,6 +131,46 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
                 )
                 events.append(event.model_dump(mode="json"))
             report.hydrology.records.extend(records)
+        if "daily_rainfall" in normal:
+            from surfacesignal.context.temporal import summarize_daily_labels
+
+            daily = {
+                name: summarize_daily_labels(normal["daily_rainfall"], scene.start_time)
+                for name, scene in [("before", before), ("after", after)]
+            }
+            complete = sum(value is not None for value in daily["after"]["totals_mm"].values())
+            report.rainfall = RainfallContext(
+                source_id=source,
+                status="available" if complete == 3 else "partial" if complete else "unavailable",
+                product=dataset.dataset_id,
+                run=dataset.parameters["run"],
+                resolution_km_approx=dataset.spatial_resolution_m / 1000,
+                daily_summaries=daily,
+                temporal_semantics=dataset.parameters["temporal_semantics"],
+                limitations=dataset.limitations
+                + [
+                    "Acquisition-hour 24/48/72h totals remain unavailable; daily label sums are separate."
+                ],
+            )
+            for record in normal["daily_rainfall"]:
+                instant = datetime.fromisoformat(record["start"].replace("Z", "+00:00"))
+                if abs((instant - after.start_time).total_seconds()) <= 4 * 86400:
+                    events.append(
+                        EnvironmentalEvent(
+                            event_id=digest([source, record["start"], dataset.source_sha256])[:24],
+                            source_id=source,
+                            kind="rainfall_window",
+                            observed_at=instant,
+                            observed_start=instant,
+                            observed_end=record["end"],
+                            parameter="daily_label_mm",
+                            value=record["value"],
+                            unit="mm",
+                            synthetic=dataset.synthetic,
+                            quality_status=record["quality_status"],
+                            analysis_id=None,
+                        ).model_dump(mode="json")
+                    )
         if "rainfall" in normal:
             acquisitions = {
                 name: accumulate_rainfall(
@@ -183,6 +225,7 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
             report.provenance["spatial_summaries"][source] = summary
             for sid, field, model in [
                 ("mapbiomas-water", "historical_water", HistoricalWater),
+                ("jrc-gsw", "historical_water", HistoricalWater),
                 ("worldcover", "land_cover", LandCover),
                 ("copernicus-dem", "topography", Topography),
             ]:
@@ -200,7 +243,7 @@ def assemble(settings, analysis, area, budgets, *, minimum_coverage=1.0):
                     status=summary.get("status", "unavailable"),
                     title=dataset.dataset_id,
                     role="historical_context"
-                    if source in {"mapbiomas-water", "worldcover"}
+                    if source in {"mapbiomas-water", "jrc-gsw", "worldcover"}
                     else "environmental_context",
                     reference_year=dataset.parameters.get("reference_year"),
                     source_id=source,

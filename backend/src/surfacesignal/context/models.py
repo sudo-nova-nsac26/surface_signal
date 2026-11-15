@@ -120,6 +120,8 @@ class EvidenceSource(Model):
     name: str
     url: str
     product: str | None = None
+    attribution: str | None = None
+    terms_url: str | None = None
     dataset_version: str | None = None
     license_id: str | None = None
     reference_year: int | None = None
@@ -142,6 +144,8 @@ class RainfallContext(Model):
     coverage_fraction: float | None = None
     coverage_by_window: dict[str, float] = {}
     acquisitions: dict[str, dict[str, Any]] = {}
+    daily_summaries: dict[str, dict[str, Any]] = {}
+    temporal_semantics: str | None = None
     limitations: list[str] = []
 
 
@@ -160,6 +164,9 @@ class SpatialContext(Model):
 
 
 class HistoricalWater(SpatialContext):
+    source_id: str = "mapbiomas-water"
+    mean_frequency: float | None = Field(default=None, ge=0, le=1)
+    reference_start_year: int | None = None
     status: Availability = "unavailable"
     reference_year: int | None = None
     collection: str = "MapBiomas Água Coleção 5"

@@ -124,7 +124,7 @@ def parser():
     imp.add_argument("--dry-run", action="store_true")
     build = context.add_parser("build")
     build.add_argument("--area", required=True)
-    selection = build.add_mutually_exclusive_group(required=True)
+    selection = build.add_mutually_exclusive_group()
     selection.add_argument("--analysis")
     selection.add_argument("--all-analyses", action="store_true")
     build.add_argument("--illustrative", action="store_true")
@@ -134,7 +134,7 @@ def parser():
         for flag, default in [
             ("max-input-bytes", 25000000),
             ("max-output-bytes", 25000000),
-            ("max-pixels", 1000000),
+            ("max-pixels", 2000000),
             ("max-records", 50000),
         ]:
             action.add_argument("--" + flag, type=int, default=default)
@@ -157,12 +157,15 @@ def parser():
     build.add_argument("--include-preparation", action="store_true")
     build.add_argument("--include-environmental-context", action="store_true")
     build.add_argument("--max-export-bytes", type=int, default=100_000_000)
+    from surfacesignal.delivery_cli import add_delivery_commands
+
+    add_delivery_commands(groups, publish)
     return root
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    settings = Settings(root=args.root) if args.root else Settings()
+    settings = Settings.from_root(args.root)
 
     def area(identifier):
         return next((a for a in load_areas(settings) if a.area_id == identifier), None)
@@ -185,7 +188,13 @@ def main(argv=None):
         selected_area = area(args.area) if hasattr(args, "area") else None
         if hasattr(args, "area") and selected_area is None and args.group != "history":
             raise ValueError("Area not found in configuration")
-        if args.group == "history":
+        if args.group in {"sources", "data"} or (
+            args.group == "publish" and args.command in {"compact", "full"}
+        ):
+            from surfacesignal.delivery_cli import run_delivery_command
+
+            result = run_delivery_command(settings, args)
+        elif args.group == "history":
             if args.command == "verify":
                 result = verify_history(settings, args.area)
                 print(json.dumps(result, indent=2, allow_nan=False))
@@ -401,7 +410,14 @@ def main(argv=None):
                     [s for s in load_scenes(settings) if s.area_id == args.area], event
                 )
             elif args.command == "download":
-                path = download(scene(args.scene_id), settings.root / "data/raw", args.max_gb)
+                path = download(
+                    scene(args.scene_id),
+                    settings.root / "data/raw",
+                    args.max_gb,
+                    token=settings.earthdata_token.get_secret_value()
+                    if settings.earthdata_token
+                    else None,
+                )
                 result = {"file": str(path)}
         elif args.group == "gcov":
             if args.command == "inspect":

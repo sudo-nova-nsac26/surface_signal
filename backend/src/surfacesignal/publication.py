@@ -90,17 +90,27 @@ def _rewrite(value):
     return value
 
 
-def _check_public(value, root):
+def _check_public(value, root, _resolved_root=None):
+    resolved_root = _resolved_root or str(Path(root).resolve())
     if isinstance(value, dict):
         for key, item in value.items():
-            if key.lower() in {"password", "token", "earthdata_token", "authorization", "netrc"}:
+            if key.lower() in {
+                "password",
+                "token",
+                "earthdata_token",
+                "authorization",
+                "netrc",
+                "source_path",
+                "local_path",
+                "raw_path",
+            }:
                 raise ValueError("Private field cannot be published")
-            _check_public(item, root)
+            _check_public(item, root, resolved_root)
     elif isinstance(value, list):
         for item in value:
-            _check_public(item, root)
+            _check_public(item, root, resolved_root)
     elif isinstance(value, str):
-        if str(Path(root).resolve()) in value:
+        if resolved_root in value or value.startswith(("/home/", "/Users/", "/tmp/")):
             raise ValueError("Local filesystem path cannot be published")
         if value.startswith(("http://", "https://")):
             url = urlsplit(value)

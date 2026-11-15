@@ -106,13 +106,26 @@ def import_dataset(settings, area_id, source_id, file, metadata, *, dry_run=Fals
         if len(rows) > budgets.max_records:
             raise ValueError("Environmental record budget exceeded")
         normalized["hydrology"] = normalize_hydrology(rows, dataset)
-    elif source_id == "gpm-imerg":
-        if dataset.parameters.get("run") not in {
-            "early",
-            "late",
-            "final",
-        } or not dataset.dataset_version.startswith("07"):
+    elif source_id in {"gpm-imerg", "chirps-v3"}:
+        if source_id == "gpm-imerg" and (
+            dataset.parameters.get("run")
+            not in {
+                "early",
+                "late",
+                "final",
+            }
+            or not dataset.dataset_version.startswith("07")
+        ):
             raise ValueError("IMERG requires run and V07 subversion")
+        if source_id == "chirps-v3" and (
+            dataset.dataset_version != "3.0"
+            or not dataset.parameters.get("daily_label_totals_only")
+            or dataset.parameters.get("run") != "final"
+            or dataset.native_unit != "mm"
+            or dataset.spatial_resolution_m is None
+            or not isinstance(dataset.parameters.get("temporal_semantics"), str)
+        ):
+            raise ValueError("CHIRPS v3 requires final daily label totals in mm")
         if not dataset.parameters.get("spatial_support"):
             raise ValueError("IMERG requires explicit AOI/pixel spatial support")
         if suffix != ".json":
@@ -133,8 +146,21 @@ def import_dataset(settings, area_id, source_id, file, metadata, *, dry_run=Fals
         from surfacesignal.context.temporal import accumulate_rainfall
 
         accumulate_rainfall(intervals, dataset.observed_end)
-        normalized["rainfall"] = [r.model_dump(mode="json") for r in intervals]
-    elif source_id in {"mapbiomas-water", "worldcover", "copernicus-dem"}:
+        if source_id == "chirps-v3":
+            if any(
+                r.unit != "mm"
+                or r.start.hour
+                or r.start.minute
+                or r.start.second
+                or r.start.microsecond
+                or (r.end - r.start).total_seconds() != 86400
+                for r in intervals
+            ):
+                raise ValueError("CHIRPS daily labels require complete UTC calendar dates")
+            normalized["daily_rainfall"] = [r.model_dump(mode="json") for r in intervals]
+        else:
+            normalized["rainfall"] = [r.model_dump(mode="json") for r in intervals]
+    elif source_id in {"mapbiomas-water", "jrc-gsw", "worldcover", "copernicus-dem"}:
         if suffix not in {".tif", ".tiff"}:
             raise ValueError("Expected local GeoTIFF crop")
         from surfacesignal.context.spatial import raster_summary

@@ -9,11 +9,12 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+import shapely
 from pyproj import CRS, Transformer
 from rasterio.features import geometry_window
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely import transform as shapely_transform
-from shapely.geometry import Polygon, mapping, shape
+from shapely.geometry import mapping, shape
 
 
 def transform(project, geometry):
@@ -87,11 +88,18 @@ def raster_summary(path, geometry, source_id, metadata, *, max_pixels=1_000_000)
             raise ValueError("Explicit water class mapping required")
         if kind == "frequency" and metadata.get("frequency_scale") not in {1, 100}:
             raise ValueError("Frequency scale must be explicitly 1 or 100")
+    if source_id == "jrc-gsw" and (
+        metadata.get("dataset_version") != "1.5"
+        or year != 2024
+        or metadata.get("product_kind") != "occurrence"
+        or metadata.get("frequency_scale") != 100
+    ):
+        raise ValueError("JRC GSW requires documented v1.5 occurrence 1984–2024")
     if source_id == "copernicus-dem" and (
         metadata.get("native_unit") != "m" or not metadata.get("vertical_datum")
     ):
         raise ValueError("DSM metre units and vertical datum required")
-    if source_id not in {"worldcover", "mapbiomas-water", "copernicus-dem", "gpm-imerg"}:
+    if source_id not in {"worldcover", "mapbiomas-water", "jrc-gsw", "copernicus-dem", "gpm-imerg"}:
         raise ValueError("Unsupported raster source")
     base = {
         "status": "unavailable",
@@ -123,17 +131,17 @@ def raster_summary(path, geometry, source_id, metadata, *, max_pixels=1_000_000)
         native_equal = Transformer.from_crs(src.crs, equal, always_xy=True).transform
         valid = ~np.ma.getmaskarray(data) & np.isfinite(data.data)
         areas = np.zeros(data.shape, dtype=float)
-        # Pixel intersections preserve fractional coverage at edges and differing CRSs.
-        for row, col in zip(*np.nonzero(valid), strict=True):
-            corners = [
-                (
-                    affine.a * (int(col) + dx) + affine.b * (int(row) + dy) + affine.c,
-                    affine.d * (int(col) + dx) + affine.e * (int(row) + dy) + affine.f,
-                )
-                for dx, dy in ((0, 0), (1, 0), (1, 1), (0, 1))
-            ]
-            pixel = transform(native_equal, Polygon(corners))
-            areas[row, col] = pixel.intersection(target).area
+        # Vectorized exact intersections retain edge fractions; bounded batches limit memory.
+        rows, cols = np.nonzero(valid)
+        for offset in range(0, len(rows), 8192):
+            r, c = rows[offset : offset + 8192], cols[offset : offset + 8192]
+            dx = np.array([0, 1, 1, 0])
+            dy = np.array([0, 0, 1, 1])
+            x = affine.a * (c[:, None] + dx) + affine.b * (r[:, None] + dy) + affine.c
+            y = affine.d * (c[:, None] + dx) + affine.e * (r[:, None] + dy) + affine.f
+            ex, ey = native_equal(x, y)
+            pixels = shapely.polygons(np.stack([ex, ey], axis=-1))
+            areas[r, c] = shapely.area(shapely.intersection(pixels, target))
         total = float(areas.sum())
         if total <= 0:
             return base
@@ -170,6 +178,21 @@ def raster_summary(path, geometry, source_id, metadata, *, max_pixels=1_000_000)
                     overlap_fraction=area / total,
                     denominator="valid contextual coverage within supplied polygon",
                 )
+        elif source_id == "jrc-gsw":
+            fraction = data.data[active] / 100
+            if np.any((fraction < 0) | (fraction > 1)):
+                raise ValueError("JRC occurrence outside documented 0..100 percentage scale")
+            result.update(
+                source_id="jrc-gsw",
+                collection="JRC Global Surface Water v1.5",
+                reference_start_year=1984,
+                reference_year=2024,
+                mean_frequency=float(np.sum(fraction * areas[active]) / total),
+                overlap_km2=None,
+                overlap_fraction=None,
+                limitations=result["limitations"]
+                + ["Long-term occurrence, not contemporary water extent."],
+            )
         elif source_id == "worldcover":
             classes = {
                 k: 0.0 for k in ("water", "tree_cover", "cropland", "built_up", "other", "unknown")

@@ -167,7 +167,14 @@ class _CorruptDownload(ValueError):
 
 
 def download(
-    scene: Scene, directory: Path, max_gb: float, *, session=None, sleep=time.sleep, progress=None
+    scene: Scene,
+    directory: Path,
+    max_gb: float,
+    *,
+    session=None,
+    sleep=time.sleep,
+    progress=None,
+    token=None,
 ) -> Path:
     if not math.isfinite(max_gb) or max_gb <= 0:
         raise ValueError("Download budget must be finite and positive")
@@ -198,7 +205,7 @@ def download(
     ):
         raise ValueError("Insufficient disk space with 512 MiB reserve")
     session = session or TimeoutSession()
-    token = os.getenv("EARTHDATA_TOKEN")
+    token = token or os.getenv("EARTHDATA_TOKEN")
     if token:
         try:
             session.auth_with_token(token)

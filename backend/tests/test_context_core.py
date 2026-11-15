@@ -336,3 +336,23 @@ def test_station_measurement_identity_is_independent_of_sar_acquisition(prepared
         first["environmental-context.json"]["hydrology"]["records"][0]["time_offset_hours"]
         != second["environmental-context.json"]["hydrology"]["records"][0]["time_offset_hours"]
     )
+
+
+def test_public_product_attribution_is_preserved_in_reports(prepared):
+    analysis, args, root = prepared
+    client_for(root, args[-1])
+    settings = Settings(root=root)
+    file, meta = inputs(root)
+    value = read_json(meta)
+    value["parameters"] = {
+        "attribution": "Synthetic provider credit",
+        "terms_url": "https://example.org/terms",
+    }
+    write_json(meta, value)
+    import_dataset(settings, "test", "ana-hidroweb", file, meta)
+    build_context(settings, analysis.analysis_id)
+    source = load_context(settings, analysis.analysis_id)["payloads"]["environmental-context.json"][
+        "sources"
+    ][0]
+    assert source["attribution"] == "Synthetic provider credit"
+    assert source["terms_url"] == "https://example.org/terms"

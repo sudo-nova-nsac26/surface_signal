@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0",
+  "published": false,
+  "manifest_url": null,
+  "note": "Owner approval is required before publishing a full snapshot release. The bundled compact snapshot works without this URL. Use --manifest for a verified local package or a public HTTPS manifest."
+}
