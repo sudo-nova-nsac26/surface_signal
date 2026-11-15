@@ -124,7 +124,32 @@ stepper (17 steps from the real catalog), logo/wordmark/header buttons.
 
 Also done: before/after control and layer switches (`ComparePanel`), on PR #6.
 
-Not done (in this order): landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, mobile and weak-phone checks,
+Outside the map (2026-11-14, owner asked): stronger hero ("A cheia do Taquari, vista do espaço", pass at 18h33 BRT,
+747 km, 2 h 34 min after the river bulletin; times from `scenes.json` / `analyses.json`), "How it works" in 4 steps
+with a drawing whose before/after line can be dragged (pointer + hidden range input for keyboard/screen reader),
+sticky section menu (`SectionNav`), new sections 04 "De onde vêm os dados" and 05 "Dúvidas" (FAQ), an
+"Em caso de cheia" block (tap-to-call 199/193, SMS 40199) that replaced the small notice, "Ouvir" read-aloud on
+every section (`ListenButton`, browser speech, one section at a time), WhatsApp share + copy link
+(`ShareButtons`), and "Sobre nós" (header + footer + section menu) linking to the team site (`src/links.ts`).
+
+Owner feedback on that round (2026-11-14, done): the "How it works" drawing is now a large night scene of the valley
+(real river, streets, roads and bridges of Lajeado/Estrela from OpenStreetMap, turned so Lajeado is on the left;
+regenerate with `frontend/scripts/build-valley-scene.mjs`, see its header; the flooded extent is only an illustration) across the full width, before/after as two stacked SVGs with a CSS
+`clip-path` on the "after" one; the 4 steps are a row below it and the chosen step is told in one panel (no long
+text column, no empty space). FAQ keeps only: why we made the site, how radar sees through clouds, plans to cover
+other regions/countries (yes: that is why the map starts on a globe), who made it. **Emergency numbers are NOT
+clickable** (owner: older people could call by accident) and all three cards share one colour. The section menu is
+centred on wide screens.
+
+Next round (2026-11-15, done): hero "Onde: Lajeado e região" and the lead mentions the flood's "diversos impactos e
+mudanças no planeta". The valley drawing shows, on the "after" side, water entering the low streets (an SVG mask
+around the river), houses on real streets hit by the water (amber outline), the bridges over the river white only
+over the water and broken after, a landslide on the hillside and a field covered in mud. At step 4 amber pins name
+these "possible impacts" (a preview of the globe layers). All of that is an illustration; the caption says so.
+The NISAR radar previews the owner showed are NOT in the repo yet: do not use them until they arrive on GitHub.
+Next topic agreed with the owner: simulate how the data will look on the globe/map.
+
+Not done (in this order): landmarks and "Onde estou", VLibras, mobile and weak-phone checks,
 anything that needs real data. Stepping the timeline does not change the map yet because no step has real shapes:
 expected, see the handoff doc.
 
@@ -186,7 +211,7 @@ code change (data comes through `src/data/source.ts`).
    georeferenced, so decide with the owner whether to show them at all.
 3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centres the map
    only, never sent anywhere).
-4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud (browser speech), WhatsApp share.
+4. **Accessibility extras:** VLibras (PT). ("Ouvir" read-aloud and WhatsApp share are done.)
 5. **Polish and checks:** phone-sized screens, high contrast, English, keyboard and screen reader on the new
    map controls and timeline, a real weak phone (the 40 fps threshold in `hardware.ts` is an estimate),
    the 2D fallback on a weak device.

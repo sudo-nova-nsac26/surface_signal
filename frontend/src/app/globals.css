@@ -678,6 +678,106 @@ body {
   transition: opacity 320ms ease-out;
 }
 
+/* Sections leave room for the sticky section menu when jumped to. */
+.section {
+  scroll-margin-top: 3.75rem;
+}
+
+.section-nav {
+  background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-contrast="high"] .section-nav {
+  background: var(--bg);
+  backdrop-filter: none;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* "How it works": the drawing with a line that can be dragged. */
+.how-pill {
+  position: absolute;
+  top: 0.75rem;
+  padding: 0.3rem 0.85rem;
+  border: 2px solid var(--scene-stroke);
+  border-radius: 999px;
+  background: var(--scene-town);
+  color: var(--scene-stroke);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.how-swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.3rem;
+  vertical-align: -0.1rem;
+  border-radius: 0.2rem;
+  background: repeating-linear-gradient(45deg, var(--water) 0 4px, var(--highlight) 4px 7px);
+}
+
+.how-line {
+  width: 3px;
+  background: var(--scene-town);
+  box-shadow: 0 0 0 1px var(--scene-stroke);
+}
+
+.how-handle {
+  display: flex;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--scene-stroke);
+  border-radius: 999px;
+  background: var(--scene-town);
+  color: var(--scene-stroke);
+  box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 0.45);
+}
+
+.how-handle-hint {
+  box-shadow:
+    0 0 0 0.4rem color-mix(in srgb, var(--highlight) 45%, transparent),
+    0 0.4rem 1.2rem rgb(0 0 0 / 0.45);
+}
+
+.how-wave {
+  animation: how-wave 1.8s ease-out infinite;
+  opacity: 0;
+}
+
+.how-wave-2 {
+  animation-delay: 0.3s;
+}
+
+.how-wave-3 {
+  animation-delay: 0.6s;
+}
+
+@keyframes how-wave {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+html[data-motion="reduce"] .how-wave {
+  opacity: 1;
+}
+
 /*
  * Motion is removed when the visitor turns it off, or when the device asks
  * for less and the visitor has not turned it back on. Both cases arrive here

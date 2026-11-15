@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Poppins } from "next/font/google";
 import { notFound } from "next/navigation";
+import { ExternalIcon, TeamIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/SiteHeader";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { TEAM_SITE_URL } from "@/links";
 import { preferencesBootScript } from "@/preferences/boot-script";
 import "../globals.css";
 
@@ -96,6 +98,17 @@ export default async function RootLayout({
                 {dict.footer.team}
               </h2>
               <p className="text-ink-soft">{dict.footer.teamBody}</p>
+              <a
+                href={TEAM_SITE_URL}
+                target="_blank"
+                rel="noopener"
+                className="tool-button mt-3"
+              >
+                <TeamIcon />
+                <span>{dict.about.cta}</span>
+                <ExternalIcon className="size-5" />
+                <span className="sr-only"> ({dict.about.newTab})</span>
+              </a>
             </div>
             <p className="text-ink-soft sm:col-span-3">{dict.footer.ai}</p>
           </div>

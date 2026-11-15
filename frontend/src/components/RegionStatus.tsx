@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AREA_LABELS, STORY_AREA_ID } from "@/data/area-labels";
 import { loadRegionView, type RegionView } from "@/data/region";
 import { listAreas } from "@/data/source";
@@ -46,12 +46,15 @@ export function RegionStatus({
   labels,
   badge,
   number,
+  action,
 }: {
   lang: Locale;
   labels: Labels;
   badge: string;
   /** Section number shown beside the title. */
   number?: string;
+  /** Shown at the end of the title row (the "Listen" button). */
+  action?: ReactNode;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -76,6 +79,7 @@ export function RegionStatus({
 
   return (
     <div aria-busy={state.status === "loading"}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
       <h2 id="region-title" className="flex items-baseline gap-4">
         {number && (
           <span
@@ -89,6 +93,8 @@ export function RegionStatus({
           {labels.title}
         </span>
       </h2>
+      {action}
+      </div>
 
       <div className="mt-8 rounded-3xl border border-line bg-surface p-6 hc:border-2">
       {state.status === "loading" && (
