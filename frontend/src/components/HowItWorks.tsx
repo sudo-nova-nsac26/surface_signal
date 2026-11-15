@@ -168,7 +168,7 @@ function Landscape({
         <rect y="120" width="1200" height="380" fill={`url(#land-${id})`} />
 
         {/* Fields: after the flood the first one is covered in mud. */}
-        {VALLEY.fields.map(([x, y, w, h], index) => (
+        {VALLEY.fields.slice(0, 1).map(([x, y, w, h], index) => (
           <rect
             key={`${x}-${y}`}
             x={x}
@@ -226,61 +226,20 @@ function Landscape({
           </g>
         )}
 
-        {/* A hill seen from above: darker ground and contour lines (about
-            1 drawing unit = 8.5 m, a house dot = 5 units). */}
-        <path
-          d="M628 186 C640 160 690 150 730 156 C772 162 792 186 784 210 C776 236 736 246 700 244 C664 242 636 228 630 210 C627 200 626 192 628 186 Z"
-          fill="var(--scene-hill)"
-          opacity="0.75"
-        />
-        <g fill="none" stroke="var(--scene-town)" strokeLinecap="round" opacity="0.2">
-          <path d="M644 192 C654 170 700 162 734 168 C764 174 776 194 768 212 C758 230 722 236 694 234 C664 232 646 220 644 206 Z" strokeWidth="1.2" />
-          <path d="M664 192 C672 178 704 172 728 178 C750 184 756 198 750 210 C742 222 716 226 696 224 C676 222 664 212 664 200 Z" strokeWidth="1.2" />
-          <path d="M684 192 C690 184 708 182 722 186 C734 190 736 200 730 206 C722 212 706 214 694 210 C684 206 682 198 684 192 Z" strokeWidth="1.2" />
-        </g>
-
-        {/* After the rain: the hillside gave way. A bare head at the top, a
-            track of exposed soil and a lobe of mud that reached the houses. */}
+        {/* After the rain: two scars where soil slid down a slope outside town.
+            Each has a bare head at the top, a narrow track and a fan of mud. */}
         {flooded && (
-          <g>
-            <defs>
-              <linearGradient id="slide-soil" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="var(--slopes)" stopOpacity="1" />
-                <stop offset="1" stopColor="var(--slopes)" stopOpacity="0.62" />
-              </linearGradient>
-            </defs>
-            {/* Main slide. */}
-            <path
-              d="M674 174 C682 162 702 158 718 166 C726 171 724 181 717 189 C709 198 703 206 704 216 C705 226 716 231 724 241 C731 250 724 260 712 261 C704 266 692 270 680 264 C668 262 656 254 660 244 C664 236 674 230 678 220 C682 210 680 200 676 192 C672 186 670 180 674 174 Z"
-              fill="url(#slide-soil)"
-            />
-            {/* Lines of the flow, then the mud spreading at the foot. */}
-            <g fill="none" stroke="var(--scene-stroke)" strokeLinecap="round" opacity="0.3" strokeWidth="1.2">
-              <path d="M690 172 C692 186 690 198 690 210 C690 224 680 238 674 252" />
-              <path d="M704 168 C706 182 698 196 696 210 C694 226 702 242 708 256" />
+          <g transform="translate(245 -4)">
+            <g fill="var(--slopes)" opacity="0.5">
+              <ellipse cx="676" cy="220" rx="11" ry="5" transform="rotate(-18 676 220)" />
+              <ellipse cx="712" cy="226" rx="13" ry="6" transform="rotate(-10 712 226)" />
             </g>
-            <g fill="var(--slopes)" opacity="0.45">
-              <ellipse cx="664" cy="262" rx="10" ry="5" transform="rotate(25 664 262)" />
-              <ellipse cx="692" cy="270" rx="12" ry="5" />
-              <ellipse cx="722" cy="262" rx="10" ry="4.5" transform="rotate(-25 722 262)" />
+            <g fill="var(--slopes)" opacity="0.85">
+              <path d="M684 175 C690 171 698 173 700 178 C700 186 694 194 690 202 C686 210 690 216 682 220 C674 224 668 218 672 212 C676 204 680 196 682 188 C683 182 680 178 684 175 Z" />
+              <path d="M716 172 C723 168 732 171 732 177 C730 186 724 194 722 204 C720 212 726 218 718 224 C709 230 702 222 707 215 C712 207 714 196 714 186 C714 179 711 175 716 172 Z" />
             </g>
-            {/* The scarp: shadow below a bright rim, so the head reads as a drop. */}
-            <path d="M674 174 C682 162 702 158 718 166" fill="none" stroke="var(--scene-town)" strokeWidth="1.4" opacity="0.6" />
-            <path d="M677 176 C685 166 702 163 716 169" fill="none" stroke="var(--scene-stroke)" strokeWidth="3" opacity="0.7" />
-            {/* Rocks carried by the mud. */}
-            <g fill="var(--scene-town)" stroke="var(--scene-stroke)" strokeWidth="0.8" opacity="0.75">
-              <circle cx="696" cy="230" r="2.2" />
-              <circle cx="684" cy="242" r="1.8" />
-              <circle cx="708" cy="246" r="2.4" />
-              <circle cx="676" cy="252" r="1.6" />
-              <circle cx="718" cy="238" r="1.6" />
-            </g>
-            {/* Houses at the foot of the slope, reached by the mud. */}
-            <g fill="var(--scene-town)" fillOpacity="0.45" stroke="var(--highlight)" strokeWidth="1.4">
-              <rect x="668" y="262" width="6" height="6" rx="1" />
-              <rect x="688" y="266" width="6" height="6" rx="1" />
-              <rect x="708" y="262" width="6" height="6" rx="1" />
-            </g>
+            <path d="M690 180 C688 192 682 204 677 214 M723 177 C721 190 718 204 713 218" fill="none" stroke="var(--scene-town)" strokeWidth="1" opacity="0.3" strokeLinecap="round" />
+            <path d="M683 176 Q691 169 700 177 M715 173 Q724 166 733 176" fill="none" stroke="var(--scene-stroke)" strokeWidth="1.8" strokeLinecap="round" />
           </g>
         )}
 
@@ -324,7 +283,7 @@ function Landscape({
           <Pin x={spots.houses[0]} y={spots.houses[1]} dy={44} text={impacts.houses} />
           <Pin x={spots.streets[0]} y={spots.streets[1]} dy={44} text={impacts.streets} />
           <Pin x={spots.bridge[0]} y={spots.bridge[1]} dx={110} dy={-22} text={impacts.bridge} />
-          <Pin x={712} y={200} dx={96} dy={-26} text={impacts.landslide} />
+          <Pin x={963} y={192} dx={-6} dy={-50} text={impacts.landslide} />
           <Pin x={spots.crops[0]} y={spots.crops[1]} dx={-50} dy={34} text={impacts.crops} />
         </g>
       )}
