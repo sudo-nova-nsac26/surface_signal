@@ -25,6 +25,9 @@ when you finish or change something listed here, update this file in the same ch
 
 > **Taking over?** Read [`docs/frontend-handoff.md`](docs/frontend-handoff.md) after this file: current state,
 > decisions already made, pitfalls, how to test, and the ordered next tasks (written 2026-11-14 at a hand-off).
+> **Then read [`docs/frontend-data-integration-plan.md`](docs/frontend-data-integration-plan.md)**: the map now
+> reads the real backend results; it says what is done, what was decided, what is left and in which order
+> (written 2026-11-15, branch `feature/frontend-data-integration`).
 
 ## What we are building
 
@@ -224,6 +227,10 @@ through `clean-dem.ts` (MapLibre protocol `cleandem://`) which replaces points t
 their 5x5 neighbours by more than 120 m, only for zoom 10 to 13, up to 3 passes, and falls back to the original
 tile if anything fails. Testing note: a hidden Browser pane freezes map animations and transitions (the map
 looks stuck in its intro); show the pane (`show_pane` preview) before judging motion.
+
+Last round (2026-11-15, done): the explanation topics ("Entender esta comparação", "Outras camadas", "Detalhes
+técnicos") open **inside the left card, below each button** (an accordion that scrolls), not in a box over the
+map (`InfoAccordion` in `ComparisonInfo.tsx`; the card widens a little while one is open).
 
 Details round (2026-11-15, done): the FAQ answer "Por que fizemos este site?" now states the challenge (show the
 changes a satellite sees on a region's surface in a simple way anyone can understand). Cards were renamed again:
