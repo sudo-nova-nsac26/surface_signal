@@ -41,3 +41,11 @@ Flooded vegetation and urban double-bounce can INCREASE return and are missed by
 Wind can brighten water. Provisional calibration, residual terrain, soil moisture and
 acquisition/event offsets limit interpretation. No probability, accuracy or operational alert
 is derived from these thresholds. `validation_status=not_validated` is intentional.
+
+## General signal observations — MVP 2026-11-15
+
+The water method above is preserved. A separate `general-radar-change-v1` uses the already
+masked delta GeoTIFF to classify increases >=+3 dB and decreases <=−3 dB. Both thresholds
+are inclusive heuristic choices, with independently filtered four-neighbor components >=9
+pixels. It does not infer any environmental class. See [full method and accounting](general-change-analysis.md).
+Observation → detection → environmental hypothesis → independent validation remain distinct.

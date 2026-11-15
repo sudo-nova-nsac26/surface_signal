@@ -14,3 +14,13 @@
 - SGB context is qualitative; no numeric levels invented. Historical maps cannot label 2026.
 - Rulesets blocked by current private repository plan; templates and manual PR review are not
   equivalent to enforced protections. Code license and public visibility remain unapproved.
+
+## Backend MVP — 2026-11-15
+
+General increase/decrease maps are exploratory signal observations. No ground-motion, soil
+moisture retrieval, deforestation or urban damage map is produced. Small components discarded
+by filtering are counted explicitly. “Unchanged” means no retained change under these settings,
+not an invariant surface. Regional histories do not sum overlapping area or mix ascending and
+descending geometries into a continuous quantitative trend. Real processing completion and
+verified hashes are not scientific validation. The static package must be installed separately
+on another machine; runtime Python is unnecessary in static mode.

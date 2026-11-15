@@ -130,3 +130,15 @@ Judging criteria: Impact, Creativity, Validity, Relevance, Presentation. Project
 <= 7 slides or <= 30 s video, linked publicly. At least one NASA dataset must be used (NISAR via ASF counts). AI use
 is allowed but must be declared; generated images need a visible watermark and may not use NASA branding. No images
 or voices of people under 18. Content submitted must be open source (OSI licence; Apache-2.0 if none is chosen).
+
+## Backend MVP handoff — 2026-11-15
+
+The backend now prepares all 17 real comparisons from the existing 19-scene history.
+No map, timeline, comparison panel or visual component was rebuilt. Existing `source.ts`
+continues to support API and static modes with the original Analysis fields and water artifact.
+Install the full external static bundle at `public/data/api/v1` or configure
+`NEXT_PUBLIC_API_BASE_URL`. The old synthetic snapshot is preserved under `public/data/demo/api/v1`.
+New general layers, statistics, PT/EN stories, regional overview and timeline are ready for
+future UI wiring using the documented endpoints; the existing visual layer controls still
+reflect their earlier water-focused implementation. Do not imply that general layers have
+already been wired into those controls. See static-publication.md and backend-mvp.md.

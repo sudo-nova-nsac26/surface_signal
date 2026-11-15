@@ -7,7 +7,12 @@ See [prototype provenance](docs/prototype-provenance.md).
 SurfaceSignal investigates changes in NASA/ISRO NISAR L2 GCOV radar backscatter around
 Lajeado/Estrela, Brazil. It catalogs comparable acquisitions, crops HDF5 on a bounded AOI,
 compares gamma0 power in dB, exports candidate polygons and explains evidence and limits.
-A candidate is **not a confirmed flood**. There is no frontend, chatbot or HTTP processing queue.
+A candidate is **not a confirmed flood**. The frontend uses **Next.js**, TypeScript and MapLibre; there is no chatbot or HTTP processing queue.
+
+**SurfaceSignal — Making Earth's changes understandable.** MVP 0.2.0 adds general signal
+increases/decreases, bilingual deterministic explanations, regional timelines and static publication.
+See [backend MVP delivery](docs/backend-mvp.md), [static publication](docs/static-publication.md)
+and [deployment](docs/backend-deployment.md).
 
 ## What is verified
 
@@ -15,9 +20,11 @@ A candidate is **not a confirmed flood**. There is no frontend, chatbot or HTTP 
   2026-10-19 (query window through 2026-10-31), with the configured 5 km pilot AOI. Snapshot and query are in
   [docs/evidence/asf-catalog.json](docs/evidence/asf-catalog.json).
 - Mathematical/geospatial processing, deterministic exports and offline API are tested with
-  explicitly synthetic HDF5. No actual GCOV measurement has been processed in this execution.
-- HDF5 access blocked: July 23 product HEAD returned **403**; this environment has neither
-  Earthdata token nor .netrc. No bulk download was attempted. See [execution evidence](docs/real-data-execution.md).
+  explicitly synthetic HDF5. Subsequent local execution processed 19 real scenes and 17 comparisons;
+  the dated original access-blocker history remains in the execution document.
+- The initial HDF5 access attempt was blocked (403). A later local run completed the retained
+  19-scene history. Integrity verification is not independent scientific validation. See
+  [dated execution evidence](docs/real-data-execution.md).
 - SGB July 23, 16:00 Brasília bulletin is integrated as qualitative context. Numeric river
   levels remain null because the reviewed article does not supply station readings.
 - GitHub `main` and `develop` rulesets: **BLOCKED_BY_PLAN** (403); JSON files are templates only.
@@ -155,7 +162,7 @@ backend/src/surfacesignal/
   providers/   ASF discovery/download, hydrology CSV, source inventory
   processing/  bounded GCOV reader, temporal comparison, evidence/artifact export
 backend/tests/ synthetic mathematical, geospatial, provider, CLI and API tests
-frontend/      frontend integration guide and public configuration example
+frontend/      Next.js application with MapLibre, PT/EN and API/static data adapter
 config/        documented pilot AOI and sourced hydrology context
 .github/       CI, draft PR template, unapplied ruleset templates
 docs/          method, provenance, reproducibility, limitations and submission gates
@@ -174,9 +181,16 @@ boundary or flood extent**; IBGE retrieval failed with 503 and that limitation i
 [Repository controls](docs/repository-setup.md) · [Submission checklist](docs/submission-checklist.md)
 
 Code licensing remains **pending owner authorization**; no open-source license is granted
-by this project. Repository visibility remains private. Dataset and dependency terms are
+by this project. Repository visibility is not changed by this work. Dataset and dependency terms are
 independent of the code license. No merge or public release is performed.
 
 Original foundation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
 clean. See [review fixes and acceptance status](docs/implementation-status.md) and
 [GitHub Actions](https://github.com/matbforge/nsac26-dancing-with-the-sars/actions/workflows/backend-ci.yml).
+
+## Next.js frontend
+
+From `frontend/`, run `npm ci` and `npm run dev` (port 3000). Install the prepared static
+bundle first, or set `NEXT_PUBLIC_API_BASE_URL` for API mode. No visual components were rebuilt
+in the backend MVP. Code assistance by OpenAI Codex is disclosed; runtime interpretation is
+deterministic Python rules, without a generative model.
