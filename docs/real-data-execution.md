@@ -1,4 +1,10 @@
-# Real data execution and precise blockers
+# NISAR real-data acquisition, processing and verification
+
+**Current status:** 19 authentic provisional HDF5 acquisitions were downloaded and retained (131,386,572,800 bytes), with 17 completed compatible temporal comparisons. The initial access test below documents a resolved local authentication obstacle; it is not the status of the published project. A complete batch does **not** imply field validation.
+
+The up-to-date instructions for creating an account, using private credentials, performing an authenticated full run and verifying HDF5 are in **[Earthdata access and download](earthdata-access.md)**. This document retains the original acquisition evidence, including a resolved early access error.
+
+## Initial catalog/access check (historical processing step)
 
 Python 3.12; asf-search 14.1.0. Available disk at initial check: 59 GiB.
 
@@ -22,7 +28,7 @@ NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P0502
 NISAR_L2_PR_GCOV_028_053_D_103_4005_DHDH_A_20260816T213349_20260816T213424_P05023_N_F_J_001
 ```
 
-Stage blocked: authenticated HDF5 access. An unauthenticated HEAD of the July 23 catalog URL
+At this initial acquisition check, authenticated HDF5 access was blocked. An unauthenticated HEAD of the July 23 catalog URL
 returned **HTTP 403 Forbidden**. EARTHDATA_TOKEN was absent and ~/.netrc did not exist. No
 credentials were sought in unrelated files. No HDF5 bytes were downloaded, no actual bands
 inspected, no measured radar change or inundation area claimed. Catalog main-band HH/HV
@@ -34,7 +40,7 @@ known size, per-file budget, disk reserve, partial-file cleanup, HDF5 signature 
 SHA256 receipt. No remote range-crop guarantee is made. Provider checksum was unavailable;
 local SHA256 supports reproducibility, not independent verification against a provider hash.
 
-Next execution: configure your own Earthdata .netrc/token locally, run the README download,
+For a fresh reproduction, configure your own Earthdata .netrc/token locally, run the README download,
 inspect and analyze commands, then review actual channels/masks/quality. Investigate September
 only if the July comparison is inconclusive. No unsupported claim that either event must appear.
 
@@ -175,7 +181,7 @@ and receipts on the processing disk, including unpaired/preexisting files. Git d
 code and catalog metadata; generated archives and credentials stay ignored. Do not commit
 tokens, `.netrc`, raw HDF5 or private observations.
 
-## Completed local execution and MVP enrichment — 2026-11-15
+## Completed local execution and derived analysis — 2026-11-15
 
 This entry supersedes the earlier access blocker for this development machine without deleting
 its history. Local inventory: 19 retained real HDF5, 131,386,572,800 bytes; 10 descending
@@ -183,4 +189,4 @@ track53/frame103 observations and 9 ascending track103/frame163 observations; 17
 consecutive comparisons. Report remains `data/history/vale-do-taquari/report.json`.
 All 17 existing delta TIFFs were enriched by `derive build` without raw reprocessing or download.
 The snapshot exports 19 scenes and 17 analyses. Exact verification and package measurements
-are recorded in backend-mvp.md. Neither execution nor integrity establishes scientific validation.
+are recorded in [public-data-delivery-report.md](public-data-delivery-report.md) and [snapshot-delivery.md](snapshot-delivery.md). Neither execution nor integrity establishes scientific validation.

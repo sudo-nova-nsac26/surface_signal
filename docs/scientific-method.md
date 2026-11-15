@@ -42,7 +42,7 @@ Wind can brighten water. Provisional calibration, residual terrain, soil moistur
 acquisition/event offsets limit interpretation. No probability, accuracy or operational alert
 is derived from these thresholds. `validation_status=not_validated` is intentional.
 
-## General signal observations — MVP 2026-11-15
+## General signal observations
 
 The water method above is preserved. A separate `general-radar-change-v1` uses the already
 masked delta GeoTIFF to classify increases >=+3 dB and decreases <=−3 dB. Both thresholds
@@ -53,8 +53,7 @@ Observation → detection → environmental hypothesis → independent validatio
 ## Environmental context — 2026-11-15
 
 Environmental enrichment is separate from SAR processing and has its own input
-hashes, parameters and immutable outputs. Rainfall integrates valid time intervals
-ending at acquisitions; river levels remain station/datum specific. Historical
+hashes, parameters and immutable outputs. CHIRPS v3 rainfall estimates aggregate preceding complete UTC date labels, not hourly intervals ending exactly at acquisition; river bulletins remain qualitative and station/datum-specific. Historical
 water/land-cover and surface elevation are contextual descriptions with valid-data
 coverage, not event classifications. Reference agreement requires qualified temporal
 and spatial coverage. See [environmental integration](environmental-data-integration.md).

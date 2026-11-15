@@ -81,6 +81,19 @@ export async function validateStaticExport(directory, { requiredRoutes = true } 
     if (!entry.includes('href="/pt/"') || !entry.includes('href="/en/"') || !entry.includes("<noscript>")) {
       throw new Error("Static entry must include PT/EN links and a no-script explanation");
     }
+    // SEO and factual GEO checks run on the actual static export.
+    for (const name of ["robots.txt", "sitemap.xml", "llms.txt"]) await access(path.join(root, name));
+    const robots = await readFile(path.join(root, "robots.txt"), "utf8");
+    const sitemap = await readFile(path.join(root, "sitemap.xml"), "utf8");
+    const llms = await readFile(path.join(root, "llms.txt"), "utf8");
+    if (!robots.includes("https://surfacesignal.earth/sitemap.xml")) throw new Error("Wrong canonical sitemap host");
+    for (const locale of ["pt", "en"]) {
+      if (!sitemap.includes("https://surfacesignal.earth/" + locale + "/")) throw new Error("Missing sitemap locale");
+      const page = await readFile(path.join(root, locale, "index.html"), "utf8");
+      if (!page.includes("https://surfacesignal.earth/" + locale + "/")) throw new Error("Missing localized canonical URL");
+      if (page.includes("creativecommons.org/publicdomain/zero/1.0")) throw new Error("Unsupported CC0 dataset license claim");
+    }
+    if (!llms.includes("19 acquisitions") || !llms.includes("17 comparisons")) throw new Error("Incomplete AI-readable project facts");
     await validateCompactSnapshot(path.join(root, "data/compact/api/v1"));
   }
   return { files, bytes, largest };

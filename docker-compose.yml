@@ -12,6 +12,8 @@ services:
       - ./data:/app/data:ro
       - ./artifacts:/app/artifacts:ro
       - ./config:/app/config:ro
+      # Include the public preprocessed snapshot for API use on a fresh clone.
+      - ./frontend/public/data/compact:/app/frontend/public/data/compact:ro
     read_only: true
     tmpfs:
       - /tmp

@@ -1,4 +1,6 @@
-# Backend deployment — MVP 0.2.0
+# Optional FastAPI deployment — prepared-data reader
+
+The published [SurfaceSignal site](https://surfacesignal.earth/) is a static Next.js export and **does not require this service**. Run FastAPI only for local HTTP integration, source inspection or separately installed prepared scientific catalogs.
 
 Python 3.12 and uv are required. From repository root:
 
@@ -21,13 +23,12 @@ Use the exact deployed frontend origin in production, without wildcard credentia
 are denied by default; only GET is allowed. There are no uploads, accounts or processing routes.
 Keep `.env`, `.netrc`, raw data and tokens outside publicly served paths.
 
-Existing Docker support mounts configuration/prepared data read-only and runs as non-root.
+Docker Compose mounts `frontend/public/data/compact/` read-only alongside configuration/prepared data, so a clean clone can answer the same public API queries without scientific HDF5 files. The container runs as non-root.
 Metadata reads are cached using file modification time/size; bounded derived caches verify
 small artifacts. Requests do not hash raw files. Artifact responses provide ETags and require
 revalidation because the active derivation can change. Serve a content-addressed publication
 package with immutable CDN caching only when its URL cannot be reused for another build.
 
-The filesystem MVP is intended for modest prepared catalogs. Listing scans metadata file
+The filesystem-backed API is intended for modest prepared catalogs. Listing scans metadata file
 inventories; no database, distributed processing or arbitrary-size catalog scalability is claimed.
-Run CLI writers serially. Install behind HTTPS/reverse proxy for network deployment; no public
-hosting, visibility change or release is performed by this task.
+Run CLI writers serially. If separately exposing the API, add HTTPS/reverse proxy, threat-model review, authentication/rate limiting and narrow CORS. Deploying the static website alone requires none of these additional API services.

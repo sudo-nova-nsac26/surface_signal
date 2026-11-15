@@ -1,7 +1,6 @@
 # Static public frontend on Cloudflare Pages
 
-Prepared 2026-11-15. This is configuration and local verification guidance; no
-deployment, push, licence change or competition clearance is implied.
+The official site is **https://surfacesignal.earth/**. This guide describes its static build settings and explains how to reproduce a compatible deployment. Development or publishing code does not automatically authorize redistributing third-party scientific datasets.
 
 ## Public build
 
@@ -47,9 +46,7 @@ Use the Cloudflare Pages static Next.js preset (or no framework preset) with:
 
 An equivalent repository-root build is `cd frontend && npm ci && npm run build`,
 with output `frontend/out`. Do not use a Workers adapter, `next start`, or a
-blanket SPA rewrite. The exported 404 should remain a real 404. Keep the feature
-branch as a preview until the owner authorizes publication and any required GO
-Team clearance exists. Pushes still require owner permission.
+blanket SPA rewrite. The exported 404 should remain a real 404. Use a preview branch for configuration changes and review them before merging into the deployment branch. The deployed static site does not need the optional local FastAPI service.
 
 The [Pages build image guide](https://developers.cloudflare.com/pages/configuration/build-image/)
 documents `.node-version` and the optional `NODE_VERSION` override; set the latter
@@ -84,8 +81,7 @@ Two explicit alternatives remain available at **build time**:
   public frontend build.
 - `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` retains optional API mode.
   Set backend CORS appropriately when testing. This address is embedded in
-  browser JavaScript, so it must be public, contain no credentials/query/fragment,
-  and must never contain a token. Leave it unset for the public static site.
+  browser JavaScript, so it must be reachable **from the user's browser** (loopback is only usable for local development), contain no credentials/query/fragment, and must never contain a token. Leave it unset for the public static site.
 
 Next copies the entire `public` directory, including ignored local packages.
 The final build step removes `out/data/api` in default compact mode and removes

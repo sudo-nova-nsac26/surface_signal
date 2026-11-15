@@ -1,4 +1,8 @@
-# Static publication — 2026-11-15
+# Prepared-data publication (full scientific exports and compact web snapshot)
+
+**Public default:** the repository already contains the compact real-data snapshot in `frontend/public/data/compact/api/v1/` (19 scene records and 17 comparisons). The public site does not execute the following CLI commands. The full-resolution scientific export is a separate, optional, prepared dataset; compact geometry is for visualization only. See [snapshot delivery](snapshot-delivery.md).
+
+## Advanced: build original scientific vectors for publication
 
 From repository root (no Earthdata, HDF5 access, or network required):
 
@@ -53,7 +57,7 @@ The full real snapshot is generated locally and distributed as an external bundl
 its large vectors to Git. On another computer install the bundle at `frontend/public/data/api/v1`
 before building Next.js, or set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for API mode.
 No variable means static mode. The full static bundle works without Python running.
-See `backend-mvp.md` for the measured package size and local delivery location.
+See [public-data delivery measurements](public-data-delivery-report.md) and [snapshot verification](snapshot-delivery.md) for validated file counts, SHA256 and publication constraints.
 
 ## Optional preparation reports — 2026-11-15
 
