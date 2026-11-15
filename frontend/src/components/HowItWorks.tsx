@@ -226,6 +226,29 @@ function Landscape({
           </g>
         )}
 
+        {/* A hillside (contour lines) where ground slid down after the rain. */}
+        <g fill="none" stroke="var(--scene-town)" strokeWidth="1.2" opacity="0.22">
+          <path d="M640 176 C670 160 730 162 760 184" />
+          <path d="M630 196 C668 176 744 180 776 206" />
+          <path d="M624 218 C664 198 756 202 790 230" />
+        </g>
+        {flooded && (
+          <g>
+            <path
+              d="M688 172 C700 168 712 174 716 186 C724 202 746 210 750 228 C754 246 732 256 710 250 C688 244 674 228 678 210 C680 196 676 182 688 172 Z"
+              fill="var(--slopes)"
+              opacity="0.9"
+            />
+            <path d="M684 174 C694 164 710 166 720 180" fill="none" stroke="var(--scene-stroke)" strokeWidth="3" opacity="0.55" strokeLinecap="round" />
+            <path d="M700 190 C704 206 712 222 722 238 M712 186 C722 200 732 212 738 228" fill="none" stroke="var(--scene-stroke)" strokeWidth="1.6" opacity="0.35" strokeLinecap="round" />
+            <g fill="var(--slopes)">
+              <circle cx="696" cy="256" r="3" />
+              <circle cx="728" cy="260" r="2.5" />
+              <circle cx="752" cy="248" r="2" />
+            </g>
+          </g>
+        )}
+
         {/* The river inside its banks. */}
         <g fill="var(--water)" stroke="var(--water)" strokeWidth="3" strokeLinejoin="round">
           {VALLEY.rivers.map((d) => (
@@ -258,23 +281,6 @@ function Landscape({
         )}
       </g>
 
-      {/* Ground that slid down the hillside. */}
-      {flooded && (
-        <g>
-          <path
-            d="M786 112 C792 128 806 146 836 176 C812 184 770 184 744 176 C764 158 778 132 786 112 Z"
-            fill="var(--slopes)"
-            opacity="0.8"
-          />
-          <path d="M786 120 C784 140 774 158 766 174 M790 128 C796 148 806 162 816 176" fill="none" stroke="var(--scene-stroke)" strokeWidth="2" opacity="0.35" />
-          <g fill="var(--slopes)">
-            <circle cx="758" cy="182" r="3" />
-            <circle cx="806" cy="186" r="2.5" />
-            <circle cx="828" cy="182" r="2" />
-          </g>
-        </g>
-      )}
-
       <TownLabel x={VALLEY.lajeado[0]} y={VALLEY.lajeado[1] - 46} text="Lajeado" />
       <TownLabel x={VALLEY.estrela[0]} y={VALLEY.estrela[1] - 46} text="Estrela" />
 
@@ -283,11 +289,23 @@ function Landscape({
           <Pin x={spots.houses[0]} y={spots.houses[1]} dy={44} text={impacts.houses} />
           <Pin x={spots.streets[0]} y={spots.streets[1]} dy={44} text={impacts.streets} />
           <Pin x={spots.bridge[0]} y={spots.bridge[1]} dx={110} dy={-22} text={impacts.bridge} />
-          <Pin x={788} y={150} dx={-40} dy={-50} text={impacts.landslide} />
+          <Pin x={714} y={214} dx={-10} dy={-58} text={impacts.landslide} />
           <Pin x={spots.crops[0]} y={spots.crops[1]} dx={-50} dy={34} text={impacts.crops} />
         </g>
       )}
     </svg>
+  );
+}
+
+/** A soft cloud: a flat base with three puffs on top. */
+function Cloud({ x, y, size }: { x: number; y: number; size: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${size})`}>
+      <rect x="-70" y="-6" width="140" height="22" rx="11" />
+      <circle cx="-34" cy="-6" r="20" />
+      <circle cx="4" cy="-16" r="28" />
+      <circle cx="40" cy="-4" r="18" />
+    </g>
   );
 }
 
@@ -328,16 +346,16 @@ function Sky({ step, still }: { step: number; still: boolean }) {
       </g>
 
       <g className="scene-layer" style={show(1)}>
-        <g fill="var(--scene-town)" opacity="0.55">
-          <ellipse cx="470" cy="180" rx="96" ry="24" />
-          <ellipse cx="530" cy="164" rx="64" ry="22" />
-          <ellipse cx="760" cy="196" rx="104" ry="24" />
-          <ellipse cx="820" cy="180" rx="56" ry="18" />
+        {/* Night clouds the radar goes straight through. */}
+        <g fill="var(--scene-town)" opacity="0.32">
+          <Cloud x={600} y={150} size={1.25} />
+          <Cloud x={360} y={130} size={0.8} />
+          <Cloud x={850} y={138} size={0.9} />
         </g>
         <g fill="none" stroke="var(--highlight)" strokeWidth="5" strokeLinecap="round">
-          <path className="how-wave" d="M554 136 Q600 160 646 136" />
-          <path className="how-wave how-wave-2" d="M530 200 Q600 236 670 200" />
-          <path className="how-wave how-wave-3" d="M506 264 Q600 310 694 264" />
+          <path className="how-wave" d="M560 126 Q600 146 640 126" />
+          <path className="how-wave how-wave-2" d="M536 180 Q600 212 664 180" />
+          <path className="how-wave how-wave-3" d="M512 240 Q600 282 688 240" />
         </g>
       </g>
     </svg>
