@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "surfacesignal"
-version = "0.1.1"
+version = "0.2.0"
 description = "Exploratory NISAR GCOV change-analysis backend"
 requires-python = ">=3.12,<3.13"
 dependencies = ["fastapi", "pydantic-settings", "uvicorn", "numpy", "h5py", "rasterio", "pyproj", "shapely", "scipy", "pillow", "httpx", "asf-search"]

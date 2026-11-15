@@ -7,17 +7,73 @@ See [prototype provenance](docs/prototype-provenance.md).
 SurfaceSignal investigates changes in NASA/ISRO NISAR L2 GCOV radar backscatter around
 Lajeado/Estrela, Brazil. It catalogs comparable acquisitions, crops HDF5 on a bounded AOI,
 compares gamma0 power in dB, exports candidate polygons and explains evidence and limits.
-A candidate is **not a confirmed flood**. There is no frontend, chatbot or HTTP processing queue.
+A candidate is **not a confirmed flood**. The frontend uses **Next.js**, TypeScript and MapLibre; there is no chatbot or HTTP processing queue.
+
+**SurfaceSignal — Making Earth's changes understandable.** MVP 0.2.0 adds general signal
+increases/decreases, bilingual deterministic explanations, regional timelines and static publication.
+See [backend MVP delivery](docs/backend-mvp.md), [static publication](docs/static-publication.md)
+and [deployment](docs/backend-deployment.md).
+
+## Public static mode and developer quick start — 2026-11-15
+
+The default frontend reads the compact real snapshot committed under
+`frontend/public/data/compact/api/v1`. It needs no Python server, credentials or
+scientific dataset download. All 17 published comparisons remain selectable.
+
+```sh
+cd frontend
+npm ci
+npm run dev
+# Build static HTML/assets in out/ and check Cloudflare Pages limits:
+npm run build
+npm start
+```
+
+Use `/pt/` or `/en/`. The root page selects a browser language and also provides
+visible links. The public deployment is a static Cloudflare Pages site. Data is
+prepared in advance; source outages do not affect the published analysis snapshot.
+The basemap still uses external map tiles; it is not an offline map-tile bundle.
+
+Optional developer operations (repository root, Python3.12):
+
+```sh
+uv sync --project backend --frozen --extra dev
+uv run --project backend surfacesignal sources check
+uv run --project backend surfacesignal sources fetch --area vale-do-taquari
+uv run --project backend surfacesignal context build --area vale-do-taquari
+uv run --project backend surfacesignal publish compact --area vale-do-taquari
+uv run --project backend surfacesignal publish full --area vale-do-taquari
+uv run --project backend surfacesignal data fetch-snapshot --help
+```
+
+Public sources use no credentials. Optional authenticated integrations are backend
+only; see `.env.example`. Updating existing context uses prepared outputs rather
+than re-downloading the NISAR HDF5. Compact geometries are explicitly visualization
+derivatives; original measurements and scientific artifacts remain unchanged.
+
+The full archive and SHA manifest are generated locally; no release is uploaded
+without owner approval. Until a public release URL is configured, `data fetch-snapshot`
+requires `--manifest` pointing to a local manifest or published HTTPS manifest.
+The default frontend does not need that command. Use
+`NEXT_PUBLIC_STATIC_SNAPSHOT=full` only after installing the full package, or
+`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for the local read-only API.
+
+See [source evidence](docs/public-source-evidence.md),
+[snapshot distribution](docs/snapshot-delivery.md),
+[Cloudflare procedure](docs/cloudflare-pages.md) and
+[Yuri's integration handoff](docs/frontend-environmental-handoff.md).
 
 ## What is verified
 
-- Real ASF discovery: **19 PROVISIONAL GCOV scenes**, 2026-06-17 through 2026-10-31,
-  queried with the configured 5 km pilot AOI. Snapshot and query are in
+- Real ASF discovery: **19 PROVISIONAL GCOV scenes**, acquired 2026-06-17 through
+  2026-10-19 (query window through 2026-10-31), with the configured 5 km pilot AOI. Snapshot and query are in
   [docs/evidence/asf-catalog.json](docs/evidence/asf-catalog.json).
 - Mathematical/geospatial processing, deterministic exports and offline API are tested with
-  explicitly synthetic HDF5. No actual GCOV measurement has been processed in this execution.
-- HDF5 access blocked: July 23 product HEAD returned **403**; this environment has neither
-  Earthdata token nor .netrc. No bulk download was attempted. See [execution evidence](docs/real-data-execution.md).
+  explicitly synthetic HDF5. Subsequent local execution processed 19 real scenes and 17 comparisons;
+  the dated original access-blocker history remains in the execution document.
+- The initial HDF5 access attempt was blocked (403). A later local run completed the retained
+  19-scene history. Integrity verification is not independent scientific validation. See
+  [dated execution evidence](docs/real-data-execution.md).
 - SGB July 23, 16:00 Brasília bulletin is integrated as qualitative context. Numeric river
   levels remain null because the reviewed article does not supply station readings.
 - GitHub `main` and `develop` rulesets: **BLOCKED_BY_PLAN** (403); JSON files are templates only.
@@ -76,6 +132,50 @@ See the [API contract](docs/api-contract.md) for endpoints and response shapes.
 
 ## Search, download, inspect, compare
 
+To retain and process the complete catalog history, run from the repository root:
+
+```bash
+uv sync --project backend --frozen
+uv run --project backend --frozen surfacesignal --root "$PWD" history run \
+  --snapshot docs/evidence/asf-catalog.json \
+  --hydro-csv config/hydrology/sgb-2026-07-23.csv --dry-run
+
+# Configure your own Earthdata token or official .netrc with ASF access locally.
+# Token entry does not echo or put the secret in shell history.
+read -rsp 'Earthdata token: ' EARTHDATA_TOKEN
+printf '\n'
+export EARTHDATA_TOKEN
+uv run --project backend --frozen surfacesignal --root "$PWD" history run \
+  --snapshot docs/evidence/asf-catalog.json \
+  --hydro-csv config/hydrology/sgb-2026-07-23.csv
+uv run --project backend --frozen surfacesignal --root "$PWD" history verify \
+  --area vale-do-taquari
+unset EARTHDATA_TOKEN
+```
+
+The fixed snapshot contains **131,386,572,800 bytes** (131.39 decimal GB), with
+**9 descending and 8 ascending consecutive candidate pairs**. Start with about **180 GB
+free** on the raw/output volume. All 19 HDF5 files and SHA256 receipts remain in `data/raw/`,
+including scenes without usable pairs. Results use the existing `artifacts/<analysis_id>/`
+format and read-only API. The atomic plan/report live in `data/history/vale-do-taquari/`.
+
+Add `--with-validated-through 2026-11-14` to include the validated collection over the
+same polygon and inclusive UTC date range; use `--dry-run` to see its additional bytes.
+Validated satellite products still require independent spatial validation of change candidates.
+Frequency `A`, diagonal channel `HHHH` and the `analyze` thresholds are defaults; all are
+explicit CLI options recorded in the plan and manifests. Only real diagonal power is converted
+with `10*log10`.
+
+Repeat exactly the same command after interruption. Verified raw files and complete pairs
+with matching parameters, code, context and artifact hashes are reused. Partial downloads
+may restart for that scene. Unknown byte sizes, corrupt inputs/outputs and authentication
+failures prevent completion and produce a nonzero exit status. Incompatible files/coverage
+are reported per pair and other pairs continue. A completed batch can contain explicitly
+blocked pairs; it does not imply 17 successful analyses or confirmed flooding.
+
+See [operator instructions and recovery](docs/real-data-execution.md#complete-history-runner--2026-11-14).
+The following commands also remain available for individual scenes and nonconsecutive pairs.
+
 From `backend`:
 
 ```sh
@@ -111,7 +211,7 @@ backend/src/surfacesignal/
   providers/   ASF discovery/download, hydrology CSV, source inventory
   processing/  bounded GCOV reader, temporal comparison, evidence/artifact export
 backend/tests/ synthetic mathematical, geospatial, provider, CLI and API tests
-frontend/      frontend integration guide and public configuration example
+frontend/      Next.js application with MapLibre, PT/EN and API/static data adapter
 config/        documented pilot AOI and sourced hydrology context
 .github/       CI, draft PR template, unapplied ruleset templates
 docs/          method, provenance, reproducibility, limitations and submission gates
@@ -130,9 +230,16 @@ boundary or flood extent**; IBGE retrieval failed with 503 and that limitation i
 [Repository controls](docs/repository-setup.md) · [Submission checklist](docs/submission-checklist.md)
 
 Code licensing remains **pending owner authorization**; no open-source license is granted
-by this project. Repository visibility remains private. Dataset and dependency terms are
+by this project. Repository visibility is not changed by this work. Dataset and dependency terms are
 independent of the code license. No merge or public release is performed.
 
-Implementation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
+Original foundation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
 clean. See [review fixes and acceptance status](docs/implementation-status.md) and
 [GitHub Actions](https://github.com/matbforge/nsac26-dancing-with-the-sars/actions/workflows/backend-ci.yml).
+
+## Next.js frontend
+
+From `frontend/`, run `npm ci` and `npm run dev` (port 3000). Install the prepared static
+bundle first, or set `NEXT_PUBLIC_API_BASE_URL` for API mode. No visual components were rebuilt
+in the backend MVP. Code assistance by OpenAI Codex is disclosed; runtime interpretation is
+deterministic Python rules, without a generative model.

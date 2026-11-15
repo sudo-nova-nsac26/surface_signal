@@ -22,3 +22,12 @@ Published prepared JSON/artifacts are 0644 and completed analysis directories 07
 different non-root Docker UID can read the bind mount. Staging remains private until ready.
 These outputs must not contain credentials/private observations. Ensure parent host directories
 are traversable; a restrictive custom umask or private parent may require explicit owner setup.
+
+## MVP extension — 2026-11-15
+
+`api/service.py` shares prepared-data reads/aggregation between FastAPI and `publication.py`.
+`api/routes.py` and `api/schemas.py` hold the new typed routes; `main.py` retains compatible
+original routes and app factory. `processing/general_change.py` creates isolated derivations;
+`processing/capabilities.py` registers honest scientific availability. `interpretation/` contains
+models, versioned PT/EN content and deterministic rules. No frontend components were rebuilt.
+The published vector bundle is deliberately outside Git; see static-publication.md.

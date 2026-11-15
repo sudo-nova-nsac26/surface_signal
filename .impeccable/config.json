@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "frontend/src/app/globals.css"
+        ],
+        "createdAt": "2026-11-15T13:29:42.553Z",
+        "reason": "Task explicitly requires no visual redesign; preserve the pre-existing SurfaceSignal hero title gradient."
+      }
+    ]
+  }
+}

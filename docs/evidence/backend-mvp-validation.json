@@ -1,0 +1,40 @@
+{
+  "package": "data/publications/surfacesignal-vale-do-taquari-151ef6f704e959615eac9e54.tar.gz",
+  "package_bytes": 19890427,
+  "package_sha256": "4841aac4a7ea2eecc15279b97c5cf1dcee853c927e776c133ec6f77e8832067a",
+  "snapshot_bytes": 147418700,
+  "snapshot_files": 222,
+  "report": {
+    "publication_id": "151ef6f704e959615eac9e54",
+    "scene_count": 19,
+    "analysis_count": 17,
+    "bytes": 147365770,
+    "file_count": 221,
+    "backup_path": "frontend/public/data/api/v1.backup-10bd53184c2988c0"
+  },
+  "verified_at": "2026-11-15T03:13:31.469867+00:00",
+  "history": {
+    "verified": true,
+    "completed": true,
+    "area_id": "vale-do-taquari",
+    "scene_count": 19,
+    "pair_count": 17,
+    "errors": []
+  },
+  "pytest": {
+    "passed": 116,
+    "warning": "Starlette TestClient httpx deprecation"
+  },
+  "ruff_check": "passed",
+  "ruff_format": "passed",
+  "frontend_lint": "passed",
+  "frontend_build": "passed",
+  "static_http": {
+    "analyses": 17,
+    "geojson_files": 68,
+    "localized_stories": 34
+  },
+  "original_raw_inventory_unchanged": true,
+  "scientific_validation": "not_validated",
+  "pushed": false
+}
