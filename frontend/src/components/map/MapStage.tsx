@@ -114,6 +114,8 @@ export function MapStage({
     opacity: 1,
   });
   const mapHandle = useRef<MapViewHandle>(null);
+  // True while the camera runs a transition: navigation waits until it ends.
+  const [busy, setBusy] = useState(false);
   const motion = useMotionLevel();
 
   const places = useMemo(() => {
@@ -224,7 +226,9 @@ export function MapStage({
     };
   }, [analysisId, currentDetail, switches]);
 
-  const go = (id: string) => setPlaceId(id as PlaceId);
+  const go = (id: string) => {
+    if (!busy) setPlaceId(id as PlaceId);
+  };
 
   // Look at the device while the introduction is on screen. A device that
   // reports well is then watched for a moment: if the globe would not draw
@@ -300,6 +304,7 @@ export function MapStage({
           onSelect={go}
           onReady={() => setStatus("ready")}
           onError={() => setStatus("error")}
+          onBusyChange={setBusy}
         />
       )}
 
@@ -410,6 +415,7 @@ export function MapStage({
                         <button
                           type="button"
                           onClick={() => go(place.id)}
+                          disabled={busy}
                           className="min-h-9 rounded-xl px-2 text-base font-bold underline hover:text-brand-text"
                         >
                           {labels.places[place.id].name}
@@ -441,6 +447,7 @@ export function MapStage({
                     aria-checked={checked}
                     aria-label={`${title}: ${hint}`}
                     onClick={() => chooseView(value)}
+                    disabled={busy}
                     className={`flex min-h-12 items-center gap-2 rounded-xl px-4 ${
                       checked
                         ? "bg-brand text-brand-ink"
@@ -462,25 +469,29 @@ export function MapStage({
           {/* Bottom left: what you are looking at and where to go next. */}
           <div
             aria-live="polite"
-            className="glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-3xl p-4 sm:inset-x-auto sm:left-4 sm:bottom-8 sm:w-[24rem]"
+            className={`glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col rounded-3xl sm:inset-x-auto sm:left-4 sm:bottom-6 ${
+              closeUp
+                ? "max-h-[60svh] gap-2 overflow-y-auto p-3 sm:w-[19rem] lg:bottom-auto lg:top-[13.75rem] lg:max-h-none xl:top-[5rem]"
+                : "gap-3 p-4 sm:w-[24rem]"
+            }`}
           >
-            <h2 className="text-2xl font-bold leading-tight">
+            <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
               {labels.places[current.id].name}
             </h2>
-            <p className="text-ink-soft">
+            <p className={`text-ink-soft ${closeUp ? "text-sm" : ""}`}>
               {labels.places[current.id].description}
             </p>
-            {free3d && <p className="text-base text-ink-soft">{labels.hint3d}</p>}
-            {!free3d && (
+            {free3d && <p className="text-sm text-ink-soft">{labels.hint3d}</p>}
+            {!free3d && !closeUp && (
               <p className="hidden text-sm text-ink-soft lg:block">
                 {labels.mouseHint}
               </p>
             )}
             {closeUp && area && (
-              <p className="flex items-center gap-2 text-base font-bold">
+              <p className="flex items-center gap-2 text-sm font-bold">
                 <span
                   aria-hidden="true"
-                  className="h-0 w-7 border-t-[3px] border-dashed border-brand"
+                  className="h-0 w-5 border-t-2 border-dashed border-brand"
                 />
                 {labels.area}
               </p>
@@ -502,16 +513,6 @@ export function MapStage({
             )}
             {closeUp && timeline && (
               <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
-                <ComparePanel
-                  labels={labels.compare}
-                  lang={lang}
-                  step={selectedStep}
-                  detail={currentDetail}
-                  status={detailStatus}
-                  onRetry={() => setDetailTry((n) => n + 1)}
-                  changes={switches}
-                  onChanges={setSwitches}
-                />
                 <Timeline
                   data={timeline}
                   lang={lang}
@@ -520,6 +521,17 @@ export function MapStage({
                   selectedId={selectedId}
                   onSelect={(step) => setSelectedId(step.id)}
                 />
+                <ComparePanel
+                  labels={labels.compare}
+                  featured={labels.featured}
+                  lang={lang}
+                  step={selectedStep}
+                  detail={currentDetail}
+                  status={detailStatus}
+                  onRetry={() => setDetailTry((n) => n + 1)}
+                  changes={switches}
+                  onChanges={setSwitches}
+                />
               </div>
             )}
             <div className="flex flex-wrap gap-2">
@@ -527,6 +539,7 @@ export function MapStage({
                 <button
                   type="button"
                   onClick={() => go(current.parent as string)}
+                  disabled={busy}
                   className="pressable flex min-h-12 items-center gap-2 rounded-xl border-2 border-line px-4 font-bold hover:border-brand hc:border-ink"
                 >
                   <ArrowRightIcon className="rotate-180" />
@@ -538,7 +551,8 @@ export function MapStage({
                   key={place.id}
                   type="button"
                   onClick={() => go(place.id)}
-                  className="pressable glow flex min-h-12 flex-1 items-center justify-between gap-2 rounded-xl bg-brand px-4 text-left font-bold text-brand-ink"
+                  disabled={busy}
+                  className="pressable glow flex min-h-12 flex-1 items-center justify-between gap-2 rounded-xl bg-brand px-4 text-left font-bold text-brand-ink disabled:opacity-60"
                 >
                   {fill(labels.goTo, { name: labels.places[place.id].name })}
                   <ArrowRightIcon className="shrink-0" />
@@ -549,7 +563,7 @@ export function MapStage({
 
           {/* Bottom: the timeline of passes and comparisons (wide screens). */}
           {closeUp && timeline && (
-            <div className="glass rise-in pointer-events-auto absolute bottom-8 left-[27rem] right-20 hidden max-w-3xl rounded-3xl p-4 lg:block">
+            <div className="glass rise-in pointer-events-auto absolute bottom-6 left-4 right-[26.5rem] hidden rounded-3xl px-4 py-3 lg:block">
               <Timeline
                 data={timeline}
                 lang={lang}
@@ -563,9 +577,10 @@ export function MapStage({
 
           {/* Right: before/after and the layers (wide screens). */}
           {closeUp && timeline && (
-            <div className="glass rise-in pointer-events-auto absolute right-16 top-20 hidden max-h-[calc(100%-6rem)] w-80 overflow-y-auto rounded-3xl p-4 lg:block">
+            <div className="glass rise-in pointer-events-auto absolute bottom-6 right-16 top-20 hidden w-[22rem] overflow-y-auto rounded-3xl p-3 lg:block">
               <ComparePanel
                   labels={labels.compare}
+                  featured={labels.featured}
                   lang={lang}
                   step={selectedStep}
                   detail={currentDetail}

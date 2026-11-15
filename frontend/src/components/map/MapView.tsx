@@ -51,6 +51,8 @@ export interface MapViewProps {
   onSelect: (id: string) => void;
   onReady: () => void;
   onError: () => void;
+  /** True while the camera runs a transition the visitor must not interrupt. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 // Copied from the installed package by scripts/copy-map-worker.mjs.
@@ -374,6 +376,7 @@ export default function MapView({
   onSelect,
   onReady,
   onError,
+  onBusyChange,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -415,19 +418,64 @@ export default function MapView({
       area,
     };
   });
-  const callbacks = useRef({ onReady, onError });
+  const callbacks = useRef({ onReady, onError, onBusyChange });
+  // While a transition runs (2D <-> 3D, flying into a place), dragging or
+  // zooming would cut the camera move in half and leave the view broken, so
+  // every gesture and camera button is off until it ends.
+  const lockedRef = useRef(false);
+  const lockTimer = useRef(0);
+  function lockInput(ms: number) {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!lockedRef.current) {
+      lockedRef.current = true;
+      for (const handler of [
+        map.dragPan,
+        map.scrollZoom,
+        map.boxZoom,
+        map.doubleClickZoom,
+        map.keyboard,
+        map.touchZoomRotate,
+        map.dragRotate,
+        map.touchPitch,
+      ]) {
+        handler.disable();
+      }
+      if (overlayRef.current) overlayRef.current.dataset.locked = "true";
+      callbacks.current.onBusyChange?.(true);
+    }
+    window.clearTimeout(lockTimer.current);
+    lockTimer.current = window.setTimeout(unlockInput, ms);
+  }
+  function unlockInput() {
+    const map = mapRef.current;
+    window.clearTimeout(lockTimer.current);
+    if (!map || !lockedRef.current) return;
+    lockedRef.current = false;
+    map.dragPan.enable();
+    map.scrollZoom.enable();
+    map.boxZoom.enable();
+    map.doubleClickZoom.enable();
+    map.keyboard.enable();
+    map.touchZoomRotate.enable();
+    setFreeCamera(map, freeRef.current);
+    if (overlayRef.current) overlayRef.current.dataset.locked = "false";
+    callbacks.current.onBusyChange?.(false);
+  }
   useEffect(() => {
-    callbacks.current = { onReady, onError };
+    callbacks.current = { onReady, onError, onBusyChange };
   });
 
   useImperativeHandle(ref, () => ({
     zoomBy(delta) {
+      if (lockedRef.current) return;
       mapRef.current?.easeTo({
         zoom: mapRef.current.getZoom() + delta,
         duration: latest.current.motion === "none" ? 0 : 300,
       });
     },
     rotateBy(degrees) {
+      if (lockedRef.current) return;
       const map = mapRef.current;
       map?.easeTo({
         bearing: map.getBearing() + degrees,
@@ -435,6 +483,7 @@ export default function MapView({
       });
     },
     tiltBy(degrees) {
+      if (lockedRef.current) return;
       const map = mapRef.current;
       map?.easeTo({
         pitch: Math.min(MAX_PITCH, Math.max(0, map.getPitch() + degrees)),
@@ -442,6 +491,7 @@ export default function MapView({
       });
     },
     resetView() {
+      if (lockedRef.current) return;
       mapRef.current?.easeTo({
         bearing: 0,
         pitch: latest.current.view === "3d" ? DETAIL_PITCH : 0,
@@ -596,6 +646,7 @@ export default function MapView({
 
     if (animate && motion !== "none") {
       setFlying(true);
+      lockInput((motion === "full" ? flightMs : 700) + 150);
       if (motion === "full") {
         map.flyTo({
           ...camera,
@@ -698,6 +749,8 @@ export default function MapView({
       return;
     }
 
+    // The globe comes forward (1.6 s) and, in 2D, unfolds (about 2.5 s).
+    lockInput(1600 + 2600);
     map.easeTo({
       center: SPOTLIGHT,
       zoom: worldZoom(container.clientWidth),
@@ -771,6 +824,8 @@ export default function MapView({
       applyView(true);
       return;
     }
+    // Glow out (0.2 s), unfold (1.5 s), final framing (0.7 s).
+    lockInput(2600);
     const run = () => {
       const zoom = map.getZoom();
       // Flat -> globe zooms out by UNFOLD_ZOOM, globe -> flat zooms in by it.
@@ -885,7 +940,7 @@ export default function MapView({
       // tilt, or hold Shift while scrolling to rotate.
       let orbit: { x: number; y: number; id: number } | null = null;
       const onPointerDown = (event: PointerEvent) => {
-        if (event.button !== 1 || !freeRef.current) return;
+        if (event.button !== 1 || !freeRef.current || lockedRef.current) return;
         event.preventDefault();
         map.stop();
         orbit = { x: event.clientX, y: event.clientY, id: event.pointerId };
@@ -921,6 +976,11 @@ export default function MapView({
       };
       const onWheel = (event: WheelEvent) => {
         if (!event.shiftKey || !freeRef.current) return;
+        if (lockedRef.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         map.setBearing(

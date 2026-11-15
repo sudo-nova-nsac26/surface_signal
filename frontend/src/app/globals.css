@@ -642,6 +642,14 @@ body {
   transition: opacity 200ms ease-out;
 }
 
+.map-dots[data-locked="true"] {
+  pointer-events: none;
+}
+
+.map-dots[data-locked="true"] * {
+  pointer-events: none !important;
+}
+
 .map-dots[data-flying="true"] {
   opacity: 0;
 }

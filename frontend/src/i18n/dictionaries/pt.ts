@@ -152,6 +152,26 @@ const pt = {
     more: "Como funciona",
     mouseHint: "Role para aproximar. No 3D, segure a rodinha do mouse (ou o botão direito) e arraste para girar.",
     compare: {
+      whatToSee: "O que você quer ver?",
+      summaryChanged:
+        "O radar notou mudanças em {area} km², {percent}% da área analisada. É mais ou menos o tamanho de {fields} campos de futebol.",
+      summaryWater: "Possível água nova em {area} km² (cerca de {fields} campos de futebol).",
+      summaryWaterTiny: "Possível água nova numa área pequena: menos de um campo de futebol ({area} km²).",
+      summaryNoWater: "Nenhum lugar com cara de água nova nesta comparação.",
+      summaryMissing: "Esta comparação não tem números disponíveis.",
+      cards: {
+        open_water: { title: "Possível água nova", body: "Parece água onde antes não havia" },
+        radar_decrease: { title: "Refletiu menos o radar", body: "Pode ser água, umidade ou plantas" },
+        radar_increase: { title: "Refletiu mais o radar", body: "Pode ser plantas, umidade ou mudança no chão" },
+      },
+      understand: "Entender esta comparação",
+      technical: "Detalhes técnicos",
+      technicalNote:
+        "Números como o backend mediu. Um grupo de pixels é um conjunto de pontos vizinhos de 10 m, não um acontecimento.",
+      threshold: "Limiar de mudança",
+      minGroup: "Menor grupo considerado",
+      pixelsUnit: "pixels",
+      scenes: "Imagens comparadas",
       title: "O que mudou",
       showChanges: "Mostrar as mudanças",
       showChangesHint:

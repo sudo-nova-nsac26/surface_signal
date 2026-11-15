@@ -195,6 +195,20 @@ other layers with their status and limits. Load errors show a plain message and 
 the bundle). Not done yet: section 02 "Camadas" still lists the old fixed layers, the regional overview, the
 How-it-works impact pins (they promise more than the backend measures; owner to decide), phone checks.
 
+Owner round on the real-data map (2026-11-15, done): (1) **No input during transitions**: `lockInput` in MapView
+turns every MapLibre gesture, the custom orbit, the camera buttons and the dots off while the intro, a 2D/3D unfold
+or a flight into a place runs, and `onBusyChange` disables 2D/3D and the navigation buttons in MapStage (dragging
+mid-flight used to leave the view broken). (2) **Layout like roamingeye.org, in our style**: at the close-up a
+compact time bar along the bottom (stop chip with a menu, prev/next, mono dates, play, month ruler with clickable
+featured markers), a right panel "O que você quer ver?" and a small left card (raised under the 2D/3D switch; on
+phones everything stacks in a scrolling bottom sheet, time bar first). (3) **Plain words first**: the panel opens
+with a summary built only from backend numbers (changed km2 and % of the analysed area, possible water) with
+football pitches (105 x 68 m) as an everyday size; cards say "Possível água nova", "Refletiu menos o radar (pode
+ser água, umidade ou plantas)" and "Refletiu mais o radar", wording taken from the backend's alternative
+explanations. The full explanation, other layers and exact numbers/method sit in collapsible sections.
+(4) The analysed area (dashed circle) **cannot be changed in the browser**: it is the backend's 5 km buffer and
+every result was computed inside it; a new area means new processing by the backend.
+
 ## Owner decisions on the map (2026-11-14, done)
 
 - Place tree is **World > Country > State > Region of the state**. No continent or

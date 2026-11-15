@@ -149,6 +149,26 @@ const en: Dictionary = {
     more: "How it works",
     mouseHint: "Scroll to zoom. In 3D, hold the mouse wheel (or the right button) and drag to rotate.",
     compare: {
+      whatToSee: "What do you want to see?",
+      summaryChanged:
+        "The radar noticed changes over {area} km², {percent}% of the analysed area. That is roughly {fields} football pitches.",
+      summaryWater: "Possible new water over {area} km² (about {fields} football pitches).",
+      summaryWaterTiny: "Possible new water over a small area: less than one football pitch ({area} km²).",
+      summaryNoWater: "No place looks like new water in this comparison.",
+      summaryMissing: "This comparison has no numbers available.",
+      cards: {
+        open_water: { title: "Possible new water", body: "Looks like water where there was none" },
+        radar_decrease: { title: "Reflected less radar", body: "May be water, moisture or plants" },
+        radar_increase: { title: "Reflected more radar", body: "May be plants, moisture or a change on the ground" },
+      },
+      understand: "Understand this comparison",
+      technical: "Technical details",
+      technicalNote:
+        "Numbers as the backend measured them. A pixel group is a set of neighbouring 10 m points, not an event.",
+      threshold: "Change threshold",
+      minGroup: "Smallest group counted",
+      pixelsUnit: "pixels",
+      scenes: "Images compared",
       title: "What changed",
       showChanges: "Show the changes",
       showChangesHint:
