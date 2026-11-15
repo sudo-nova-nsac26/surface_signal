@@ -1,0 +1,20 @@
+# SurfaceSignal — Making Earth's Changes Understandable
+
+> Sudo Nova's independent, accessible NASA Space Apps Challenge 2026 research application. Not an emergency-alert service or an official NASA/ISRO project.
+
+Official website: https://surfacesignal.earth/
+Portuguese: https://surfacesignal.earth/pt/
+English: https://surfacesignal.earth/en/
+Presentation: https://github.com/sudo-nova-nsac26/presentation
+Team: https://sudonova.surfacesignal.earth/
+
+## Project facts
+
+- 19 acquisitions of NASA–ISRO NISAR L2 GCOV and 17 comparisons of historical radar observations in the Taquari Valley, Brazil (June 17–October 19, 2026).
+- Published context: CHIRPS v3 SAT rain estimates, JRC Global Surface Water v1.5 (1984–2024), ESA WorldCover 2021 v200, Copernicus GLO-30 DSM, IBGE 2022 municipal boundaries and SGB qualitative hydrological bulletins.
+- Compact JSON/GeoJSON is already processed; its smaller vectors are for visualization only. Original scientific statistics are separate from reduced polygons.
+- These radar changes are exploratory candidates, NOT independently confirmed floods, landslides, damaged properties or population impacts. No real per-pixel ground-truth accuracy or operational forecast is claimed.
+
+Source pages: https://nisar-docs.asf.alaska.edu/gcov/ ; https://www.chc.ucsb.edu/data/chirps3 ; https://global-surface-water.appspot.com/download ; https://esa-worldcover.org/en/data-access ; https://registry.opendata.aws/copernicus-dem/ ; https://servicodados.ibge.gov.br/api/docs/malhas ; https://sace.sgb.gov.br/bacia_taquari/
+
+Original source code and project documentation: Apache-2.0; upstream data and visual assets retain their own terms.

@@ -12,7 +12,7 @@ import "../globals.css";
 // Both supported language routes are exported; unknown languages remain 404.
 export const dynamicParams = false;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://surfacesignal.pages.dev";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://surfacesignal.earth";
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }));
@@ -48,8 +48,8 @@ export async function generateMetadata({
       "Cruzeiro do Sul",
       "Rio Taquari",
       "Rio Grande do Sul",
-      "Flood Monitoring",
-      "Monitoramento de Cheias",
+      "Environmental Change Analysis",
+      "Análise de Mudanças por Radar",
       "NASA Space Apps Challenge 2026",
       "Sudo Nova",
     ],
@@ -72,8 +72,6 @@ export async function generateMetadata({
       images: [
         {
           url: "/surfacesignal-logo.webp",
-          width: 1200,
-          height: 630,
           alt: dict.meta.title,
         },
       ],
@@ -130,7 +128,7 @@ export default async function RootLayout({
         name: "SurfaceSignal",
         url: `${SITE_URL}/${lang}/`,
         inLanguage: htmlLang[lang],
-        applicationCategory: "ScientificApplication, PublicSafetyApplication",
+        applicationCategory: "Science",
         operatingSystem: "Any",
         description: dict.meta.description,
         creator: {
@@ -152,16 +150,25 @@ export default async function RootLayout({
         "@type": "Dataset",
         name:
           lang === "pt"
-            ? "Série Temporal NISAR L2 GCOV (Banda L) — Cheia do Vale do Taquari 2026 (Lajeado e Estrela)"
-            : "NISAR L2 GCOV (L-Band) Time Series — 2026 Taquari Valley Flood (Lajeado & Estrela)",
+            ? "Comparações NISAR L2 GCOV — Vale do Taquari, 2026"
+            : "NISAR L2 GCOV radar-change comparisons — Taquari Valley, 2026",
         description:
           lang === "pt"
-            ? "Análise radiométrica de 17 cenas HDF5 do satélite radar NISAR (NASA/ISRO, Banda L 24 cm, polarização HHHH, resolução de 10 m em EPSG:32722) sobre Lajeado, Estrela e Cruzeiro do Sul (RS), cruzada com chuva CHIRPS (87,6 mm/72h), boletins SGB, uso do solo ESA WorldCover 10m e relevo Copernicus DEM 30m."
-            : "Radiometric analysis of 17 HDF5 granules from the NASA/ISRO NISAR radar satellite (L-band 24 cm, HHHH polarization, 10 m grid in EPSG:32722) over Lajeado, Estrela, and Cruzeiro do Sul (Brazil), crossed with CHIRPS rainfall (87.6 mm/72h), SGB river bulletins, ESA WorldCover 10m, and Copernicus DEM 30m.",
+            ? "19 aquisições NISAR L2 GCOV e 17 comparações temporais sobre o Vale do Taquari, contextualizadas por CHIRPS v3, JRC Global Surface Water, ESA WorldCover 2021, Copernicus DEM, IBGE e SGB. Candidatos exploratórios, sem confirmação independente de inundações."
+            : "19 NISAR L2 GCOV acquisitions and 17 temporal comparisons over Brazil’s Taquari Valley, contextualized by CHIRPS v3, JRC Global Surface Water, ESA WorldCover 2021, Copernicus DEM, IBGE and SGB. Exploratory candidates, not independently confirmed floods.",
         url: `${SITE_URL}/${lang}/#region`,
-        license: "https://creativecommons.org/publicdomain/zero/1.0/",
         isAccessibleForFree: true,
-        temporalCoverage: "2026-06-17/2026-10-15",
+        conditionsOfAccess: "Public analysis summaries; upstream scientific sources retain their own usage and attribution terms.",
+        citation: [
+          "https://nisar-docs.asf.alaska.edu/gcov/",
+          "https://www.chc.ucsb.edu/data/chirps3",
+          "https://global-surface-water.appspot.com/download",
+          "https://esa-worldcover.org/en/data-access",
+          "https://registry.opendata.aws/copernicus-dem/",
+          "https://servicodados.ibge.gov.br/api/docs/malhas",
+          "https://sace.sgb.gov.br/bacia_taquari/",
+        ],
+        temporalCoverage: "2026-06-17/2026-10-19",
         spatialCoverage: {
           "@type": "Place",
           name: "Lajeado & Estrela, Vale do Taquari, Rio Grande do Sul, Brazil",
@@ -173,12 +180,12 @@ export default async function RootLayout({
         variableMeasured: [
           "Radar backscatter change Δγ⁰ (dB) at L-band HHHH (±3.0 dB threshold)",
           "Open-water change candidates (γ⁰ ≤ -17.0 dB and Δγ⁰ ≤ -3.0 dB)",
-          "72-hour antecedent precipitation (CHIRPS v2.0, mm)",
+          "Preceding complete-day precipitation summaries (CHIRPS v3 final SAT, mm)",
           "Terrain elevation and hillslope angle (Copernicus DEM GLO-30, m and degrees)",
         ],
         creator: {
           "@type": "Organization",
-          name: "Team Sudo Nova (NASA Space Apps Challenge 2026)",
+          name: "Team Sudo Nova",
           url: TEAM_SITE_URL,
         },
       },

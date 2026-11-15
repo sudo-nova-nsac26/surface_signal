@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /pt/lab/
+Disallow: /en/lab/
+Disallow: /data/demo/
+
+Sitemap: https://surfacesignal.earth/sitemap.xml
