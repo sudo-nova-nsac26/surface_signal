@@ -81,10 +81,26 @@ def run_delivery_command(settings, args):
             max_total_bytes=args.max_total_bytes,
         )
     from surfacesignal.publication import build_publication
-    from surfacesignal.snapshots import build_compact_snapshot, build_full_snapshot
+    from surfacesignal.snapshots import (
+        build_compact_snapshot,
+        build_full_snapshot,
+        verify_snapshot_directory,
+    )
 
     source = args.source or settings.root / "frontend/public/data/api/v1"
-    if args.source is None:
+    if args.source is None and not any(settings.artifacts_dir.glob("*/manifest.json")):
+        if not (source / "publication-report.json").is_file():
+            source = settings.root / "frontend/public/data/compact/api/v1"
+        verify_snapshot_directory(source)
+        if (
+            args.command == "full"
+            and read_json(source / "publication-report.json").get("delivery", {}).get("mode")
+            == "compact"
+        ):
+            raise ValueError(
+                "A full snapshot needs installed full published vectors or prepared science outputs; compact display subsets cannot become a full scientific delivery."
+            )
+    elif args.source is None:
         build_publication(
             settings,
             args.area,
@@ -94,6 +110,10 @@ def run_delivery_command(settings, args):
             max_export_bytes=args.max_export_bytes,
         )
     if args.command == "compact":
+        output = args.output or settings.root / "frontend/public/data/compact/api/v1"
+        if source.resolve() == output.resolve():
+            verify_snapshot_directory(source)
+            return read_json(source / "publication-report.json")
         return build_compact_snapshot(
             source,
             args.output or settings.root / "frontend/public/data/compact/api/v1",

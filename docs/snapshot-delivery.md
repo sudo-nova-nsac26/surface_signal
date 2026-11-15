@@ -88,3 +88,8 @@ The attributed public-source snapshot was rebuilt and checked locally without pu
 Across the 68 compact geometry files, 50,432 original features become 4,149 display features; 46,283 are omitted. Coordinate counts change from 1,272,999 to 102,403. Each file carries its own losses and original checksum. These display subsets do not change the reported scientific statistics.
 
 Both outputs reproduced exactly on a second build. The full archive was installed into an isolated temporary root, its previous snapshot was preserved, and a second installation verified and reused the cached archive and complete installed snapshot. The local machine-readable proof is `data/exports/full/verification-report.json` (ignored by Git). No archive was uploaded, no public URL was claimed and no source artifacts were changed by packaging.
+
+When scientific artifact stores are absent on a clean clone, the convenience CLI
+reuses an installed full snapshot or verifies the bundled compact in place.
+It never overwrites the default compact with an empty scientific export. A compact
+display subset cannot be promoted to a full delivery; install the full archive first.

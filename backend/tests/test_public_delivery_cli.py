@@ -39,3 +39,28 @@ def test_dotenv_credentials_are_optional_private_and_consistent(tmp_path, monkey
     assert Settings.from_root(tmp_path).earthdata_token is None
     with pytest.raises(ValueError):
         Settings(data_mode="invalid")
+
+
+def test_clone_publish_reuses_compact_without_empty_scientific_export(tmp_path):
+    from surfacesignal.delivery_cli import run_delivery_command
+    from surfacesignal.storage import checksum, write_json
+
+    base = tmp_path / "frontend/public/data/compact/api/v1"
+    write_json(base / "analyses.json", {"items": [{"analysis_id": "one"}], "total": 1})
+    write_json(
+        base / "publication-report.json",
+        {
+            "analysis_count": 1,
+            "delivery": {"mode": "compact"},
+            "files": {"analyses.json": checksum(base / "analyses.json")},
+        },
+    )
+    original = (base / "publication-report.json").read_bytes()
+    args = parser().parse_args(["publish", "compact", "--area", "test"])
+    result = run_delivery_command(Settings(root=tmp_path), args)
+    assert result["analysis_count"] == 1
+    assert (base / "publication-report.json").read_bytes() == original
+    assert not (tmp_path / "frontend/public/data/api/v1").exists()
+    args = parser().parse_args(["publish", "full", "--area", "test"])
+    with pytest.raises(ValueError, match="full"):
+        run_delivery_command(Settings(root=tmp_path), args)
