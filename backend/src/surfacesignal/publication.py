@@ -35,7 +35,16 @@ def _target(root, output):
             raise ValueError("Symlinked publication output")
     output = output.resolve()
     forbidden = [
-        root / p for p in ("data/raw", "data/derived", "artifacts", "config", "backend", ".git")
+        root / p
+        for p in (
+            "data/raw",
+            "data/derived",
+            "data/preparation",
+            "artifacts",
+            "config",
+            "backend",
+            ".git",
+        )
     ]
     if (
         output == root
@@ -55,12 +64,20 @@ def _rewrite(value):
         parsed = urlsplit(value)
         relative = parsed.path.removeprefix("/api/v1/")
         if "/artifacts/" not in relative:
-            lang = parse_qs(parsed.query).get("lang", [None])[0]
+            query = parse_qs(parsed.query)
+            lang = query.get("lang", [None])[0]
+            if relative.endswith("/preparation"):
+                audience = query.get("audience", ["residents"])[0]
+                if audience not in {"residents", "municipal"}:
+                    raise ValueError("Invalid preparation audience")
+                relative += "." + audience
+                lang = lang or "pt"
             if lang is None and relative.rsplit("/", 1)[-1] in {
                 "story",
                 "stories",
                 "timeline",
                 "overview",
+                "local-analysis",
             }:
                 lang = "pt"
             if lang and lang in {"pt", "en"}:
@@ -130,6 +147,7 @@ def build_publication(
     validate=True,
     exclude_synthetic=False,
     include_previews=False,
+    include_preparation=False,
     max_export_bytes=100_000_000,
 ) -> dict:
     """Publish one area's API responses, retaining a deterministic previous-snapshot backup.
@@ -267,6 +285,19 @@ def build_publication(
         from surfacesignal.providers.sources import SOURCES
 
         emit("sources.json", _page(SOURCES))
+        if include_preparation:
+            from surfacesignal.preparation.store import load_preparation
+
+            prepared = load_preparation(settings, area_id)
+            selected_ids = {a.analysis_id for a in analyses}
+            prepared_ids = {s["analysis_id"] for s in prepared["manifest"]["identity"]["sources"]}
+            if prepared_ids != selected_ids or (
+                exclude_synthetic and prepared["manifest"]["identity"]["illustrative"]
+            ):
+                raise ValueError("Preparation selection differs from publication selection")
+            for name, payload in prepared["payloads"].items():
+                emit(f"areas/{area_id}/{name}", payload)
+            emit(f"areas/{area_id}/preparation-manifest.json", prepared["manifest"])
         for path in sorted(settings.catalog_dir.glob("*.json")):
             if path.is_symlink():
                 raise ValueError("Symlinked catalog")

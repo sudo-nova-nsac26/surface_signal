@@ -95,6 +95,24 @@ def parser():
     build.add_argument("--area", required=True)
     build.add_argument("--threshold-db", type=float, default=3.0)
     build.add_argument("--min-component-pixels", type=int, default=9)
+    preparation = groups.add_parser("preparation").add_subparsers(dest="command", required=True)
+    build = preparation.add_parser(
+        "build", help="Build historical evidence and preparation proposals offline"
+    )
+    build.add_argument("--area", required=True)
+    build.add_argument("--context", type=Path)
+    build.add_argument("--illustrative", action="store_true", help="Select synthetic analyses only")
+    for flag, default in [
+        ("max-input-bytes", 25_000_000),
+        ("max-features", 50_000),
+        ("max-coordinates", 1_000_000),
+        ("max-output-bytes", 25_000_000),
+    ]:
+        build.add_argument("--" + flag, type=int, default=default)
+    verify = preparation.add_parser(
+        "verify", help="Verify report integrity and current input identities"
+    )
+    verify.add_argument("--area", required=True)
     publish = groups.add_parser("publish").add_subparsers(dest="command", required=True)
     build = publish.add_parser("build")
     build.add_argument("--area", required=True)
@@ -102,6 +120,7 @@ def parser():
     build.add_argument("--validate", action="store_true")
     build.add_argument("--exclude-synthetic", action="store_true")
     build.add_argument("--include-previews", action="store_true")
+    build.add_argument("--include-preparation", action="store_true")
     build.add_argument("--max-export-bytes", type=int, default=100_000_000)
     return root
 
@@ -181,6 +200,20 @@ def main(argv=None):
                         "error",
                     )
                 }
+        elif args.group == "preparation":
+            from surfacesignal.preparation.models import Budgets
+            from surfacesignal.preparation.store import build_preparation, verify_preparation
+
+            if args.command == "verify":
+                result = verify_preparation(settings, args.area)
+            else:
+                result = build_preparation(
+                    settings,
+                    args.area,
+                    context_path=args.context,
+                    illustrative=args.illustrative,
+                    budgets=Budgets(**{k: getattr(args, k) for k in Budgets.model_fields}),
+                )
         elif args.group == "derive":
             from surfacesignal.api.service import Repository
             from surfacesignal.processing.general_change import derive_analysis
@@ -208,6 +241,7 @@ def main(argv=None):
                 validate=args.validate,
                 exclude_synthetic=args.exclude_synthetic,
                 include_previews=args.include_previews,
+                include_preparation=args.include_preparation,
                 max_export_bytes=args.max_export_bytes,
             )
         elif args.group == "scenes":

@@ -111,3 +111,31 @@ def test_budgets_before_geometry_and_symlinks(tmp_path):
     for key in ["max_input_bytes", "max_features", "max_coordinates", "max_output_bytes"]:
         with pytest.raises(ValueError):
             Budgets(**{key: 0})
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        [],
+        {"type": "FeatureCollection", "features": ["bad"]},
+        {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": "bad"}]},
+    ],
+)
+def test_malformed_context_fails_cleanly(tmp_path, value):
+    path = tmp_path / "malformed.json"
+    write_json(path, value)
+    with pytest.raises(ValueError):
+        read_context(path, Budgets())
+
+
+def test_feature_budget_precedes_geometry(tmp_path):
+    from surfacesignal.storage import read_json
+
+    path = context_file(tmp_path)
+    value = read_json(path)
+    second = deepcopy(value["features"][0])
+    second["properties"]["id"] = "second"
+    value["features"].append(second)
+    write_json(path, value)
+    with pytest.raises(ValueError, match="budget"):
+        read_context(path, Budgets(max_features=1))

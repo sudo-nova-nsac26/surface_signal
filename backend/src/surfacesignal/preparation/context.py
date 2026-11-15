@@ -24,11 +24,18 @@ def bounded_json(path, budgets):
     path = safe_path(path)
     if path.stat().st_size > budgets.max_input_bytes:
         raise ValueError("Input byte budget exceeded")
-    return read_json(path)
+    value = read_json(path)
+    if not isinstance(value, dict):
+        raise ValueError("Expected JSON object")
+    return value
 
 
 def geometries(collection, budgets, *, context=False):
-    if collection.get("type") != "FeatureCollection" or "crs" in collection:
+    if (
+        not isinstance(collection, dict)
+        or collection.get("type") != "FeatureCollection"
+        or "crs" in collection
+    ):
         raise ValueError("Expected EPSG:4326 FeatureCollection without CRS override")
     features = collection.get("features")
     if not isinstance(features, list) or len(features) > budgets.max_features:
@@ -57,9 +64,11 @@ def geometries(collection, budgets, *, context=False):
                 coordinates(v)
 
     for feature in features:
-        if feature.get("type") != "Feature":
+        if not isinstance(feature, dict) or feature.get("type") != "Feature":
             raise ValueError("Expected Feature")
-        geometry = feature.get("geometry") or {}
+        geometry = feature.get("geometry")
+        if not isinstance(geometry, dict):
+            raise ValueError("Expected geometry object")
         if geometry.get("type") not in (
             {"Point", "Polygon", "MultiPolygon"} if context else {"Polygon", "MultiPolygon"}
         ):
@@ -70,6 +79,8 @@ def geometries(collection, budgets, *, context=False):
             raise ValueError("Invalid geometry")
         if context:
             props = feature.get("properties") or {}
+            if not isinstance(props, dict):
+                raise ValueError("Expected feature properties object")
             if any(
                 not isinstance(props.get(k), str) or not props[k].strip()
                 for k in ("id", "name", "kind")
