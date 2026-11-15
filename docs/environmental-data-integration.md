@@ -1,6 +1,6 @@
 # Environmental context — 2026-11-15
 
-Implementation of the supplied environmental backend plan and frontend handoff.
+This document describes the implemented context enrichment system. The current data-source inventory and verified public acquisition are in [data sources](data-sources.md) and [source evidence](public-source-evidence.md).
 Context is an additive, offline product. It never rewrites NISAR GCOV outputs,
 reprocesses HDF5, or establishes a confirmed flood. API requests read prepared
 JSON only; providers are never contacted by GET requests.
@@ -155,11 +155,8 @@ remain blocked pending verified accessible catalogs/products; no imagery is simu
   OpenAPI: `data/exports/environmental-context/openapi.json` (local, outside Git).
 - Original artifact hashes were verified by the context builds. The 123 GB raw-HDF5
   `history verify` was not rerun and no NISAR download/reprocessing was performed.
-- No push, remote PR, merge, deployment or visibility/license change was performed.
+- This was a local processing verification; the live application and published source inventory are described in the current project README.
 
-The full real-input Definition of Done in the source plan is still dependent on
-verified environmental imports, source access/license review and independent spatial
-reference qualification. The implemented unavailable state is intentional, not evidence
-that external sources have no observations.
+Credential-free CHIRPS v3 SAT, JRC Global Surface Water, ESA WorldCover, Copernicus DEM and IBGE context have since been acquired and validated for the published pilot. The dated local verification record above describes that particular earlier build; use [source evidence](public-source-evidence.md) and [delivery evidence](public-data-delivery-report.md) for current real inputs. Independent spatial/field flood validation remains unavailable.
 
 Environmental timeline markers now use a separate row: station readings are diamonds, rainfall is a time band, and reference products are squares. Dense observations group by UTC day/category for drawing; the panel retains individual observations and times. Comparison order and SAR selection are unchanged.

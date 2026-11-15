@@ -1,0 +1,15 @@
+SurfaceSignal — Sudo Nova contributors, 2026
+
+Original project software and documentation: Apache License 2.0 (LICENSE).
+
+External works retain their own attribution, licenses and redistribution terms.
+Apache-2.0 does not relicense: NASA–ISRO NISAR/ASF GCOV files; CHIRPS v3;
+JRC Global Surface Water; ESA WorldCover; Copernicus DEM; IBGE; SGB;
+OpenFreeMap/OpenMapTiles/OpenStreetMap; Mapzen terrain; Esri World Imagery;
+MapLibre and other third-party dependencies; Atkinson Hyperlegible and other
+fonts; or visual assets and logos with separate rights.
+
+Refer to docs/data-sources.md and docs/public-source-evidence.md for
+product-specific provenance and reuse conditions. Using NASA/ISRO data
+does not imply endorsement, field validation, or permission to redistribute
+all original source datasets.

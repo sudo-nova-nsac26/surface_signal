@@ -16,9 +16,10 @@ import {
 import { artifactUrl, GENERAL_CHANGE_ARTIFACT, listAreas } from "@/data/source";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { useMotionLevel } from "@/preferences/store";
+import { useMotionLevel, usePreferences } from "@/preferences/store";
 import { ArrowRightIcon } from "../icons";
 import { GlobeLoader } from "../GlobeLoader";
+import { SpeakButton } from "../ui/SpeakButton";
 import {
   assessGraphics,
   measureFps,
@@ -143,7 +144,10 @@ export function MapStage({
   const [busy, setBusy] = useState(false);
   // Which extra information is open above the time bar, if any.
   const [infoTab, setInfoTab] = useState<InfoTab | null>(null);
+  const [satelliteImagery, setSatelliteImagery] = useState(false);
+  const [restoredFromLangSwitch, setRestoredFromLangSwitch] = useState(false);
   const motion = useMotionLevel();
+  const prefs = usePreferences();
 
   const places = useMemo(() => {
     let valley = FALLBACK_VALLEY;
@@ -276,7 +280,11 @@ export function MapStage({
   }, [analysisId, lang, detailTry]);
 
   // The map draws only what the backend says is available for this comparison.
-  const currentDetail = detail && detail.id === analysisId ? detail.data : null;
+  // Keep the last loaded detail in view while the next step is fetching so the
+  // right panel and map never collapse or flash during timeline scrubbing.
+  const currentDetail = detail?.data ?? null;
+  const isDetailLoading =
+    detailStatus === "loading" || Boolean(detail && detail.id !== analysisId);
   const changes = useMemo<ChangeLayers>(() => {
     if (!analysisId || !currentDetail) return NO_CHANGES;
     const has = (id: string) =>
@@ -354,7 +362,67 @@ export function MapStage({
     [closeUp, showHotspots, lang, selectedHotspotId],
   );
 
-  const { tourOpen, setTourOpen } = useAutoValleyTour(phase === "map" && closeUp);
+  const { tourOpen, setTourOpen } = useAutoValleyTour(phase === "map" && closeUp && !restoredFromLangSwitch);
+
+  // Restore map state when the user switches language (PT <-> EN) while on the map.
+  useEffect(() => {
+    try {
+      const switched = sessionStorage.getItem("surface_signal_lang_switch");
+      if (!switched) return;
+      sessionStorage.removeItem("surface_signal_lang_switch");
+      const raw = sessionStorage.getItem("surface_signal_map_state");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        phase?: "intro" | "leaving" | "map";
+        placeId?: PlaceId;
+        view?: ViewMode;
+        selectedId?: string | null;
+        selectedHotspotId?: string | null;
+        satelliteImagery?: boolean;
+      };
+
+      // Defer the state updates until after this effect. The saved snapshot
+      // is captured before the regular sessionStorage synchronization runs.
+      queueMicrotask(() => {
+        if (saved.phase === "map" || saved.phase === "leaving") {
+          setRestoredFromLangSwitch(true);
+          setPhase("map");
+        }
+        if (saved.placeId) setPlaceId(saved.placeId);
+        if (saved.view === "2d" || saved.view === "3d") {
+          viewChosen.current = true;
+          setView(saved.view);
+        }
+        if (saved.selectedId) setSelectedId(saved.selectedId);
+        if (saved.selectedHotspotId) setSelectedHotspotId(saved.selectedHotspotId);
+        // The satellite base layer is available only in the flat 2D view.
+        if (typeof saved.satelliteImagery === "boolean") {
+          setSatelliteImagery(saved.satelliteImagery && saved.view !== "3d");
+        }
+      });
+    } catch {
+      // Ignore storage errors.
+    }
+  }, []);
+
+  // Keep current map state in sessionStorage so LanguageSwitch can preserve it.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "surface_signal_map_state",
+        JSON.stringify({
+          phase,
+          placeId,
+          view,
+          selectedId,
+          selectedHotspotId,
+          satelliteImagery,
+        }),
+      );
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [phase, placeId, view, selectedId, selectedHotspotId, satelliteImagery]);
 
   const closeHotspot = () => {
     setSelectedHotspotId(null);
@@ -413,6 +481,7 @@ export function MapStage({
   const chooseView = (next: ViewMode) => {
     viewChosen.current = true;
     setView(next);
+    if (next === "3d") setSatelliteImagery(false);
   };
 
   const begin = () => {
@@ -466,6 +535,8 @@ export function MapStage({
           onError={() => setStatus("error")}
           onBusyChange={setBusy}
           waterMotion={motion === "full" && tier !== "low"}
+          colorblind={Boolean(prefs.colorblind)}
+          satelliteImagery={satelliteImagery && view === "2d"}
         />
       )}
 
@@ -589,7 +660,10 @@ export function MapStage({
               </ol>
             </nav>
 
-            <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+            <div
+              data-tour="top-controls"
+              className="pointer-events-auto flex flex-wrap items-center gap-2"
+            >
               {closeUp && (
                 <button
                   type="button"
@@ -603,6 +677,49 @@ export function MapStage({
                 >
                   ?
                 </button>
+              )}
+              {closeUp && (
+                <div className="glass flex rounded-2xl p-1.5">
+                  <button
+                    type="button"
+                    aria-pressed={satelliteImagery && view === "2d"}
+                    disabled={view === "3d" || busy}
+                    onClick={() => setSatelliteImagery((v) => !v)}
+                    title={
+                      view === "3d"
+                        ? lang === "pt"
+                          ? "A foto real de satélite funciona apenas no modo 2D (Mapa plano)"
+                          : "Real satellite imagery is only available in 2D mode (Flat map)"
+                        : lang === "pt"
+                          ? "Mostrar foto real de satélite por baixo das manchas do radar"
+                          : "Show real satellite photo underneath the radar patches"
+                    }
+                    className={`flex min-h-12 items-center gap-2 rounded-xl px-4 transition ${
+                      view === "3d"
+                        ? "cursor-not-allowed opacity-50 text-ink-soft"
+                        : satelliteImagery
+                          ? "bg-brand text-brand-ink"
+                          : "text-ink hover:bg-brand-soft"
+                    }`}
+                  >
+                    <span className="text-lg font-bold leading-none">
+                      🛰️ {lang === "pt" ? "Satélite" : "Satellite"}
+                    </span>
+                    <span className="hidden text-xs leading-tight sm:block">
+                      {view === "3d"
+                        ? lang === "pt"
+                          ? "Apenas no 2D"
+                          : "2D only"
+                        : satelliteImagery
+                          ? lang === "pt"
+                            ? "Foto ativa (2D)"
+                            : "Photo on (2D)"
+                          : lang === "pt"
+                            ? "Foto real (2D)"
+                            : "Real photo (2D)"}
+                    </span>
+                  </button>
+                </div>
               )}
               <div
                 role="radiogroup"
@@ -675,7 +792,7 @@ export function MapStage({
               activeHotspot ? "hidden" : ""
             } ${
               closeUp
-                ? `max-h-[60svh] overflow-hidden p-3 lg:bottom-auto lg:top-[13.75rem] lg:max-h-[calc(100svh-31rem)] xl:top-[5rem] xl:max-h-[calc(100svh-20rem)] ${
+                ? `max-h-[60svh] overflow-hidden p-3 lg:bottom-[8.25rem] lg:top-[5rem] lg:max-h-none ${
                     infoTab ? "sm:w-[23rem]" : "sm:w-[19rem]"
                   }`
                 : "gap-3 p-4 sm:w-[24rem]"
@@ -685,9 +802,23 @@ export function MapStage({
               className={`flex min-h-0 flex-col ${closeUp ? "flex-1 gap-2 overflow-y-auto pr-1" : "gap-3"
                 }`}
             >
-              <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
-                {labels.places[current.id].name}
-              </h2>
+              <div className="flex items-start justify-between gap-2">
+                <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
+                  {labels.places[current.id].name}
+                </h2>
+                <SpeakButton
+                  text={[
+                    labels.places[current.id].name,
+                    labels.places[current.id].description,
+                    free3d ? labels.hint3d : null,
+                    closeUp && area ? labels.area : null,
+                  ]
+                    .filter(Boolean)
+                    .join(". ")}
+                  lang={lang}
+                  label={lang === "pt" ? "Ouvir" : "Listen"}
+                />
+              </div>
               <p className={`text-ink-soft ${closeUp ? "text-sm" : ""}`}>
                 {labels.places[current.id].description}
               </p>
@@ -745,7 +876,7 @@ export function MapStage({
                         })}
                       </div>
 
-                      {/* Quick Relief & Context Toggle */}
+                      {/* Quick Relief Toggle */}
                       <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
                         <span className="text-[11px] text-ink-soft">
                           {lang === "pt" ? "Relevo de morros (Copernicus 30m):" : "Hill relief (Copernicus 30m):"}
@@ -814,7 +945,7 @@ export function MapStage({
                     lang={lang}
                     step={selectedStep}
                     detail={currentDetail}
-                    status={detailStatus}
+                    status={detailStatus === "error" ? "error" : isDetailLoading ? "loading" : "ready"}
                     onRetry={() => setDetailTry((n) => n + 1)}
                     changes={switches}
                     onChanges={setSwitches}
@@ -882,7 +1013,7 @@ export function MapStage({
                 lang={lang}
                 step={selectedStep}
                 detail={currentDetail}
-                status={detailStatus}
+                status={detailStatus === "error" ? "error" : isDetailLoading ? "loading" : "ready"}
                 onRetry={() => setDetailTry((n) => n + 1)}
                 changes={switches}
                 onChanges={setSwitches}

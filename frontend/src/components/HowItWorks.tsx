@@ -384,7 +384,7 @@ export function HowItWorks({ labels }: { labels: Labels }) {
     const box = frameRef.current?.getBoundingClientRect();
     if (!box) return;
     cancelAnimationFrame(glide.current);
-    setSplit(Math.min(0.97, Math.max(0.03, (clientX - box.left) / box.width)));
+    setSplit(Math.min(1, Math.max(0, (clientX - box.left) / box.width)));
   };
 
   const pct = Math.round(split * 100);
@@ -419,20 +419,11 @@ export function HowItWorks({ labels }: { labels: Labels }) {
           </div>
           <Sky step={step} still={reduced} />
 
-          <span className="how-pill left-3 sm:left-4 sm:top-4">{labels.before}</span>
-          <span className="how-pill right-3 sm:right-4 sm:top-4">{labels.after}</span>
-          <span
-            className="how-pill scene-layer bottom-3 right-3 sm:bottom-4 sm:right-4"
-            style={{ opacity: step === 3 ? 1 : 0, top: "auto" }}
-          >
-            <span className="how-swatch" aria-hidden="true" /> {labels.newWater}
-          </span>
-
           {/* The native slider gives keyboard and screen-reader control. */}
           <input
             type="range"
-            min={3}
-            max={97}
+            min={0}
+            max={100}
             value={pct}
             onChange={(event) => {
               cancelAnimationFrame(glide.current);
@@ -447,12 +438,12 @@ export function HowItWorks({ labels }: { labels: Labels }) {
           />
           <div
             aria-hidden="true"
-            className="how-line pointer-events-none absolute inset-y-0 -translate-x-1/2"
+            className="how-line pointer-events-none absolute inset-y-0 z-10 -translate-x-1/2"
             style={{ left: `${split * 100}%` }}
           />
           <div
             aria-hidden="true"
-            className={`how-handle pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 peer-focus-visible:outline peer-focus-visible:outline-4 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-highlight ${
+            className={`how-handle pointer-events-none absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 peer-focus-visible:outline peer-focus-visible:outline-4 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-highlight ${
               step === 2 ? "how-handle-hint" : ""
             }`}
             style={{ left: `${split * 100}%` }}
@@ -461,6 +452,15 @@ export function HowItWorks({ labels }: { labels: Labels }) {
               <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" />
             </svg>
           </div>
+
+          <span className="how-pill z-20 left-3 sm:left-4 sm:top-4">{labels.before}</span>
+          <span className="how-pill z-20 right-3 sm:right-4 sm:top-4">{labels.after}</span>
+          <span
+            className="how-pill scene-layer z-20 bottom-3 right-3 sm:bottom-4 sm:right-4"
+            style={{ opacity: step === 3 ? 1 : 0, top: "auto" }}
+          >
+            <span className="how-swatch" aria-hidden="true" /> {labels.newWater}
+          </span>
         </div>
         <figcaption className="flex flex-wrap items-center justify-between gap-2 px-2 pt-2 text-base text-ink-soft">
           <span>{labels.sceneNote}</span>

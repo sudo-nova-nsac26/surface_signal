@@ -1,6 +1,8 @@
 # API contract
 
 Base: http://127.0.0.1:8000; interactive /docs; generated authoritative /openapi.json.
+
+The API is **optional**. On a fresh clone without original SAR artifacts it reads the checked-in public compact snapshot. The static website accesses the same prepared data directly without calling FastAPI. See [backend operations](backend-operations.md) and [snapshot delivery](snapshot-delivery.md).
 All endpoints are GET and do no remote requests. List envelope: items, total, offset, limit.
 Limit 1..200; offset >=0. Dates are inclusive UTC calendar dates; start must not exceed end.
 
@@ -28,7 +30,7 @@ empty list, not simulated observations. Public deployment still needs service au
 Scene responses additionally compute `local_available` from safe local file presence and
 known catalog byte size. This is not a fresh checksum or scientific quality verification.
 
-## MVP 0.2.0 extension — 2026-11-15
+## Prepared analysis and interpretation endpoints
 
 The original Analysis/Page fields remain unchanged. Detail adds `derived` (nullable manifest)
 and `links`; historical manifest files are unchanged. API title is SurfaceSignal API.

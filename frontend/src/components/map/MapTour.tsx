@@ -31,8 +31,8 @@ interface SpotlightRect {
 
 const STEPS: TourStep[] = [
   {
-    badge: { pt: "Passo 1 de 4 · Centro do mapa", en: "Step 1 of 4 · Center of the map" },
-    targetLabel: { pt: "📍 Quadradinhos Q1 a Q6 e visão 2D/3D", en: "📍 Squares Q1 to Q6 and 2D/3D switch" },
+    badge: { pt: "Passo 1 de 5 · Centro do mapa", en: "Step 1 of 5 · Center of the map" },
+    targetLabel: { pt: "📍 Quadradinhos Q1 a Q6 no Vale", en: "📍 Squares Q1 to Q6 in the Valley" },
     title: {
       pt: "Clique nos quadradinhos para inspecionar cada local",
       en: "Click the squares to inspect each spot",
@@ -42,8 +42,8 @@ const STEPS: TourStep[] = [
       en: "On the map, squares Q1 to Q6 mark floodplains, urban areas, and hillslopes. Clicking a square zooms in and opens a side popup with a real satellite photo and Before vs. After. Clicking it again restores the camera!",
     },
     tip: {
-      pt: "Dica: no topo direito você alterna entre 2D (leve) e 3D (relevo dos morros e encostas).",
-      en: "Tip: at the top right you can switch between 2D (light) and 3D (hill and slope relief).",
+      pt: "Dica: clique em qualquer quadrado tracejado (como Q2 no rio ou Q6 nas encostas) para abrir a análise local.",
+      en: "Tip: click any dashed square (like Q2 on the river or Q6 on the hillslopes) to open the local analysis.",
     },
     spotlightClass:
       "inset-x-4 top-16 bottom-36 lg:left-[20.5rem] lg:right-[25rem] lg:top-16 lg:bottom-36 rounded-3xl",
@@ -52,7 +52,29 @@ const STEPS: TourStep[] = [
     arrow: "🎯",
   },
   {
-    badge: { pt: "Passo 2 de 4 · Painel da direita", en: "Step 2 of 4 · Right panel" },
+    badge: { pt: "Passo 2 de 5 · Botões Satélite, 2D e 3D", en: "Step 2 of 5 · Satellite, 2D, and 3D buttons" },
+    targetLabel: { pt: "🛰️ Foto de Satélite (2D) · 2D Plano · 3D Relevo", en: "🛰️ Satellite Photo (2D) · 2D Flat · 3D Relief" },
+    title: {
+      pt: "Alterne entre 2D, Foto Real de Satélite e Relevo 3D",
+      en: "Switch between 2D, Real Satellite Photo, and 3D Relief",
+    },
+    body: {
+      pt: "• 2D (Mapa plano): visão leve de cima, ideal para ver ruas e bairros.\n• 🛰️ Satélite (Foto real 2D): troca o fundo escuro pela foto aérea real de alta resolução de Lajeado e Estrela por baixo das manchas do radar.\n• 3D (Globo e relevo): ergue os morros e encostas do Vale (desliga a foto 2D automaticamente).",
+      en: "• 2D (Flat map): light top-down view, ideal for streets and neighborhoods.\n• 🛰️ Satellite (2D photo): swaps the dark base for high-res aerial imagery of Lajeado and Estrela underneath the radar patches.\n• 3D (Globe & relief): raises the Valley's real hills and slopes (automatically turns off the 2D photo).",
+    },
+    tip: {
+      pt: "Dica: para ver a foto real de satélite por baixo das manchas de água, certifique-se de estar no modo 2D!",
+      en: "Tip: to see the real satellite photo under the water patches, make sure you are in 2D mode!",
+    },
+    targetSelector: '[data-tour="top-controls"]',
+    spotlightClass:
+      "inset-x-3 top-3 h-16 lg:left-auto lg:right-3 lg:top-3 lg:w-[32rem] lg:h-16 rounded-2xl",
+    cardClass:
+      "left-1/2 top-24 -translate-x-1/2 lg:left-auto lg:right-6 lg:top-24 lg:translate-x-0 w-[min(92vw,26rem)]",
+    arrow: "☝️",
+  },
+  {
+    badge: { pt: "Passo 3 de 5 · Painel da direita", en: "Step 3 of 5 · Right panel" },
     targetLabel: { pt: "🎨 Resumo da cheia e cartões de camadas", en: "🎨 Flood summary and layer cards" },
     title: {
       pt: "Ligue e desligue as camadas e veja os cruzamentos reais",
@@ -74,19 +96,19 @@ const STEPS: TourStep[] = [
     arrow: "👉",
   },
   {
-    badge: { pt: "Passo 3 de 4 · Linha do tempo (embaixo)", en: "Step 3 of 4 · Timeline (bottom)" },
-    targetLabel: { pt: "🗓️ Passagens de julho a outubro de 2026", en: "🗓️ Satellite passes from July to October 2026" },
+    badge: { pt: "Passo 4 de 5 · Linha do tempo (embaixo)", en: "Step 4 of 5 · Timeline (bottom)" },
+    targetLabel: { pt: "🗓️ Régua de passagens e Comparador de 2 períodos", en: "🗓️ Pass ruler and 2-period Comparator" },
     title: {
-      pt: "Viaje pelas datas antes, durante e depois da cheia",
-      en: "Travel across dates before, during, and after the flood",
+      pt: "Arraste a régua no tempo ou compare 2 períodos",
+      en: "Drag the timeline ruler or compare any 2 periods",
     },
     body: {
-      pt: "O satélite NISAR passa a cada 12 dias. Clique em qualquer ponto da linha do tempo (ou aperte Play ▶) para comparar como o Vale do Taquari estava durante a cheia (11 jul → 23 jul) e nas passagens seguintes.",
-      en: "The NISAR satellite passes every 12 days. Click any point on the timeline (or press Play ▶) to compare how the Taquari Valley looked during the flood (Jul 11 → Jul 23) and in later passes.",
+      pt: "O satélite NISAR passa a cada 12 dias. Arraste a bolinha branca na régua (ou aperte Play ▶) para viajar de junho a outubro de 2026. Quer comparar a 1ª leitura com a última? Clique em '⇄ Comparar 2 períodos'!",
+      en: "The NISAR satellite passes every 12 days. Drag the white thumb along the ruler (or press Play ▶) to travel from June to October 2026. Want to compare the 1st reading with the latest? Click '⇄ Compare 2 periods'!",
     },
     tip: {
-      pt: "Os pontinhos coloridos na linha do tempo marcam dias de chuva forte (CHIRPS) e boletins do rio (SGB).",
-      en: "The colored dots along the timeline mark heavy rain days (CHIRPS) and river bulletins (SGB).",
+      pt: "Os tracinhos coloridos na régua marcam dias de chuva forte (CHIRPS) e boletins do rio (SGB).",
+      en: "The colored ticks along the ruler mark heavy rain days (CHIRPS) and river bulletins (SGB).",
     },
     targetSelector: '[data-tour="timeline"]',
     spotlightClass:
@@ -96,19 +118,19 @@ const STEPS: TourStep[] = [
     arrow: "👇",
   },
   {
-    badge: { pt: "Passo 4 de 4 · Painel da esquerda", en: "Step 4 of 4 · Left panel" },
-    targetLabel: { pt: "🧭 Pontos Q1–Q6, relevo 3D e guias", en: "🧭 Spots Q1–Q6, 3D relief, and guides" },
+    badge: { pt: "Passo 5 de 5 · Painel da esquerda", en: "Step 5 of 5 · Left panel" },
+    targetLabel: { pt: "🧭 Pontos Q1–Q6, relevo 3D e dados HDF5", en: "🧭 Spots Q1–Q6, 3D relief, and HDF5 data" },
     title: {
       pt: "Acesse os pontos Q1–Q6, ligue o Relevo 3D e explore",
       en: "Jump to spots Q1–Q6, enable 3D Relief, and explore",
     },
     body: {
-      pt: "Na esquerda você clica direto nos quadradinhos (Q1 a Q6), ativa o Relevo 3D dos morros (Copernicus 30m) e abre as abas 'Entender esta comparação', 'Outras camadas' e 'Detalhes técnicos'.",
-      en: "On the left you can jump directly to squares Q1 to Q6, enable 3D hill relief (Copernicus 30m), and open 'Understand this comparison', 'Other layers', and 'Technical details'.",
+      pt: "Na esquerda você clica direto nos quadradinhos (Q1 a Q6), ativa o Relevo 3D dos morros (Copernicus 30m) e abre as abas 'Entender esta comparação', 'Outras camadas' e 'Detalhes técnicos' (com dados brutos HDF5).",
+      en: "On the left you can jump directly to squares Q1 to Q6, enable 3D hill relief (Copernicus 30m), and open 'Understand this comparison', 'Other layers', and 'Technical details' (with raw HDF5 data).",
     },
     tip: {
-      pt: "No topo direito você encontra o botão '♿ Acessibilidade' (letras grandes, alto contraste, modo daltônico, leitura espaçada e voz pausada) e o botão '?' para reabrir este tour.",
-      en: "At the top right you will find the '♿ Accessibility' button (large text, high contrast, colorblind mode, wider spacing, and slower voice) and the '?' button to reopen this tour.",
+      pt: "No topo direito você encontra o botão '♿ Acessibilidade' (pensado para idosos, daltônicos, baixa visão e dislexia) e o botão '?' para reabrir este tour.",
+      en: "At the top right you will find the '♿ Accessibility' button (designed for older adults, colorblind users, low vision, and dyslexia) and the '?' button to reopen this tour.",
     },
     targetSelector: '[data-tour="left-panel"]',
     spotlightClass:
@@ -221,6 +243,15 @@ export function MapTour({
   // Compute exact pixel positioning for the card when we have a measured spotlight
   const cardInlineStyle: React.CSSProperties | undefined = (() => {
     if (!measuredRect) return undefined;
+    if (step.targetSelector === '[data-tour="top-controls"]') {
+      return {
+        right: "20px",
+        top: `${Math.max(88, measuredRect.top + measuredRect.height + 18)}px`,
+        left: "auto",
+        bottom: "auto",
+        transform: "none",
+      };
+    }
     if (step.targetSelector === '[data-tour="timeline"]') {
       // Place card cleanly 22px ABOVE the measured top of the timeline
       const bottomPx = measuredRect.containerHeight - measuredRect.top + 22;
@@ -317,7 +348,7 @@ export function MapTour({
           {step.title[lang]}
         </h3>
 
-        <p className="mt-2 text-sm leading-relaxed text-slate-200">
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-200">
           {step.body[lang]}
         </p>
 

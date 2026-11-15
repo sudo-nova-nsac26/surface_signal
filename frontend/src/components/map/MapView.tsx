@@ -71,6 +71,10 @@ export interface MapViewProps {
   onError: () => void;
   /** Gentle sparkle moving along the river at the close-up (off for weak devices). */
   waterMotion?: boolean;
+  /** True when the colorblind-safe palette is active in Accessibility. */
+  colorblind?: boolean;
+  /** True when real optical satellite imagery (Esri World Imagery) is shown as the base layer. */
+  satelliteImagery?: boolean;
   /** True while the camera runs a transition the visitor must not interrupt. */
   onBusyChange?: (busy: boolean) => void;
 }
@@ -225,22 +229,142 @@ const easeInOut = (t: number) =>
 /**
  * The free dark basemap is almost black. This lifts land, water and borders
  * into the site palette so the planet reads clearly, also on dim screens.
+ * When colorblind mode is active, shifts the blue monochrome into a neutral
+ * charcoal + gold/amber high-distinction palette.
  */
-function recolourBasemap(map: MapLibreMap) {
+function recolourBasemap(map: MapLibreMap, colorblind = false) {
+  const bg = colorblind ? "#1a1f2c" : "#143a52";
+  const water = colorblind ? "#07090e" : "#05101d";
+  const boundary = colorblind ? "#f0e442" : "#4cc3dc";
+  const text = colorblind ? "#fff8dc" : "#e6f3fb";
   for (const layer of map.getStyle().layers) {
     if (layer.type === "background") {
-      map.setPaintProperty(layer.id, "background-color", "#143a52");
+      map.setPaintProperty(layer.id, "background-color", bg);
     } else if (layer.type === "fill" && layer.id.includes("water")) {
-      map.setPaintProperty(layer.id, "fill-color", "#05101d");
+      map.setPaintProperty(layer.id, "fill-color", water);
     } else if (layer.type === "line" && layer.id.includes("water")) {
-      map.setPaintProperty(layer.id, "line-color", "#05101d");
+      map.setPaintProperty(layer.id, "line-color", water);
     } else if (layer.type === "line" && layer.id.includes("boundary")) {
-      map.setPaintProperty(layer.id, "line-color", "#4cc3dc");
+      map.setPaintProperty(layer.id, "line-color", boundary);
     } else if (layer.type === "symbol") {
-      map.setPaintProperty(layer.id, "text-color", "#e6f3fb");
-      map.setPaintProperty(layer.id, "text-halo-color", "#05101d");
+      map.setPaintProperty(layer.id, "text-color", text);
+      map.setPaintProperty(layer.id, "text-halo-color", water);
       map.setPaintProperty(layer.id, "text-halo-width", 1.4);
     }
+  }
+  if (map.getLayer("relief-shade")) {
+    map.setPaintProperty(
+      "relief-shade",
+      "hillshade-highlight-color",
+      colorblind ? "#f0e442" : "#6fc9e0",
+    );
+    map.setPaintProperty(
+      "relief-shade",
+      "hillshade-accent-color",
+      colorblind ? "#221f17" : "#0b2233",
+    );
+  }
+  if (map.getLayer("relief-color")) {
+    try {
+      map.setPaintProperty(
+        "relief-color",
+        "color-relief-color",
+        colorblind
+          ? [
+              "interpolate",
+              ["linear"],
+              ["elevation"],
+              0,
+              "#161922",
+              120,
+              "#2d2a4a",
+              320,
+              "#6b4c7a",
+              600,
+              "#b8862d",
+              900,
+              "#f0e442",
+            ]
+          : [
+              "interpolate",
+              ["linear"],
+              ["elevation"],
+              0,
+              "#06263a",
+              120,
+              "#0c4a63",
+              320,
+              "#1b7c8c",
+              600,
+              "#4cb38f",
+              900,
+              "#d4efb0",
+            ],
+      );
+    } catch {
+      // Ignore if color-relief-color is unsupported.
+    }
+  }
+  const areaAccent = colorblind ? "#f0e442" : "#19e3ff";
+  if (map.getLayer("analysed-area-fill")) {
+    map.setPaintProperty("analysed-area-fill", "fill-color", areaAccent);
+  }
+  if (map.getLayer("analysed-area-line")) {
+    map.setPaintProperty("analysed-area-line", "line-color", areaAccent);
+  }
+  for (const id of RIVER_LAYERS) {
+    if (map.getLayer(id)) {
+      map.setPaintProperty(id, "line-color", colorblind ? "#fde047" : "#d9f3ff");
+    }
+  }
+}
+
+const SATELLITE_SOURCE = "esri-world-imagery";
+const SATELLITE_LAYER = "esri-world-imagery-layer";
+
+function syncSatelliteImagery(map: MapLibreMap, visible: boolean) {
+  if (!visible) {
+    try {
+      if (map.getLayer(SATELLITE_LAYER)) {
+        map.setLayoutProperty(SATELLITE_LAYER, "visibility", "none");
+      }
+    } catch {
+      // Ignore if style is mid-initialization
+    }
+    return;
+  }
+  if (!map.isStyleLoaded()) return;
+  if (!map.getSource(SATELLITE_SOURCE)) {
+    map.addSource(SATELLITE_SOURCE, {
+      type: "raster",
+      tiles: [
+        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+      attribution: "Esri, Maxar, Earthstar Geographics",
+    });
+  }
+  if (!map.getLayer(SATELLITE_LAYER)) {
+    const before =
+      map.getLayer("analysed-area-fill")
+        ? "analysed-area-fill"
+        : map.getStyle().layers.find((layer) => layer.type === "symbol")?.id;
+    map.addLayer(
+      {
+        id: SATELLITE_LAYER,
+        type: "raster",
+        source: SATELLITE_SOURCE,
+        layout: { visibility: "visible" },
+        paint: {
+          "raster-opacity": 0.9,
+          "raster-contrast": 0.08,
+        },
+      },
+      before,
+    );
+  } else {
+    map.setLayoutProperty(SATELLITE_LAYER, "visibility", "visible");
   }
 }
 
@@ -453,6 +577,8 @@ export default function MapView({
   onError,
   onBusyChange,
   waterMotion = false,
+  colorblind = false,
+  satelliteImagery = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -1165,7 +1291,7 @@ export default function MapView({
 
       // "style.load" fires as soon as the map can be drawn, before every tile arrives.
       map.once("style.load", () => {
-        recolourBasemap(map);
+        recolourBasemap(map, colorblind);
         map.addSource(TERRAIN_SOURCE, {
           type: "raster-dem",
           tiles: [CLEAN_TERRAIN_TILES],
@@ -1306,12 +1432,34 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id, view, area, intro]);
 
-  // A different comparison picked on the timeline, a layer switch or "show the changes".
+  // A different comparison picked on the timeline, a layer switch, "show the changes", or colorblind mode.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
+    recolourBasemap(map, colorblind);
     setChangeLayers(map, changes, Boolean(latest.current.place.detail));
-  }, [changes]);
+  }, [changes, colorblind]);
+
+  // Real optical satellite base layer (Esri World Imagery) at the close-up (2D only).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const showSat = Boolean(satelliteImagery && view === "2d" && place.detail);
+    const apply = () => {
+      syncSatelliteImagery(map, showSat);
+    };
+    apply();
+    map.on("style.load", apply);
+    map.on("idle", applyOnce);
+    function applyOnce() {
+      apply();
+      map?.off("idle", applyOnce);
+    }
+    return () => {
+      map.off("style.load", apply);
+      map.off("idle", applyOnce);
+    };
+  }, [satelliteImagery, view, place.detail]);
 
   // The sparkle starts or stops when motion settings or the device report change.
   useEffect(() => {
@@ -1349,6 +1497,7 @@ export default function MapView({
     const srcId = "env-hotspots";
     const fillId = "env-hotspots-fill";
     const lineId = "env-hotspots-line";
+    const baseHotspotColor = colorblind ? "#f0e442" : "#19e3ff";
     const apply = () => {
       if (!map.isStyleLoaded()) return;
       if (map.getLayer(lineId)) map.removeLayer(lineId);
@@ -1361,8 +1510,8 @@ export default function MapView({
         type: "fill",
         source: srcId,
         paint: {
-          "fill-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
-          "fill-opacity": ["case", ["==", ["get", "selected"], true], 0.18, 0.07],
+          "fill-color": ["case", ["==", ["get", "selected"], true], "#ffd166", baseHotspotColor],
+          "fill-opacity": ["case", ["==", ["get", "selected"], true], 0.18, 0.09],
         },
       });
       map.addLayer({
@@ -1370,7 +1519,7 @@ export default function MapView({
         type: "line",
         source: srcId,
         paint: {
-          "line-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
+          "line-color": ["case", ["==", ["get", "selected"], true], "#ffd166", baseHotspotColor],
           "line-width": ["case", ["==", ["get", "selected"], true], 3, 2],
           "line-dasharray": [2, 2],
         },
@@ -1403,7 +1552,7 @@ export default function MapView({
       map.off("mouseenter", fillId, handleEnter);
       map.off("mouseleave", fillId, handleLeave);
     };
-  }, [hotspots, place.detail]);
+  }, [hotspots, place.detail, colorblind]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {

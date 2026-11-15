@@ -137,6 +137,20 @@ export interface ApiLayerList {
   items: ApiLayer[];
 }
 
+export interface ApiDeltaDistribution {
+  min: number;
+  max: number;
+  mean: number;
+  median: number;
+  percentiles: {
+    "5": number;
+    "25": number;
+    "50": number;
+    "75": number;
+    "95": number;
+  };
+}
+
 /** Area/percent numbers are null when not measured, never 0 by default. */
 export interface ApiGeneralChangeStats {
   valid_area_km2: number | null;
@@ -149,6 +163,21 @@ export interface ApiGeneralChangeStats {
   decrease_area_km2: number | null;
   decrease_components: number | null;
   discarded_area_km2: number | null;
+  discarded_components?: number | null;
+  discarded_pixels?: number | null;
+  valid_pixels?: number | null;
+  total_pixels?: number | null;
+  invalid_pixels?: number | null;
+  changed_pixels?: number | null;
+  pixel_area_m2?: number | null;
+  mean_delta_db?: number | null;
+  median_delta_db?: number | null;
+  min_delta_db?: number | null;
+  max_delta_db?: number | null;
+  all_valid_delta_db?: ApiDeltaDistribution | null;
+  changed_delta_db?: ApiDeltaDistribution | null;
+  decrease_delta_db?: ApiDeltaDistribution | null;
+  increase_delta_db?: ApiDeltaDistribution | null;
   [key: string]: unknown;
 }
 
@@ -156,7 +185,12 @@ export interface ApiOpenWaterStats {
   candidate_area_km2: number | null;
   candidate_components: number | null;
   candidate_percent: number | null;
+  candidate_pixels?: number | null;
   valid_area_km2: number | null;
+  valid_pixels?: number | null;
+  raw_components?: number | null;
+  mean_delta_db?: number | null;
+  pixel_area_m2?: number | null;
   classification?: string;
   [key: string]: unknown;
 }
@@ -218,9 +252,9 @@ export interface ApiTimelineComparison {
   statistics?: Record<
     string,
     {
-      general_change?: { statistics?: { valid_area_km2?: number | null } } | null;
+      general_change?: { statistics?: Partial<ApiGeneralChangeStats> } | null;
       open_water?: {
-        statistics?: { candidate_area_km2?: number | null; valid_area_km2?: number | null };
+        statistics?: Partial<ApiOpenWaterStats>;
       } | null;
     }
   >;

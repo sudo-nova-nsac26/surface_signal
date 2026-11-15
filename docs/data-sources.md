@@ -1,52 +1,48 @@
-# Sources, terms and transformations
+# Data inventory, transformations, provenance and terms
 
-No source below establishes flood classification accuracy.
+This is the **current actual-source inventory**, not a list of hypothetical
+integrations. All environmental inputs were acquired using public HTTPS access;
+NISAR HDF5 acquisition required Earthdata. The evidence in
+[public-source-evidence.md](public-source-evidence.md) includes native crop
+SHA256, request ranges, units, temporal coverage, product versions and license metadata.
 
-| Source / organization | URL | Use / status | Terms and limitations |
-|---|---|---|---|
-| NISAR GCOV / NASA-ISRO, ASF | https://nisar-docs.asf.alaska.edu/gcov/ | Primary gamma0 power specification; diagonal vs complex terms, masks, grid | Dataset citation/access terms apply; PROVISIONAL is not full scientific validation |
-| ASF Search / ASF DAAC | https://nisar-docs.asf.alaska.edu/asf-search/ | Real filtered catalog, 19 records; SDK 14.1.0 | HDF5 requires Earthdata; metadata snapshot preserves source IDs/URLs |
-| SACE Taquari / SGB | https://sace.sgb.gov.br/bacia_taquari/ | Basin context; portal fetch failed in browsing | Numeric levels not inferred from narrative |
-| SGB July 23 bulletin report | https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia | 16:00 BRT qualitative status for Lajeado/Estrela; CSV paraphrase | Published 23/07 21:21, page updated 21/09; source attribution retained; no blanket reuse license asserted |
-| ANA HidroWeb | https://www.snirh.gov.br/hidroweb/acesso-api | Access page checked, no readable text returned; no API integration | No claim of an open unauthenticated observations endpoint |
-| OPERA DSWx-S1 / NASA JPL, PO.DAAC | https://www.jpl.nasa.gov/go/opera/products/dswx-product-suite/ | Product documentation reviewed; no aligned raster | Potential agreement reference, not ground truth; shared SAR ambiguities |
-| IBGE malhas API | https://servicodados.ibge.gov.br/api/docs/malhas?versao=3 | Attempted Lajeado 4311403 and Estrela 4307807 geometry; both HTTP 503 | No IBGE geometry included; pilot is explicitly analyst-defined |
-| Space Apps GO Team | https://github.com/nasa/spaceapps/discussions/1827 | Eligibility timing guidance verified | Written eligibility guidance required before competitive reuse |
+| Product | Real imported input and scientific treatment | Boundary / credit |
+|---|---|---|
+| **NASA–ISRO NISAR L2 GCOV**, via ASF | **19 provisional scenes**, **17 compatible temporal comparisons**, approx **131.39 GB** original HDF5. Bounded AOI GCOV power reads, validity/looks masks, alignment, gamma0 dB deltas and change polygons | [GCOV documentation](https://nisar-docs.asf.alaska.edu/gcov/), [ASF search](https://nisar-docs.asf.alaska.edu/asf-search/), [NASA mission](https://science.nasa.gov/mission/nisar/data/). Heuristic signals ≠ confirmed flood; ASF access/attribution terms apply. |
+| **CHIRPS v3.0 final SAT**, UCSB Climate Hazards Center | **57 native daily AOI crops**; consolidate estimated precipitation per complete preceding **UTC date labels** (1/2/3-day summaries) | [Product page and terms](https://www.chc.ucsb.edu/data/chirps3). 0.05° precipitation estimate is neither rain-gauge verification nor exact acquisition-hour rainfall. v3 SAT uses IMERG Late in its production, **not a separately ingested GPM dataset**. |
+| **JRC Global Surface Water v1.5** | Native historical occurrence raster AOI crop; percent water occurrence **1984–2024**, 30 m nominal | [JRC download and acknowledgement](https://global-surface-water.appspot.com/download); historical frequency is **not 2026 flooded area**. |
+| **ESA WorldCover 2021 v200** | Native **10 m** crop: water, trees, crops, built area etc. | [ESA product / CC BY 4.0](https://esa-worldcover.org/en/data-access); depicts 2021, not a current 2026 class or change. |
+| **Copernicus DEM GLO-30** | Two public tiles cropped/mosaicked to AOI, DSM surface height and slope | [AWS open dataset](https://registry.opendata.aws/copernicus-dem/), [Copernicus obligations](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM). DSM includes buildings/vegetation; not landslides, ground movement or river stage. |
+| **IBGE** | Official **2022** municipal meshes + names, intersecting Cruzeiro do Sul, Estrela and Lajeado | [IBGE malhas](https://servicodados.ibge.gov.br/api/docs/malhas). 2023/2024 queries failed but the 2022 query succeeded; don't infer residents affected. |
+| **SGB / SACE Taquari** | Source-dated **qualitative** hydrological bulletin/CSV | [SACE](https://sace.sgb.gov.br/bacia_taquari/), [SGB bulletin](https://www.sgb.gov.br/w/com-baixos-niveis-de-chuva-rio-taquari-apresenta-reducao-dos-niveis-em-grande-parte-da-bacia). Do not invent numeric station levels or spatial flood polygons. |
 
-Real catalog extent: configured 5 km buffer around (-51.961,-29.467), dates 2026-06-17
-through 2026-10-31. Each record preserves full scene metadata, footprint, size, timestamps,
-processing release and original catalog properties. The filtered SDK query sets maturity
-PROVISIONAL; records without that direct property explicitly say `maturity_basis=query_filter`.
-A preliminary point query without maturity filtering returned 20 records; it is **not** the
-19-record authoritative filtered AOI snapshot. ASF logged polygon simplification (64→32
-vertices, 0.0004-degree proximity) and winding repair for catalog search only. Processing
-uses the original AOI polygon, not that search simplification.
+## Technical steps
 
-GCOV transformations: spatial window, validity/looks filters, grid alignment if needed,
-10*log10, temporal delta and explicit heuristic thresholds. Input/output SHA256 and software
-versions are captured in manifests. Real transformations have not run because file auth failed.
+1. **Source acquisition:** record official URL, product/release, retrieval and observation times, AOI, hashes, ETags/HTTP ranges and permission metadata. The public context provider crops public raster sources to the configured bounded AOI. Raw source products stay out of Git.
+2. **SAR comparison:** select same-track/frame, direction, polarization, release and mutually comparable coverage. Read the bounded projected window, filter invalid, nonpositive and fill pixels, apply looks/GCOV mask semantics. Align in **linear power** before converting to dB: `gamma0_dB = 10 log10(gamma0_power)`, `delta_dB = after - before`.
+3. **Candidate polygons:** the exploratory open-water heuristic requires a **decrease ≤ −3 dB** and low subsequent power (typically **≤ −17 dB**) with minimum **9 pixels** per 4-connected component. Generic signal increases ≥ +3 dB and decreases ≤ −3 dB are separate layers, **not environmental classifications**. Exact thresholds and software versions are recorded per analysis manifest.
+4. **Environmental context:** aggregate CHIRPS by prior complete labeled days; summarize historical JRC water frequency; map WorldCover land-cover fractions; use DSM elevation/slope; intersect IBGE municipality geometries; join dated SGB qualitative reports. Keep unavailable numbers as `null`.
+5. **Publication:** preserve original numerical statistics/validation markers, original-source and export hashes. The **compact** JSON/GeoJSON retains a subset of larger polygons only for browser rendering; omitted small polygons invalidate any attempt to recompute areas/counts from the display layer. Full vectors require separately installed verified outputs.
 
-Code license: pending explicit owner approval; recommendation Apache-2.0 for an eventual
-public release (permissive use with attribution/NOTICE and patent grant provisions), subject
-to owner review. This document does not grant that license. Third-party Python packages
-retain their own licenses; consult pinned package distributions before redistribution.
+## Never claim these are actual ingested sources
 
-Legal/Resources pages were requested but failed to load during this execution:
-https://www.spaceappschallenge.org/legal/ (502) and
-https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/?tab=resources.
-Do not treat the plan's statements about those unavailable pages as independently reverified.
+Separate NASA GPM IMERG rasters, ANA live gauge feeds, MapBiomas/GEE,
+RCM, Sentinel/OPERA independent spatial reference images, Open-Meteo and ERA5-Land
+are **not** inputs to the published 17 analyses. Available adapters,
+historical implementation plans and data-source links do not imply acquisition.
 
-GCOV XML specification 1.6.0 was inspected for UTC timestamp encoding, HDF5 dimension
-references and mask semantics (0 invalid contributors, 255 outside extent):
-https://github.com/isce-framework/nisarqa/blob/main/src/nisarqa/product_specs/1.6.0/nisar_L2_GCOV.xml.
-The reader serializes HDF references as dataset paths and normalizes the documented timezone-free UTC field.
+## Map and interface resources (not scientific validation)
 
-## Environmental adapters — 2026-11-15
+OpenFreeMap/OpenStreetMap/OpenMapTiles, MapLibre GL JS, Mapzen terrain,
+optional **Esri World Imagery** 2D basemap, Atkinson Hyperlegible and other fonts
+are display/interface resources. Their licensing and attribution are separate
+from the underlying scientific inputs and separate from the source-code license.
 
-The additive `/api/v1/context/sources` inventory distinguishes import readiness,
-discovery and restricted access from sources actually used in a comparison.
-ANA/SGB local measurements, NASA GPM IMERG, MapBiomas Água, ESA WorldCover,
-IBGE and Copernicus DSM require product-specific provenance and terms at import.
-Sentinel/RCM metadata and EMS/OPERA references do not establish scene availability
-or independent truth. See [environmental integration](environmental-data-integration.md).
-The dated findings above remain historical records, not current adapter status.
+## Legal boundary
+
+The project's **Apache-2.0** license covers original project software/docs.
+It does **not** relicense NISAR, CHIRPS, JRC, ESA, Copernicus, IBGE,
+SGB, map tiles, typography or third-party visual assets.
+Review provider usage/redistribution terms before packaging or hosting
+their native rasters. See [NOTICE](../NOTICE), [source evidence](public-source-evidence.md)
+and [validation limits](validation.md).
