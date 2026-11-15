@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { EnvironmentalSources } from "@/components/environment/EnvironmentalSources";
 import { HowItWorks } from "@/components/HowItWorks";
 import {
   ChevronDownIcon,
@@ -232,6 +231,9 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             <p className="mt-4 max-w-2xl text-xl text-ink-soft">{dict.sources.lead}</p>
           </Reveal>
           <Reveal>
+            {/* Submission: show only sources used in the 17 published analyses.
+                Unused integrations remain in docs/future-work.md and the API
+                source registry, not in this reviewer-facing source section. */}
             <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {dict.sources.items.map((item, index) => (
                 <li
@@ -274,7 +276,6 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
                 ))}
               </ul>
             </div>
-            <EnvironmentalSources labels={dict.environment} />
           </Reveal>
         </div>
       </section>

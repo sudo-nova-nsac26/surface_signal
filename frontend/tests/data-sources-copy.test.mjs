@@ -50,14 +50,18 @@ test("PT/EN clearly credit exactly the seven science sources used in the public 
   }
 });
 
-test("UI credits only unused registered integrations separately from actual scientific inputs", () => {
-  const component = fs.readFileSync("src/components/environment/EnvironmentalSources.tsx", "utf8");
-  const pilot = ["sgb-taquari", "chirps-v3", "jrc-gsw", "worldcover", "copernicus-dem", "ibge"];
-  for (const id of pilot) assert.ok(component.includes('"' + id + '"'));
-  assert.match(component, /!PILOT_CONTEXT_SOURCE_IDS\.has\(source\.source_id\)/);
+test("reviewer source section lists only pilot inputs; future integrations stay in code/docs", () => {
   const page = fs.readFileSync("src/app/[lang]/page.tsx", "utf8");
-  assert.match(page, /dict\.sources\.items\.map/);
-  assert.match(page, /dict\.sources\.tools\.map/);
+  assert.match(page, /dict\\.sources\\.items\\.map/);
+  assert.match(page, /dict\\.sources\\.tools\\.map/);
+  // Do not repeat the registry: it includes unacquired ANA, IMERG, MapBiomas,
+  // Sentinel and RCM sources, which must not look like published inputs.
+  assert.doesNotMatch(page, /EnvironmentalSources|listContextSources|otherSources/);
+  assert.doesNotMatch(page, /Import supported; use depends on data|Access unavailable/);
+  const roadmap = fs.readFileSync("../docs/future-work.md", "utf8");
+  assert.match(roadmap, /GPM\\/IMERG/);
+  assert.match(roadmap, /MapBiomas/);
+  assert.match(roadmap, /RCM/);
 });
 
 test("obsolete claim that actual change maps are only illustrative does not return", () => {
