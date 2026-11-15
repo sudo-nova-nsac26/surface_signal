@@ -115,3 +115,22 @@ export const LanguagesIcon = (props: IconProps) => (
     <path d="M14 18h6" />
   </Icon>
 );
+
+/** Two people: the team. */
+export const TeamIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="9" cy="8" r="3.25" />
+    <path d="M3 20c0-3.300 2.700-6 6-6s6 2.700 6 6" />
+    <path d="M16 5.200a3 3 0 0 1 0 5.600" />
+    <path d="M18 14.300c1.800.800 3 2.700 3 5.700" />
+  </Icon>
+);
+
+/** Arrow leaving a box: the link opens another site. */
+export const ExternalIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14 4h6v6" />
+    <path d="M20 4l-9 9" />
+    <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </Icon>
+);

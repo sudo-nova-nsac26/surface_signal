@@ -12,6 +12,11 @@ const en: Dictionary = {
     home: "back to the start",
     tagline: "Surface change, explained for everyone",
   },
+  about: {
+    label: "About us",
+    newTab: "opens the Sudo Nova team site in a new tab",
+    cta: "Meet team Sudo Nova",
+  },
   language: {
     label: "Language",
   },

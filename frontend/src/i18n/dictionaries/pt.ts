@@ -15,6 +15,11 @@ const pt = {
     home: "voltar ao início",
     tagline: "Mudanças na superfície, explicadas para todos",
   },
+  about: {
+    label: "Sobre nós",
+    newTab: "abre o site do time Sudo Nova em outra aba",
+    cta: "Conheça o time Sudo Nova",
+  },
   language: {
     label: "Idioma",
   },

@@ -1,6 +1,8 @@
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { TEAM_SITE_URL } from "@/links";
 import { AccessibilityMenu } from "./AccessibilityMenu";
+import { TeamIcon } from "./icons";
 import { LanguageSwitch } from "./LanguageSwitch";
 
 export function SiteHeader({
@@ -38,6 +40,17 @@ export function SiteHeader({
           </div>
         </a>
         <div className="flex items-center gap-1">
+          {/* The team site opens in a new tab so the map here is not lost. */}
+          <a
+            href={TEAM_SITE_URL}
+            target="_blank"
+            rel="noopener"
+            className="tool-button"
+          >
+            <TeamIcon />
+            <span className="sr-only sm:not-sr-only">{dict.about.label}</span>
+            <span className="sr-only"> ({dict.about.newTab})</span>
+          </a>
           <LanguageSwitch current={lang} />
           <AccessibilityMenu labels={dict.a11y} />
         </div>
