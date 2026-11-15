@@ -33,6 +33,11 @@ import {
 } from "./places";
 import { ComparePanel } from "./ComparePanel";
 import { Timeline } from "./Timeline";
+import { EnvironmentalContextPanel } from "../environment/EnvironmentalContextPanel";
+import { useEnvironmental } from "../environment/useEnvironmental";
+import { getReferenceGeoJson } from "@/data/source";
+import type { ReferenceLayer } from "@/data/api-types";
+import type { FeatureCollection } from "geojson";
 
 // The map library is large, so it is kept out of the first download and
 // never runs on the server.
@@ -82,12 +87,14 @@ export function MapStage({
   hero,
   layers,
   illustrative,
+  environment,
 }: {
   lang: Locale;
   labels: Labels;
   hero: Dictionary["hero"];
   layers: Dictionary["layers"];
   illustrative: string;
+  environment: Dictionary["environment"];
 }) {
   // intro: a turning globe behind the introduction. leaving: the introduction
   // fades while the camera pulls back. map: only the map and its controls.
@@ -179,6 +186,20 @@ export function MapStage({
   }, []);
 
   const chosen = selectedStep?.analysis ?? null;
+  const environmental = useEnvironmental(closeUp ? area?.area_id ?? null : null, closeUp ? chosen?.analysisId ?? null : null);
+  const [reference, setReference] = useState<ReferenceLayer | null>(null);
+  const [referenceData, setReferenceData] = useState<{id: string; data: FeatureCollection} | null>(null);
+  const [referenceError, setReferenceError] = useState(false);
+  useEffect(() => {
+    if (!reference?.artifact_url || !closeUp) return;
+    const controller = new AbortController();
+    getReferenceGeoJson(reference.artifact_url, controller.signal).then(data => {
+      if (!controller.signal.aborted) { setReferenceData({id: reference.layer_id, data}); setReferenceError(false); }
+    }).catch(() => { if (!controller.signal.aborted) setReferenceError(true); });
+    return () => controller.abort();
+  }, [reference, closeUp]);
+  const environmentPanel = <EnvironmentalContextPanel state={environmental} step={selectedStep} lang={lang} labels={environment}
+    selectedLayer={reference?.layer_id ?? null} onLayer={layer => {setReference(layer); setReferenceError(false);}} layerError={referenceError} />;
   const changesUrl = chosen?.hasChangeShapes
     ? artifactUrl(chosen.analysisId, CHANGE_CANDIDATES_ARTIFACT)
     : null;
@@ -270,6 +291,7 @@ export function MapStage({
           motion={motion}
           intro={phase === "intro"}
           changes={changesUrl}
+          reference={closeUp && reference && referenceData?.id === reference.layer_id ? referenceData.data : null}
           changeOpacity={waterOn ? compare : 0}
           area={area?.geometry ?? null}
           label={labels.label}
@@ -445,7 +467,7 @@ export function MapStage({
           {/* Bottom left: what you are looking at and where to go next. */}
           <div
             aria-live="polite"
-            className="glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-3xl p-4 sm:inset-x-auto sm:left-4 sm:bottom-8 sm:w-[24rem]"
+            className="glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-3xl p-4 sm:inset-x-auto sm:left-4 sm:bottom-8 sm:w-[24rem] max-h-[calc(100%-6rem)] overflow-y-auto"
           >
             <h2 className="text-2xl font-bold leading-tight">
               {labels.places[current.id].name}
@@ -481,7 +503,10 @@ export function MapStage({
                   waterOn={waterOn}
                   onWaterOn={setWaterOn}
                 />
+                {environmentPanel}
                 <Timeline
+                  environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                  environmentLabels={environment}
                   data={timeline}
                   lang={lang}
                   labels={labels.timeline}
@@ -520,6 +545,8 @@ export function MapStage({
           {closeUp && timeline && (
             <div className="glass rise-in pointer-events-auto absolute bottom-8 left-[27rem] right-20 hidden max-w-3xl rounded-3xl p-4 lg:block">
               <Timeline
+                environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                environmentLabels={environment}
                 data={timeline}
                 lang={lang}
                 labels={labels.timeline}
@@ -544,6 +571,7 @@ export function MapStage({
                 waterOn={waterOn}
                 onWaterOn={setWaterOn}
               />
+              {environmentPanel}
             </div>
           )}
 

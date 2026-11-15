@@ -204,6 +204,8 @@ export interface TimelinePass {
 }
 
 export interface TimelineAnalysis {
+  candidateAreaKm2: number | null;
+  validAreaKm2: number | null;
   analysisId: string;
   illustrative: boolean;
   hasChangeShapes: boolean;
@@ -257,6 +259,8 @@ export function buildTimeline(
     const [before, after] = analysis.scenes;
     if (!before || !after) continue;
     prepared.set(stepId(before.start_time, after.start_time), {
+      candidateAreaKm2: analysis.statistics.candidate_area_km2 ?? null,
+      validAreaKm2: analysis.statistics.valid_area_km2 ?? null,
       analysisId: analysis.analysis_id,
       illustrative: analysis.synthetic || analysis.evidence.synthetic,
       hasChangeShapes: CHANGE_CANDIDATES_ARTIFACT in analysis.artifacts,

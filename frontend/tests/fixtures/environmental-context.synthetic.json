@@ -1,0 +1,188 @@
+{
+  "analysis_id": "b28c2d23bf8a3d9e9b557ebe",
+  "area_id": "test",
+  "data_status": "partial",
+  "generated_at": "2026-11-15T12:50:14.303281Z",
+  "historical_water": {
+    "aggregation": null,
+    "aggregation_scope": "configured_aoi",
+    "collection": "MapBiomas Água Coleção 5",
+    "coverage_fraction": null,
+    "limitations": [],
+    "overlap_fraction": null,
+    "overlap_km2": null,
+    "reference_year": null,
+    "status": "unavailable",
+    "valid_area_km2": null
+  },
+  "hydrology": {
+    "limitations": [
+      "Station levels have separate datums; no cross-station level comparison."
+    ],
+    "records": [
+      {
+        "datum": "synthetic gauge zero",
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "method": "synthetic fixture",
+        "native_unit": "cm",
+        "observed_at": "2026-07-23T20:33:50Z",
+        "original_timezone": "UTC-03:00",
+        "parameter": "river_level",
+        "quality_status": "missing",
+        "source_id": "ana-hidroweb",
+        "station_id": "synthetic-station",
+        "station_name": "Illustrative station",
+        "synthetic": true,
+        "time_offset_hours": -1.0,
+        "unit": "m",
+        "value": null
+      },
+      {
+        "datum": "synthetic gauge zero",
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "method": "synthetic fixture",
+        "native_unit": "cm",
+        "observed_at": "2026-07-23T21:33:50Z",
+        "original_timezone": "UTC-03:00",
+        "parameter": "river_level",
+        "quality_status": "valid",
+        "source_id": "ana-hidroweb",
+        "station_id": "synthetic-station",
+        "station_name": "Illustrative station",
+        "synthetic": true,
+        "time_offset_hours": 0.0,
+        "unit": "m",
+        "value": 1.2
+      }
+    ],
+    "stations": [
+      {
+        "station_id": "synthetic-station",
+        "station_name": "Illustrative station"
+      }
+    ],
+    "status": "partial"
+  },
+  "is_operational_alert": false,
+  "land_cover": {
+    "aggregation": null,
+    "aggregation_scope": "configured_aoi",
+    "classes": [],
+    "coverage_fraction": null,
+    "limitations": [],
+    "reference_year": null,
+    "status": "unavailable",
+    "valid_area_km2": null
+  },
+  "limitations": [
+    "Environmental context does not confirm flooding."
+  ],
+  "observed_at": "2026-07-23T21:33:50Z",
+  "provenance": {
+    "candidate_summaries": {},
+    "identity": {
+      "analysis_id": "b28c2d23bf8a3d9e9b557ebe",
+      "analysis_sha256": "78a9fed72007fa5aa9b882b7228aadf839c3cf43e8819d33c3d16d6043ba2f1f",
+      "area_id": "test",
+      "budgets": {
+        "max_input_bytes": 25000000,
+        "max_output_bytes": 25000000,
+        "max_pixels": 1000000,
+        "max_records": 50000
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [
+              -52.02959230203726,
+              -29.375956826109977
+            ],
+            [
+              -52.02958503596927,
+              -29.37523490616429
+            ],
+            [
+              -52.03040925290546,
+              -29.375228539488564
+            ],
+            [
+              -52.03041652478767,
+              -29.3759504592475
+            ],
+            [
+              -52.02959230203726,
+              -29.375956826109977
+            ]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "imports": [
+        "7a2897425609fc656c535bdf695b8553071c2662f440c0c6ec7bc6b5854b110d"
+      ],
+      "method_version": "environmental-context-v1",
+      "minimum_coverage": 1.0
+    },
+    "input_sha256": [
+      "a01802d1acb30a0e226428cb908e009ded47f33ef8ce789c9bae33b0d8f6941b"
+    ],
+    "method_version": "environmental-context-v1",
+    "spatial_summaries": {}
+  },
+  "rainfall": {
+    "acquisitions": {},
+    "coverage_by_window": {},
+    "coverage_fraction": null,
+    "limitations": [],
+    "product": null,
+    "resolution_km_approx": null,
+    "run": null,
+    "source_id": "gpm-imerg",
+    "status": "unavailable",
+    "windows_mm": {
+      "24h": null,
+      "48h": null,
+      "72h": null
+    }
+  },
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "limitations": [],
+      "name": "Synthetic fixture",
+      "observed_end": "2026-07-24T00:00:00Z",
+      "observed_start": "2026-07-23T00:00:00Z",
+      "product": "synthetic-test",
+      "redistribution_allowed": true,
+      "reference_year": null,
+      "resolution_m": null,
+      "source_id": "ana-hidroweb",
+      "synthetic": true,
+      "url": "https://example.org/synthetic"
+    }
+  ],
+  "synthetic": true,
+  "topography": {
+    "aggregation": null,
+    "aggregation_scope": "configured_aoi",
+    "coverage_fraction": null,
+    "elevation_m": null,
+    "limitations": [],
+    "slope_deg": null,
+    "status": "unavailable",
+    "valid_area_km2": null
+  },
+  "validation": {
+    "coverage": null,
+    "limitations": [
+      "No qualified independent spatial reference."
+    ],
+    "metrics": null,
+    "provenance": {},
+    "reference": null,
+    "reference_id": null,
+    "status": "not_validated"
+  }
+}

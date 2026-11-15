@@ -14,6 +14,55 @@ increases/decreases, bilingual deterministic explanations, regional timelines an
 See [backend MVP delivery](docs/backend-mvp.md), [static publication](docs/static-publication.md)
 and [deployment](docs/backend-deployment.md).
 
+## Public static mode and developer quick start — 2026-11-15
+
+The default frontend reads the compact real snapshot committed under
+`frontend/public/data/compact/api/v1`. It needs no Python server, credentials or
+scientific dataset download. All 17 published comparisons remain selectable.
+
+```sh
+cd frontend
+npm ci
+npm run dev
+# Build static HTML/assets in out/ and check Cloudflare Pages limits:
+npm run build
+npm start
+```
+
+Use `/pt/` or `/en/`. The root page selects a browser language and also provides
+visible links. The public deployment is a static Cloudflare Pages site. Data is
+prepared in advance; source outages do not affect the published analysis snapshot.
+The basemap still uses external map tiles; it is not an offline map-tile bundle.
+
+Optional developer operations (repository root, Python3.12):
+
+```sh
+uv sync --project backend --frozen --extra dev
+uv run --project backend surfacesignal sources check
+uv run --project backend surfacesignal sources fetch --area vale-do-taquari
+uv run --project backend surfacesignal context build --area vale-do-taquari
+uv run --project backend surfacesignal publish compact --area vale-do-taquari
+uv run --project backend surfacesignal publish full --area vale-do-taquari
+uv run --project backend surfacesignal data fetch-snapshot --help
+```
+
+Public sources use no credentials. Optional authenticated integrations are backend
+only; see `.env.example`. Updating existing context uses prepared outputs rather
+than re-downloading the NISAR HDF5. Compact geometries are explicitly visualization
+derivatives; original measurements and scientific artifacts remain unchanged.
+
+The full archive and SHA manifest are generated locally; no release is uploaded
+without owner approval. Until a public release URL is configured, `data fetch-snapshot`
+requires `--manifest` pointing to a local manifest or published HTTPS manifest.
+The default frontend does not need that command. Use
+`NEXT_PUBLIC_STATIC_SNAPSHOT=full` only after installing the full package, or
+`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for the local read-only API.
+
+See [source evidence](docs/public-source-evidence.md),
+[snapshot distribution](docs/snapshot-delivery.md),
+[Cloudflare procedure](docs/cloudflare-pages.md) and
+[Yuri's integration handoff](docs/frontend-environmental-handoff.md).
+
 ## What is verified
 
 - Real ASF discovery: **19 PROVISIONAL GCOV scenes**, acquired 2026-06-17 through

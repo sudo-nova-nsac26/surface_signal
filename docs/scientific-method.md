@@ -49,3 +49,12 @@ masked delta GeoTIFF to classify increases >=+3 dB and decreases <=−3 dB. Both
 are inclusive heuristic choices, with independently filtered four-neighbor components >=9
 pixels. It does not infer any environmental class. See [full method and accounting](general-change-analysis.md).
 Observation → detection → environmental hypothesis → independent validation remain distinct.
+
+## Environmental context — 2026-11-15
+
+Environmental enrichment is separate from SAR processing and has its own input
+hashes, parameters and immutable outputs. Rainfall integrates valid time intervals
+ending at acquisitions; river levels remain station/datum specific. Historical
+water/land-cover and surface elevation are contextual descriptions with valid-data
+coverage, not event classifications. Reference agreement requires qualified temporal
+and spatial coverage. See [environmental integration](environmental-data-integration.md).

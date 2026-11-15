@@ -204,3 +204,66 @@ def test_derive_cli_respects_configured_area_budget(prepared):
     area["properties"]["max_pixels"] = 1
     write_json(path, area)
     assert main(["--root", str(root), "derive", "build", "--area", "test"]) == 2
+
+
+def test_environmental_publication_missing_context_and_safe_target(prepared):
+    analysis, args, root = prepared
+    client_for(root, args[-1])
+    derive_analysis(root, analysis.analysis_id)
+    settings = Settings(root=root)
+    output = root / "context-snapshot"
+    report = build_publication(settings, "test", output, include_environmental_context=True)
+    assert report["include_environmental_context"] is True
+    assert not (output / f"analyses/{analysis.analysis_id}/environmental-context.json").exists()
+    assert read_json(output / "areas/test/environmental-events.json")["items"] == []
+    assert read_json(output / "areas/test/reference-layers.json")["items"] == []
+    assert read_json(output / "context-sources.json")["items"]
+    assert report == build_publication(settings, "test", output, include_environmental_context=True)
+    with pytest.raises(ValueError, match="Unsafe publication"):
+        build_publication(settings, "test", root / "data/context")
+
+
+def test_environmental_export_matches_http_and_preserves_corrupt_snapshot(prepared):
+    from surfacesignal.context.store import ContextInvalid, build_context
+    from surfacesignal.publication import _rewrite
+
+    analysis, args, root = prepared
+    client = client_for(root, args[-1])
+    settings = Settings(root=root)
+    derive_analysis(root, analysis.analysis_id)
+    context = build_context(settings, analysis.analysis_id)
+    output = root / "environmental-snapshot"
+    report = build_publication(settings, "test", output, include_environmental_context=True)
+    for route, file in [
+        (
+            f"analyses/{analysis.analysis_id}/environmental-context",
+            f"analyses/{analysis.analysis_id}/environmental-context.json",
+        ),
+        (
+            f"analyses/{analysis.analysis_id}/validation",
+            f"analyses/{analysis.analysis_id}/validation.json",
+        ),
+        ("areas/test/environmental-events", "areas/test/environmental-events.json"),
+        ("areas/test/reference-layers", "areas/test/reference-layers.json"),
+        ("context/sources", "context-sources.json"),
+    ]:
+        response = client.get("/api/v1/" + route)
+        assert response.status_code == 200
+        actual = read_json(output / file)
+        expected = _rewrite(response.json())
+        if "limit" in expected:
+            expected["limit"] = actual["limit"]
+        assert actual == expected
+    assert report == build_publication(settings, "test", output, include_environmental_context=True)
+    previous = (output / "publication-report.json").read_bytes()
+    context_path = (
+        root
+        / "data/context/test"
+        / analysis.analysis_id
+        / context["context_id"]
+        / "validation.json"
+    )
+    context_path.write_text("{}")
+    with pytest.raises(ContextInvalid):
+        build_publication(settings, "test", output, include_environmental_context=True)
+    assert (output / "publication-report.json").read_bytes() == previous
