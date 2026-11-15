@@ -1,34 +1,17 @@
-# Limitations
+# Scientific, operational and publication limitations
 
-- Exploratory private software; no eligibility claim, no operational alerts,
-  evacuation guidance, flood prediction or individual risk assessment.
-- No real HDF5 inspected/processed yet; Earthdata auth unavailable and observed HTTP 403.
-- No real spatial/field validation; precision, recall, IoU and F1 not reported for the pilot.
-- Low-return thresholds are not universally calibrated and miss urban/vegetated flooding.
-  Surface moisture, vegetation, wind, shadow and residual terrain may mimic or obscure change.
-- NumberOfLooks, documented mask 0/255 and explicit fill checks do not fully interpret every GCOV QA/mask convention.
-- Whole-scene download may consume ~7 GB per selected file; remote streaming is unverified.
-- API is read-only and offline; JSON catalog loads into memory. Sequential CLI processing only.
-- GeoTIFF is not guaranteed COG; no tiles, frontend, chatbot, remote jobs or operational monitoring.
-- AOI is a documented analyst buffer; it is not an official municipal/basin boundary.
-- SGB context is qualitative; no numeric levels invented. Historical maps cannot label 2026.
-- Rulesets blocked by current private repository plan; templates and manual PR review are not
-  equivalent to enforced protections. Code license and public visibility remain unapproved.
+- SurfaceSignal is a **published exploratory science/communication platform**, not an official real-time warning system, evacuation guide, insurance assessment, individual risk forecast or reliable flood map.
+- The local project processed **19 real NISAR GCOV acquisitions / 17 comparisons**. Older HTTP 403 and lack-of-data statements in dated proof-of-concept notes are historical, **not the current pilot's completion state**.
+- NISAR products are **provisional**. Gamma0 decreases can also reflect soil moisture, vegetation, shadow/layover or acquisition effects. Urban/vegetated flooding can increase radar backscatter and be missed by low-return thresholds.
+- Heuristic thresholded **possible open-water change candidates** are not verified flooding. Separate generic radar increases/decreases do not prove landslides, deforestation, erosion, ground motion or infrastructure damage.
+- **No independently validated real spatial reference or field survey** exists for the displayed candidates; no real pilot precision, recall, IoU or F1 is claimed. SGB bulletins and historical raster products are context only.
+- CHIRPS v3 SAT estimates do not establish station rain at the acquisition hour. JRC occurrence covers 1984–2024; WorldCover classes describe 2021. Copernicus DSM is surface height including objects, not a flood level.
+- IBGE **2022** municipal boundaries are contextual and do not mean the analyst-designed pilot AOI is an official city or flood boundary.
+- The committed compact **GeoJSON is simplified/trimmed for visualization**, so feature counts/areas cannot be recomputed from it. Scientific statistics and hashes preserve original measurements. The full vectors are a separate optional package.
+- Missing measurements stay `null`, not invented zeroes. Provisional measurements and time windows have explicit limitations.
+- The read-only FastAPI and static site **never run HDF5 analysis inside an HTTP request**. Raw scientific acquisition can be large (>131 GB) and requires local authorized Earthdata access. This is not needed for a clone of the frontend.
+- External tiles/relief/imagery may fail independently of the committed science snapshot.
+- The historical prototype's competition eligibility question is **not** resolved by documentation changes or an open-source license. See [provenance](prototype-provenance.md).
 
-## Backend MVP — 2026-11-15
-
-General increase/decrease maps are exploratory signal observations. No ground-motion, soil
-moisture retrieval, deforestation or urban damage map is produced. Small components discarded
-by filtering are counted explicitly. “Unchanged” means no retained change under these settings,
-not an invariant surface. Regional histories do not sum overlapping area or mix ascending and
-descending geometries into a continuous quantitative trend. Real processing completion and
-verified hashes are not scientific validation. The static package must be installed separately
-on another machine; runtime Python is unnecessary in static mode.
-
-## Environmental context — 2026-11-15
-
-Adapters and registered sources do not imply imported observations. Missing or
-restricted sources remain explicitly unavailable. Historical MapBiomas/WorldCover,
-regional precipitation and DSM topography cannot establish current conditions,
-confirmed impacts or ground movement. Unqualified references yield no validation
-metrics. See [environmental integration](environmental-data-integration.md).
+[Method](scientific-method.md) · [Validation](validation.md) ·
+[Actual sources](data-sources.md) · [Delivery](snapshot-delivery.md).
