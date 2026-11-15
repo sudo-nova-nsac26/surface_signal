@@ -34,16 +34,16 @@ const en: Dictionary = {
     close: "Close settings",
   },
   hero: {
-    eyebrow: "July 23, 2026 · Taquari Valley, Brazil",
-    title: "The Taquari flood, seen from space",
-    titleLines: ["The Taquari flood,", "seen from space."],
-    lead: "At 6:33 pm, after dark, a radar 747 km up passed over Lajeado and Estrela. It sees through clouds and in the dark. Here you can see, in plain colors, what changed on the ground.",
+    eyebrow: "Taquari Valley, Brazil · NISAR satellite, by NASA and ISRO",
+    title: "The Earth changes. The satellite sees.",
+    titleLines: ["The Earth changes.", "The satellite sees."],
+    lead: "Rising water, changing crops, shifting ground: a radar in space records changes on the surface, by day, by night and through clouds. We start with the Taquari Valley, comparing before and after the July 2026 flood, in plain colors.",
     start: "Start",
     startHint: "Takes about 2 minutes",
     facts: [
-      { label: "Satellite height", value: "747 km" },
+      { label: "First place", value: "Lajeado and Estrela" },
+      { label: "What we compare", value: "before × after" },
       { label: "Back over the same place", value: "every 12 days" },
-      { label: "After the river bulletin", value: "2 h 34 min" },
     ],
   },
   how: {

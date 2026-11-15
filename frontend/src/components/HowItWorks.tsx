@@ -235,7 +235,7 @@ function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
 }
 
 /** Satellite, radar echo and clouds, drawn over both halves. */
-function Sky({ step }: { step: number }) {
+function Sky({ step, still }: { step: number; still: boolean }) {
   const show = (...steps: number[]) => ({
     opacity: steps.includes(step) ? 1 : 0,
   });
@@ -248,8 +248,18 @@ function Sky({ step }: { step: number }) {
       focusable="false"
     >
       <g className="scene-layer" style={show(0, 1)}>
-        <g className="how-beam" style={{ opacity: step === 0 ? 1 : 0 }}>
-          <path d="M600 92 L452 360 H748 Z" fill="var(--highlight)" opacity="0.28" />
+        <g className="scene-layer" style={{ opacity: step === 0 ? 1 : 0 }}>
+          <path d="M600 108 L470 360 H730 Z" fill="var(--highlight)" opacity="0.28">
+            {!still && (
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="-10 600 108; 10 600 108; -10 600 108"
+                dur="5.6s"
+                repeatCount="indefinite"
+              />
+            )}
+          </path>
         </g>
         <g stroke="var(--scene-stroke)" strokeWidth="2">
           <rect x="508" y="62" width="62" height="28" rx="3" fill="var(--water)" />
@@ -338,7 +348,7 @@ export function HowItWorks({ labels }: { labels: Labels }) {
           >
             <Landscape flooded hatch={step === 3} />
           </div>
-          <Sky step={step} />
+          <Sky step={step} still={reduced} />
 
           <span className="how-pill left-3 sm:left-4 sm:top-4">{labels.before}</span>
           <span className="how-pill right-3 sm:right-4 sm:top-4">{labels.after}</span>

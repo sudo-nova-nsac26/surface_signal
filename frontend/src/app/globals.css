@@ -747,13 +747,6 @@ body {
     0 0.4rem 1.2rem rgb(0 0 0 / 0.45);
 }
 
-.how-beam {
-  transform-origin: 600px 92px;
-  transform-box: view-box;
-  animation: beam-sweep 2.8s ease-in-out infinite alternate;
-  transition: opacity 320ms ease-out;
-}
-
 .how-wave {
   animation: how-wave 1.8s ease-out infinite;
   opacity: 0;

@@ -37,16 +37,16 @@ const pt = {
     close: "Fechar ajustes",
   },
   hero: {
-    eyebrow: "23 de julho de 2026 · Vale do Taquari, RS",
-    title: "A cheia do Taquari, vista do espaço",
-    titleLines: ["A cheia do Taquari,", "vista do espaço."],
-    lead: "Às 18h33, já de noite, um radar a 747 km de altura passou sobre Lajeado e Estrela. Ele enxerga através das nuvens e no escuro. Aqui você vê, em cores simples, o que mudou no chão.",
+    eyebrow: "Vale do Taquari, RS · Satélite NISAR, da NASA e da ISRO",
+    title: "A Terra muda. O satélite vê.",
+    titleLines: ["A Terra muda.", "O satélite vê."],
+    lead: "Água que sobe, lavouras que mudam, solo que se move: um radar no espaço registra as mudanças na superfície, de dia, de noite e com nuvens. Começamos pelo Vale do Taquari, comparando antes e depois da cheia de julho de 2026, em cores simples.",
     start: "Começar",
     startHint: "Leva cerca de 2 minutos",
     facts: [
-      { label: "Altura do satélite", value: "747 km" },
+      { label: "Primeiro lugar", value: "Lajeado e Estrela" },
+      { label: "O que comparamos", value: "antes × depois" },
       { label: "Volta ao mesmo lugar", value: "a cada 12 dias" },
-      { label: "Depois do boletim do rio", value: "2 h 34 min" },
     ],
   },
   how: {
