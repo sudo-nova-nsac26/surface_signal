@@ -52,7 +52,7 @@ query filters are not interpreted by a static host. Artifact manifests retain or
 including originals intentionally not copied. Use `artifacts.json` or available layers to discover
 published files. The existing `source.ts` API/static switch and water artifact lookup work unchanged.
 
-The former synthetic example is explicitly isolated under `frontend/public/data/demo/api/v1/`.
+The unused synthetic public-example files were removed for the evaluator-facing release. Synthetic pipeline fixtures remain in backend tests, and the public default contains real precomputed observations only.
 The full real snapshot is generated locally and distributed as an external bundle; do not commit
 its large vectors to Git. On another computer install the bundle at `frontend/public/data/api/v1`
 before building Next.js, or set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for API mode.

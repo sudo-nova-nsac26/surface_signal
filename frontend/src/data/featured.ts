@@ -7,7 +7,7 @@
  * by the dates of the two passes; the identity used everywhere else is the
  * backend's comparison_id. A pair missing from the data is simply skipped.
  *
- * Why these: the July flood seen before, during and after, plus the two
+ * Why these: comparisons around the documented July river event, plus the two
  * comparisons of the period with the largest signal increase and the largest
  * signal decrease (from the backend statistics). "Largest" describes the
  * measured area only; it is not severity or risk.
@@ -22,5 +22,5 @@ export const FEATURED: { before: string; after: string; reason: FeaturedReason }
   { before: "2026-09-21", after: "2026-10-03", reason: "decrease" },
 ];
 
-/** The guided story opens on the flood. */
+/** "flood" is a legacy timeline key for the July context, never a validated map class. */
 export const FEATURED_START: FeaturedReason = "flood";

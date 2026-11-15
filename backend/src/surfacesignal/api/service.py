@@ -1,4 +1,9 @@
-"""Read-only prepared-data service shared by HTTP and offline publication."""
+"""Read-only prepared-data service shared by HTTP and offline publication.
+
+Only verified local scientific outputs or committed publication snapshots are read.
+No HTTP call downloads an Earthdata scene or executes image processing. Future
+area expansion must preserve this separation and surface missing metrics as null.
+"""
 
 import hashlib
 import json

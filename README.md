@@ -30,25 +30,17 @@
 
 The platform shows *candidate* surface changes. A radar threshold is **not** independent evidence of flooding, damage, hazard, or people affected. SurfaceSignal is not an emergency-warning or flood-forecasting system.
 
-## Documentation map
+## For evaluators
 
-The main README shows the essential steps. These references cover the detailed procedures, source attribution and scientific limitations.
+**Start with the [five-minute reviewer guide](docs/reviewer-guide.md).** It explains the demonstration, the 19 original scenes / 17 comparisons, how to verify the static build and exactly what the radar does **not** prove. The [future-work register](docs/future-work.md) separates proposed integrations from implemented features.
 
-| Topic | Guide |
+| Want to... | Open |
 |---|---|
-| **Run the public website without a backend** | [Static frontend below](#option-a--website-only-no-api), [frontend guide](frontend/README.md) |
-| **Run with the optional read-only API** | [FastAPI setup below](#option-b--frontend-connected-to-the-local-fastapi), [backend operations](docs/backend-operations.md), [API contract](docs/api-contract.md) |
-| **Create an Earthdata account, authorize ASF and safely configure credentials** | **[Earthdata step-by-step: .netrc, fish/Bash/Windows and errors 401/403](docs/earthdata-access.md)** |
-| **Download NISAR HDF5, process historical comparisons and verify files** | [Scientific processing below](#scientific-processing-advanced-not-required-to-run-the-site), [actual run details](docs/real-data-execution.md), [reproducibility](docs/reproducibility.md) |
-| **Understand every ingested data source and processing step** | [Sources and licensing](docs/data-sources.md), [public acquisition evidence](docs/public-source-evidence.md), [environmental context](docs/environmental-data-integration.md) |
-| **Interpret radar statistics and uncertainty** | [Scientific method](docs/scientific-method.md), [general signal changes](docs/general-change-analysis.md), [validation levels](docs/validation.md), [limitations](docs/limitations.md) |
-| **Generate local interpretation and preparation reports** | [Local analysis](docs/local-analysis-preparation.md), [interpretation rules](docs/interpretation-model.md) |
-| **Regenerate, publish and verify precomputed datasets** | [Static publication](docs/static-publication.md), [compact/full snapshot delivery](docs/snapshot-delivery.md), [publication evidence](docs/public-data-delivery-report.md) |
-| **Deploy and configure the application** | [Cloudflare Pages](docs/cloudflare-pages.md), [optional API deployment](docs/backend-deployment.md), [architecture](docs/architecture.md) |
-| **Configure environment variables and security** | [Backend .env.example](.env.example), [frontend .env.example](frontend/.env.example), [SECURITY.md](SECURITY.md) |
-| **Review SEO/GEO, licenses and contributions** | [SEO/GEO audit](docs/seo-geo-review.md), [Apache-2.0](LICENSE), [third-party NOTICE](NOTICE), [contributors](AGENTS.md), [submission checklist](docs/submission-checklist.md) |
-
-[All technical documentation](docs/README.md)
+| Explore the finished demo | [Live application](https://surfacesignal.earth/en/), [presentation](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) |
+| Run it from a clean clone | [Static mode below](#option-a--website-only-no-api), [frontend guide](frontend/README.md) |
+| Audit the scientific results | [Method](docs/scientific-method.md), [source provenance](docs/data-sources.md), [validation](docs/validation.md), [limitations](docs/limitations.md) |
+| Reprocess data (advanced) | [Earthdata setup](docs/earthdata-access.md), [reproducibility](docs/reproducibility.md), [real execution](docs/real-data-execution.md) |
+| Inspect architecture or API | [Architecture](docs/architecture.md), [API contract](docs/api-contract.md), [all technical documents](docs/README.md) |
 
 ## Run it locally: two supported modes
 

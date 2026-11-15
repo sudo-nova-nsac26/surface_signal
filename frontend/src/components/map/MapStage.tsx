@@ -198,7 +198,8 @@ export function MapStage({
   }, []);
 
   // The guided story: a few of the comparisons the backend prepared, in the
-  // chosen language. It opens on the flood, an explicit guided case.
+  // chosen language. It opens on the July period; the legacy 'flood' key means an event context,
+  // not independently verified flood polygons.
   useEffect(() => {
     const controller = new AbortController();
     loadStoryTimeline(STORY_AREA_ID, lang, controller.signal)

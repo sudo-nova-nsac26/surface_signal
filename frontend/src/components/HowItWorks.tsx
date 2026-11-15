@@ -124,7 +124,7 @@ function Landscape({
         <clipPath id={`ground-${id}`}>
           <path d="M0 170 C200 150 420 168 640 156 C860 144 1020 164 1200 150 V500 H0 Z" />
         </clipPath>
-        {/* Where the flood reaches: a band around the river. */}
+        {/* Hypothetical visual band around a schematic river: not a detected flood extent. */}
         <mask id={`flood-${id}`} maskUnits="userSpaceOnUse" x="0" y="0" width="1200" height="500">
           <rect width="1200" height="500" fill="black" />
           <g fill="none" stroke="white" strokeWidth="140" strokeLinecap="round" strokeLinejoin="round">
@@ -167,7 +167,7 @@ function Landscape({
       <g clipPath={`url(#ground-${id})`}>
         <rect y="120" width="1200" height="380" fill={`url(#land-${id})`} />
 
-        {/* Fields: after the flood the first one is covered in mud. */}
+        {/* Concept illustration only: one field changes appearance in the hypothetical scene. */}
         {VALLEY.fields.slice(0, 1).map(([x, y, w, h], index) => (
           <rect
             key={`${x}-${y}`}
@@ -197,7 +197,7 @@ function Landscape({
           ))}
         </g>
 
-        {/* Houses and buildings on the real streets. */}
+        {/* Simplified hypothetical buildings and streets: not geolocated damage observations. */}
         <g fill="var(--scene-town)" opacity="0.8">
           {VALLEY.houses.map(([x, y, , tall]) => (
             <rect key={`${x}-${y}`} x={x - 2.5} y={tall ? y - 7 : y - 2.5} width="5" height={tall ? 9.5 : 5} rx="0.8" />
@@ -206,7 +206,7 @@ function Landscape({
 
         {flooded && (
           <g mask={`url(#flood-${id})`}>
-            {/* Water over the low streets and houses. */}
+            {/* Simulated high-water overlay for explanation, not observed inundation. */}
             <rect width="1200" height="500" fill="var(--water)" opacity="0.5" />
             <g fill="none" stroke="var(--water)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               {VALLEY.streets.map((d) => (
@@ -255,7 +255,7 @@ function Landscape({
           ))}
         </g>
 
-        {/* Bridges over the river: whole before, broken after. */}
+        {/* Hypothetical bridges; the comparison is not structural-damage detection. */}
         {VALLEY.bridges.map(({ deck, broken }) =>
           flooded ? (
             <g key={deck} fill="none" strokeLinecap="butt">

@@ -10,6 +10,11 @@ Use the [official team/project page](https://www.spaceappschallenge.org/2026/fin
 - [ ] Check redistribution rights for native source data, third-party map imagery and visual assets.
 - [ ] Review AI-generated content disclosures against current contest rules.
 - [ ] Avoid claiming radar candidates are confirmed floods, damages, operational warnings or externally validated classifications.
-- [ ] Run CI and check source files/export assets for credentials or restricted imagery.
+- [ ] Confirm all required GitHub CI jobs pass on the final candidate commit, including Node 24 static export validation and Python tests.
+- [ ] Check source files/export assets for credentials or restricted imagery.
+- [ ] Check both language routes, the data lab, historical comparison selection and external links on the final deployed site.
+- [ ] Verify the submission presentation and team metadata match the final deployed source.
+
+See the [reviewer guide](reviewer-guide.md) and [future-work register](future-work.md). Do not mark external/manual items complete based only on source-code inspection.
 
 This checklist does not substitute for official competition requirements. An open-source license does not certify contest acceptance.
