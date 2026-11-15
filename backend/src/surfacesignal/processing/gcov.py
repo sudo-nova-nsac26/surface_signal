@@ -1,3 +1,9 @@
+"""Read and inspect NISAR L2 GCOV scientific arrays within a bounded AOI.
+
+The original HDF5 inputs remain local/offline; the public frontend never opens them.
+GCOV mask values and number-of-looks control data validity, not water labeling.
+"""
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -45,6 +51,7 @@ def scalar(value, file=None):
 
 
 def inspect_gcov(path: Path) -> dict:
+    """Return dataset metadata without loading large radar arrays."""
     report = {"file_name": path.name, "size_bytes": path.stat().st_size, "datasets": {}}
     with h5py.File(path, "r") as file:
         report["synthetic"] = bool(file.attrs.get("synthetic", False))
@@ -65,6 +72,7 @@ def inspect_gcov(path: Path) -> dict:
 
 
 def verify_scene(path: Path, scene: Scene) -> None:
+    """Reject HDF5 acquisitions inconsistent with their catalog metadata."""
     with h5py.File(path, "r") as file:
         synthetic = bool(file.attrs.get("synthetic", False))
         if synthetic != scene.synthetic:

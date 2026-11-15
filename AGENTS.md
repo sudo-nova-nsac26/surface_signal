@@ -5,7 +5,8 @@ The project currently has a published static frontend, 19 real NISAR acquisition
 - Keep work on feature branches; target `develop` through review. Preserve `main` and historical commits.
 - Preserve source provenance, original authorship and actual Git history. Do not claim competition compliance without authoritative evidence.
 - NISAR GCOV products are provisional. Use compatible acquisitions, masks/looks, bounded memory, real diagonal gamma0 power only, `10 log10(power)`, explicit uncalibrated thresholds, deterministic output provenance and SHA256.
-- Never label unvalidated radar-change components as confirmed floods, landslides, ground motion, damage, risk or emergency alerts.
+- Never label unvalidated radar-change components as confirmed floods, landslides, ground motion, damage, risk or emergency alerts. Check BOTH PT/EN UI text, headings and sharing metadata.
+- Future extensions belong in [docs/future-work.md](docs/future-work.md); add short comments at real extension points, not inactive feature stubs.
 - Distinguish actual CHIRPS v3 / JRC / WorldCover / Copernicus / IBGE / SGB inputs from optional unaquired sources. Unavailable measurements remain `null`.
 - Never commit Earthdata credentials, `.env`, `.netrc`, local raw HDF5 or restricted native datasets.
 - `frontend/src/data/source.ts` is the only browser data adapter; it selects the committed compact snapshot or optional API.
