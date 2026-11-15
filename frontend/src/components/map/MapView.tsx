@@ -40,10 +40,8 @@ export interface MapViewProps {
   motion: MotionLevel;
   /** Before the visitor starts: a slowly turning globe behind the intro. */
   intro: boolean;
-  /** Change shapes (GeoJSON URL) of the selected comparison, if any. */
-  changes: string | null;
-  /** How much of the change shapes shows: 0 = before, 1 = after. */
-  changeOpacity: number;
+  /** Change layers of the selected comparison (URLs and switches). */
+  changes: ChangeLayers;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -62,9 +60,38 @@ const AREA_SOURCE = "analysed-area";
 const OUTLINE_SOURCE = "place-outline";
 const OUTLINE_LAYERS = ["outline-fill", "outline-glow", "outline-line"];
 const OUTLINE_COLOR = "#19e3ff";
-const CHANGES_SOURCE = "change-candidates";
-// Where the radar started seeing water. Okabe-Ito sky blue, readable on navy.
-const WATER_COLOR = "#56b4e9";
+const GENERAL_SOURCE = "general-change";
+const WATER_SOURCE = "water-candidates";
+// Okabe-Ito colours, the same the backend legend uses. Each layer also has a
+// symbol and a text label in the panel, so colour is never the only signal.
+export const CHANGE_COLORS = {
+  radar_increase: "#D55E00",
+  radar_decrease: "#0072B2",
+  open_water: "#56B4E9",
+} as const;
+const CHANGE_LAYER_IDS = ["increase-fill", "decrease-fill", "water-fill", "water-line"];
+
+/** What the map draws for the chosen comparison. */
+export interface ChangeLayers {
+  /** general-change.geojson: increase and decrease, told apart by properties.class. */
+  generalUrl: string | null;
+  /** change-candidates.geojson: possible open water. */
+  waterUrl: string | null;
+  increase: boolean;
+  decrease: boolean;
+  water: boolean;
+  /** "Show the changes": 0 hides the patches, 1 shows them fully. */
+  opacity: number;
+}
+
+export const NO_CHANGES: ChangeLayers = {
+  generalUrl: null,
+  waterUrl: null,
+  increase: false,
+  decrease: false,
+  water: false,
+  opacity: 0,
+};
 const TERRAIN_SOURCE = "terrain";
 const RELIEF_SOURCE = "relief";
 const FLIGHT_MS = 3200;
@@ -179,51 +206,74 @@ function ensureAreaLayers(map: MapLibreMap, area: GeoJsonPolygon | null) {
 }
 
 /**
- * Shows the change shapes of the selected comparison. They come from the
- * backend's change-candidates.geojson, so real results draw here as soon as
- * they are published; an empty file simply draws nothing.
+ * Draws the chosen comparison: one source with the general changes feeds two
+ * layers filtered by class (signal increase, signal decrease), and a second
+ * source holds the possible open water. MapLibre fetches each file itself and
+ * always keeps the latest one asked for, so a quick change of comparison never
+ * shows an older answer. Only the close-up shows them.
  */
-function setChangeLayers(
-  map: MapLibreMap,
-  url: string | null,
-  visible: boolean,
-  opacity: number,
-) {
-  const source = map.getSource(CHANGES_SOURCE) as
-    { setData: (data: string) => void } | undefined;
-  if (url && !source) {
-    map.addSource(CHANGES_SOURCE, { type: "geojson", data: url });
-    map.addLayer({
-      id: "changes-fill",
-      type: "fill",
-      source: CHANGES_SOURCE,
-      paint: { "fill-color": WATER_COLOR, "fill-opacity": 0.55 * opacity },
-    });
-    map.addLayer({
-      id: "changes-line",
-      type: "line",
-      source: CHANGES_SOURCE,
-      paint: {
-        "line-color": "#d9f3ff",
-        "line-width": 1.2,
-        "line-opacity": opacity,
+function setChangeLayers(map: MapLibreMap, changes: ChangeLayers, visible: boolean) {
+  const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
+  const put = (id: string, url: string | null) => {
+    const source = map.getSource(id) as { setData: (data: string | GeoJSON.FeatureCollection) => void } | undefined;
+    if (!source) map.addSource(id, { type: "geojson", data: url ?? empty });
+    else source.setData(url ?? empty);
+  };
+  const before = map.getLayer("analysed-area-line") ? "analysed-area-line" : undefined;
+  put(GENERAL_SOURCE, changes.generalUrl);
+  put(WATER_SOURCE, changes.waterUrl);
+  if (!map.getLayer("increase-fill")) {
+    map.addLayer(
+      {
+        id: "increase-fill",
+        type: "fill",
+        source: GENERAL_SOURCE,
+        filter: ["==", ["get", "class"], "radar_increase"],
+        paint: { "fill-color": CHANGE_COLORS.radar_increase, "fill-opacity": 0.75 },
       },
-    });
-  } else if (url && source) {
-    source.setData(url);
+      before,
+    );
+    map.addLayer(
+      {
+        id: "decrease-fill",
+        type: "fill",
+        source: GENERAL_SOURCE,
+        filter: ["==", ["get", "class"], "radar_decrease"],
+        paint: { "fill-color": CHANGE_COLORS.radar_decrease, "fill-opacity": 0.75 },
+      },
+      before,
+    );
+    map.addLayer(
+      {
+        id: "water-fill",
+        type: "fill",
+        source: WATER_SOURCE,
+        paint: { "fill-color": CHANGE_COLORS.open_water, "fill-opacity": 0.9 },
+      },
+      before,
+    );
+    map.addLayer(
+      {
+        id: "water-line",
+        type: "line",
+        source: WATER_SOURCE,
+        paint: { "line-color": "#ffffff", "line-width": 1.2 },
+      },
+      before,
+    );
   }
-  if (map.getLayer("changes-fill")) {
-    map.setPaintProperty("changes-fill", "fill-opacity", 0.55 * opacity);
-    map.setPaintProperty("changes-line", "line-opacity", opacity);
-  }
-  for (const layer of ["changes-fill", "changes-line"]) {
-    if (map.getLayer(layer)) {
-      map.setLayoutProperty(
-        layer,
-        "visibility",
-        url && visible ? "visible" : "none",
-      );
-    }
+  map.setPaintProperty("increase-fill", "fill-opacity", 0.75 * changes.opacity);
+  map.setPaintProperty("decrease-fill", "fill-opacity", 0.75 * changes.opacity);
+  map.setPaintProperty("water-fill", "fill-opacity", 0.9 * changes.opacity);
+  map.setPaintProperty("water-line", "line-opacity", changes.opacity);
+  const show: Record<string, boolean> = {
+    "increase-fill": changes.increase && Boolean(changes.generalUrl),
+    "decrease-fill": changes.decrease && Boolean(changes.generalUrl),
+    "water-fill": changes.water && Boolean(changes.waterUrl),
+    "water-line": changes.water && Boolean(changes.waterUrl),
+  };
+  for (const layer of CHANGE_LAYER_IDS) {
+    map.setLayoutProperty(layer, "visibility", visible && show[layer] ? "visible" : "none");
   }
 }
 
@@ -316,7 +366,6 @@ export default function MapView({
   motion,
   intro,
   changes,
-  changeOpacity,
   area,
   label,
   dotHint,
@@ -353,7 +402,6 @@ export default function MapView({
     motion,
     intro,
     changes,
-    changeOpacity,
     area,
   });
   useEffect(() => {
@@ -364,7 +412,6 @@ export default function MapView({
       motion,
       intro,
       changes,
-      changeOpacity,
       area,
     };
   });
@@ -502,12 +549,7 @@ export default function MapView({
     }
 
     ensureAreaLayers(map, area);
-    setChangeLayers(
-      map,
-      latest.current.changes,
-      Boolean(detail),
-      latest.current.changeOpacity,
-    );
+    setChangeLayers(map, latest.current.changes, Boolean(detail));
     for (const layer of ["analysed-area-fill", "analysed-area-line"]) {
       if (map.getLayer(layer)) {
         map.setLayoutProperty(
@@ -1021,7 +1063,6 @@ export default function MapView({
       motion,
       intro,
       changes,
-      changeOpacity,
       area,
     };
     const viewChanged = lastView.current !== view;
@@ -1036,17 +1077,12 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id, view, area, intro]);
 
-  // A different comparison picked on the timeline, or the before/after slider.
+  // A different comparison picked on the timeline, a layer switch or "show the changes".
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
-    setChangeLayers(
-      map,
-      changes,
-      Boolean(latest.current.place.detail),
-      changeOpacity,
-    );
-  }, [changes, changeOpacity]);
+    setChangeLayers(map, changes, Boolean(latest.current.place.detail));
+  }, [changes]);
 
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {

@@ -6,9 +6,10 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 
 type Labels = Dictionary["map"]["timeline"];
+type Featured = Dictionary["map"]["featured"];
 
 const DAY = 86_400_000;
-const PLAY_MS = 1800;
+const PLAY_MS = 2400;
 
 function fill(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (_, key: string) =>
@@ -17,24 +18,22 @@ function fill(template: string, values: Record<string, string | number>) {
 }
 
 /**
- * A timeline you move through: each step compares one satellite pass with the
- * previous pass of the same kind. Buttons, a slider and an automatic play
- * move forward and back; the map follows the chosen step. Only real catalog
- * dates are shown, plus whatever the data source has prepared, so results
- * appear here with no code change.
+ * The guided story through time: a few comparisons the backend prepared,
+ * all from the same kind of pass. Buttons, a slider and play move forward
+ * and back; the map, the numbers and the explanation follow the chosen one.
  */
 export function Timeline({
   data,
   lang,
   labels,
-  illustrativeLabel,
+  featured,
   selectedId,
   onSelect,
 }: {
   data: TimelineView;
   lang: Locale;
   labels: Labels;
-  illustrativeLabel: string;
+  featured: Featured;
   selectedId: string | null;
   onSelect: (step: TimelineStep) => void;
 }) {
@@ -70,28 +69,29 @@ export function Timeline({
   const step = steps[index];
   const locale = lang === "pt" ? "pt-BR" : "en-US";
   const timeZone = "America/Sao_Paulo";
-  const longDate = new Intl.DateTimeFormat(locale, {
+  const shortDate = new Intl.DateTimeFormat(locale, {
     day: "numeric",
-    month: "long",
-    timeZone,
-  });
-  const monthName = new Intl.DateTimeFormat(locale, {
     month: "short",
     timeZone,
   });
-  const date = (iso: string) => longDate.format(new Date(iso));
+  const monthName = new Intl.DateTimeFormat(locale, { month: "short", timeZone });
+  const date = (iso: string) => shortDate.format(new Date(iso));
+  const compared = fill(labels.compared, {
+    before: date(step.beforeAt),
+    after: date(step.afterAt),
+  });
+  const story = step.reason ? featured[step.reason] : null;
 
   const move = (to: number) => {
     setPlaying(false);
     onSelect(steps[Math.min(steps.length - 1, Math.max(0, to))]);
   };
 
-  // The track: every pass is a dot, the chosen comparison is a bar.
+  // The track: every pass of the group is a dot, the chosen comparison a bar.
   const times = data.passes.map((pass) => Date.parse(pass.at));
   const start = Math.min(...times) - 4 * DAY;
   const end = Math.max(...times) + 4 * DAY;
-  const at = (iso: string) =>
-    ((Date.parse(iso) - start) / (end - start)) * 100;
+  const at = (iso: string) => ((Date.parse(iso) - start) / (end - start)) * 100;
   const months: { left: number; label: string }[] = [];
   const cursor = new Date(start);
   cursor.setUTCDate(1);
@@ -104,18 +104,10 @@ export function Timeline({
   const barLeft = at(step.beforeAt);
   const barWidth = Math.max(at(step.afterAt) - barLeft, 1.2);
 
-  const status = step.analysis
-    ? step.analysis.illustrative
-      ? { name: labels.ready, body: labels.illustrativeBody, tone: "sample" }
-      : { name: labels.ready, body: labels.readyBody, tone: "ready" }
-    : { name: labels.notReady, body: labels.notReadyBody, tone: "pending" };
-
   // A river bulletin from the same day as this pass.
   const bulletin = data.events.find(
-    (event) =>
-      Math.abs(Date.parse(event.at) - Date.parse(step.afterAt)) < 1.5 * DAY,
+    (event) => Math.abs(Date.parse(event.at) - Date.parse(step.afterAt)) < 1.5 * DAY,
   );
-
   const kind =
     step.direction === "ASCENDING"
       ? labels.morning
@@ -135,29 +127,36 @@ export function Timeline({
         </p>
       </div>
 
+      {/* The featured comparisons as named stops. */}
+      <ol className="flex flex-wrap gap-2">
+        {steps.map((item, i) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              onClick={() => move(i)}
+              aria-current={i === index ? "step" : undefined}
+              className={`min-h-11 rounded-full border-2 px-3 text-sm font-bold ${
+                i === index
+                  ? "border-brand bg-brand text-brand-ink hc:border-highlight hc:bg-highlight hc:text-highlight-ink"
+                  : "border-line bg-surface hover:border-brand hc:border-ink"
+              }`}
+            >
+              {item.reason ? featured[item.reason].title : date(item.afterAt)}
+            </button>
+          </li>
+        ))}
+      </ol>
+
       <div aria-live="polite">
         <p className="text-xl font-bold leading-snug">
-          {fill(labels.compared, {
-            after: date(step.afterAt),
-            before: date(step.beforeAt),
-          })}
+          {story ? `${story.title} · ` : ""}
+          {compared}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full px-3 py-0.5 text-sm font-bold ${
-              status.tone === "ready"
-                ? "bg-brand text-brand-ink"
-                : status.tone === "sample"
-                  ? "bg-highlight text-highlight-ink"
-                  : "border border-line text-ink-soft hc:border-ink hc:text-ink"
-            }`}
-          >
-            {status.name}
-            {status.tone === "sample" ? ` · ${illustrativeLabel}` : ""}
-          </span>
-          {kind && <span className="text-sm text-ink-soft">{kind}</span>}
-        </div>
-        <p className="mt-1 text-base text-ink-soft">{status.body}</p>
+        {story && <p className="text-base text-ink-soft">{story.body}</p>}
+        <p className="mt-1 text-sm text-ink-soft">
+          {kind ? `${kind}. ` : ""}
+          {labels.sameGroup}
+        </p>
         {bulletin && (
           <p className="mt-1 text-base">
             <span aria-hidden="true" className="text-highlight">
@@ -195,10 +194,7 @@ export function Timeline({
           value={index}
           onChange={(event) => move(Number(event.target.value))}
           aria-label={labels.slider}
-          aria-valuetext={fill(labels.compared, {
-            after: date(step.afterAt),
-            before: date(step.beforeAt),
-          })}
+          aria-valuetext={story ? `${story.title}, ${compared}` : compared}
           className="timeline-range min-w-0 flex-1"
         />
         <button
@@ -214,9 +210,7 @@ export function Timeline({
         <button
           type="button"
           onClick={() => {
-            if (!playing && index >= steps.length - 1) {
-              onSelect(steps[0]);
-            }
+            if (!playing && index >= steps.length - 1) onSelect(steps[0]);
             setPlaying((value) => !value);
           }}
           aria-pressed={playing}
@@ -229,7 +223,7 @@ export function Timeline({
         </button>
       </div>
 
-      {/* The track: decorative, the slider above is the control. */}
+      {/* The track: decorative, the controls above do the work. */}
       <div aria-hidden="true" className="relative h-9 select-none">
         <div className="absolute inset-x-0 top-3 h-0.5 rounded-full bg-line" />
         <div
@@ -240,9 +234,7 @@ export function Timeline({
           <span
             key={pass.at}
             className={`absolute top-3 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg ${
-              pass.at === step.beforeAt || pass.at === step.afterAt
-                ? "bg-brand"
-                : "bg-ink"
+              pass.at === step.beforeAt || pass.at === step.afterAt ? "bg-brand" : "bg-ink"
             }`}
             style={{ left: `${at(pass.at)}%` }}
           />

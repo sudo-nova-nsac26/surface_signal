@@ -181,6 +181,20 @@ heaviest transfers ~1.5 MB, ~3,800 polygons, ~1.5 s to draw on a desktop); polyg
 so they look blocky beyond zoom ~14; fast clicking never showed an old answer (AbortController per pick).
 The host must serve GeoJSON compressed. Phone performance not measured yet.
 
+Map wired to real data (2026-11-15): the timeline reads `/areas/{id}/timeline` (backend comparison_id and
+group_id, no pairs rebuilt from scenes) and shows a **curated story of 5 comparisons** (owner: more than 3, not all
+17), all from the same descending group so geometries never mix: before the flood (29 Jun -> 11 Jul), during
+(11 -> 23 Jul, the guided start), after (23 Jul -> 16 Aug), largest signal increase (9 -> 21 Sep) and largest
+signal decrease (21 Sep -> 3 Oct). The list lives in `src/data/featured.ts` (matched by dates; "largest" is area,
+never severity). Picking one loads statistics + layers + story together (`loadComparisonDetail`, cancelled on
+the next pick); the map draws general-change.geojson as two layers filtered by `properties.class` plus the water
+candidates, only when the backend lists them as available. ComparePanel: "Mostrar as mudanças" (shows/hides the
+patches; the copy says the background map is current, not the earlier date), three layer switches with colour +
+symbol + text, backend numbers with null as "indisponível", the PT/EN story with an expandable full explanation,
+other layers with their status and limits. Load errors show a plain message and "Tentar de novo" (tested by hiding
+the bundle). Not done yet: section 02 "Camadas" still lists the old fixed layers, the regional overview, the
+How-it-works impact pins (they promise more than the backend measures; owner to decide), phone checks.
+
 ## Owner decisions on the map (2026-11-14, done)
 
 - Place tree is **World > Country > State > Region of the state**. No continent or

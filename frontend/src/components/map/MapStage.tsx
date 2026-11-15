@@ -4,14 +4,16 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CHANGE_CANDIDATES_ARTIFACT, type ApiArea } from "@/data/api-types";
 import { STORY_AREA_ID } from "@/data/area-labels";
+import { FEATURED_START } from "@/data/featured";
 import {
   boundsOf,
-  loadTimeline,
+  loadComparisonDetail,
+  loadStoryTimeline,
+  type ComparisonDetail,
   type LngLat,
-  type TimelineStep,
   type TimelineView,
 } from "@/data/region";
-import { artifactUrl, getArtifactJson, listAreas } from "@/data/source";
+import { artifactUrl, GENERAL_CHANGE_ARTIFACT, listAreas } from "@/data/source";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useMotionLevel } from "@/preferences/store";
@@ -23,7 +25,7 @@ import {
   type GraphicsTier,
 } from "./hardware";
 import type { ViewMode } from "./camera";
-import type { MapMarker, MapViewHandle } from "./MapView";
+import { NO_CHANGES, type ChangeLayers, type MapMarker, type MapViewHandle } from "./MapView";
 import {
   buildPlaces,
   childrenOf,
@@ -80,14 +82,10 @@ export function MapStage({
   lang,
   labels,
   hero,
-  layers,
-  illustrative,
 }: {
   lang: Locale;
   labels: Labels;
   hero: Dictionary["hero"];
-  layers: Dictionary["layers"];
-  illustrative: string;
 }) {
   // intro: a turning globe behind the introduction. leaving: the introduction
   // fades while the camera pulls back. map: only the map and its controls.
@@ -100,11 +98,21 @@ export function MapStage({
   const [tier, setTier] = useState<GraphicsTier | null>(null);
   const viewChosen = useRef(false);
   const [timeline, setTimeline] = useState<TimelineView | null>(null);
-  const [selectedStep, setSelectedStep] = useState<TimelineStep | null>(null);
-  // Before/after: 0 shows the map as it was, 1 shows what appeared.
-  const [compare, setCompare] = useState(1);
-  const [waterOn, setWaterOn] = useState(true);
-  const [shapeCount, setShapeCount] = useState<number | null>(null);
+  const [timelineStatus, setTimelineStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [timelineTry, setTimelineTry] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The chosen comparison: numbers, layers and explanation, loaded together.
+  const [detail, setDetail] = useState<{ id: string; data: ComparisonDetail } | null>(null);
+  const [detailStatus, setDetailStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [detailTry, setDetailTry] = useState(0);
+  // Layer switches and "show the changes" (URLs are added from the data).
+  const [switches, setSwitches] = useState<ChangeLayers>({
+    ...NO_CHANGES,
+    increase: true,
+    decrease: true,
+    water: true,
+    opacity: 1,
+  });
   const mapHandle = useRef<MapViewHandle>(null);
   const motion = useMotionLevel();
 
@@ -156,55 +164,65 @@ export function MapStage({
     return () => controller.abort();
   }, []);
 
-  // The timeline of the story area: real passes plus any prepared analyses.
-  // Real results are preferred over samples; the latest comes first.
+  // The guided story: a few of the comparisons the backend prepared, in the
+  // chosen language. It opens on the flood, an explicit guided case.
   useEffect(() => {
     const controller = new AbortController();
-    loadTimeline(STORY_AREA_ID, controller.signal)
+    loadStoryTimeline(STORY_AREA_ID, lang, controller.signal)
       .then((data) => {
         setTimeline(data);
-        // Start on the July flood: the pair that ends on 23 July if there is
-        // one, otherwise the latest prepared comparison, otherwise the last.
-        const pick =
-          data.steps.find((step) => step.afterAt.startsWith("2026-07-23")) ??
-          [...data.steps].reverse().find((step) => step.analysis) ??
-          data.steps[data.steps.length - 1] ??
-          null;
-        setSelectedStep(pick);
+        setTimelineStatus("ready");
+        setSelectedId(
+          (current) =>
+            current ??
+            data.steps.find((step) => step.reason === FEATURED_START)?.id ??
+            data.steps[0]?.id ??
+            null,
+        );
       })
       .catch(() => {
-        // The map works without the timeline.
+        if (!controller.signal.aborted) setTimelineStatus("error");
       });
     return () => controller.abort();
-  }, []);
+  }, [lang, timelineTry]);
 
-  const chosen = selectedStep?.analysis ?? null;
-  const changesUrl = chosen?.hasChangeShapes
-    ? artifactUrl(chosen.analysisId, CHANGE_CANDIDATES_ARTIFACT)
-    : null;
+  const selectedStep = timeline?.steps.find((step) => step.id === selectedId) ?? null;
+  const analysisId = selectedStep?.analysisId ?? null;
 
-  // How many change shapes the chosen comparison has (0 for the sample).
+  // One request set per choice; a newer choice cancels the older one, so an
+  // old answer never shows after quick navigation.
   useEffect(() => {
+    if (!analysisId) return;
     const controller = new AbortController();
-    const analysis = selectedStep?.analysis;
-    if (!analysis?.hasChangeShapes) {
-      // Nothing to count for a comparison that has no shapes file.
-      queueMicrotask(() => {
-        if (!controller.signal.aborted) setShapeCount(null);
-      });
-      return () => controller.abort();
-    }
-    getArtifactJson<{ features?: unknown[] }>(
-      analysis.analysisId,
-      CHANGE_CANDIDATES_ARTIFACT,
-      controller.signal,
-    )
-      .then((collection) => setShapeCount(collection.features?.length ?? 0))
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) setDetailStatus("loading");
+    });
+    loadComparisonDetail(analysisId, lang, controller.signal)
+      .then((data) => {
+        setDetail({ id: analysisId, data });
+        setDetailStatus("ready");
+      })
       .catch(() => {
-        if (!controller.signal.aborted) setShapeCount(null);
+        if (!controller.signal.aborted) setDetailStatus("error");
       });
     return () => controller.abort();
-  }, [selectedStep]);
+  }, [analysisId, lang, detailTry]);
+
+  // The map draws only what the backend says is available for this comparison.
+  const currentDetail = detail && detail.id === analysisId ? detail.data : null;
+  const changes = useMemo<ChangeLayers>(() => {
+    if (!analysisId || !currentDetail) return NO_CHANGES;
+    const has = (id: string) =>
+      currentDetail.layers.some((layer) => layer.layer_id === id && layer.available);
+    return {
+      ...switches,
+      generalUrl:
+        has("radar_increase") || has("radar_decrease")
+          ? artifactUrl(analysisId, GENERAL_CHANGE_ARTIFACT)
+          : null,
+      waterUrl: has("open_water") ? artifactUrl(analysisId, CHANGE_CANDIDATES_ARTIFACT) : null,
+    };
+  }, [analysisId, currentDetail, switches]);
 
   const go = (id: string) => setPlaceId(id as PlaceId);
 
@@ -269,8 +287,7 @@ export function MapStage({
           view={view}
           motion={motion}
           intro={phase === "intro"}
-          changes={changesUrl}
-          changeOpacity={waterOn ? compare : 0}
+          changes={changes}
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -468,26 +485,40 @@ export function MapStage({
                 {labels.area}
               </p>
             )}
+            {closeUp && timelineStatus === "error" && (
+              <div className="flex flex-col items-start gap-2 border-t border-line pt-3">
+                <p className="text-base">{labels.timeline.error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimelineStatus("loading");
+                    setTimelineTry((n) => n + 1);
+                  }}
+                  className="tool-button"
+                >
+                  {labels.timeline.retry}
+                </button>
+              </div>
+            )}
             {closeUp && timeline && (
               <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
                 <ComparePanel
                   labels={labels.compare}
-                  layers={layers}
                   lang={lang}
                   step={selectedStep}
-                  shapeCount={shapeCount}
-                  value={compare}
-                  onValue={setCompare}
-                  waterOn={waterOn}
-                  onWaterOn={setWaterOn}
+                  detail={currentDetail}
+                  status={detailStatus}
+                  onRetry={() => setDetailTry((n) => n + 1)}
+                  changes={switches}
+                  onChanges={setSwitches}
                 />
                 <Timeline
                   data={timeline}
                   lang={lang}
                   labels={labels.timeline}
-                  illustrativeLabel={illustrative}
-                  selectedId={selectedStep?.id ?? null}
-                  onSelect={setSelectedStep}
+                  featured={labels.featured}
+                  selectedId={selectedId}
+                  onSelect={(step) => setSelectedId(step.id)}
                 />
               </div>
             )}
@@ -523,9 +554,9 @@ export function MapStage({
                 data={timeline}
                 lang={lang}
                 labels={labels.timeline}
-                illustrativeLabel={illustrative}
-                selectedId={selectedStep?.id ?? null}
-                onSelect={setSelectedStep}
+                featured={labels.featured}
+                selectedId={selectedId}
+                onSelect={(step) => setSelectedId(step.id)}
               />
             </div>
           )}
@@ -534,16 +565,15 @@ export function MapStage({
           {closeUp && timeline && (
             <div className="glass rise-in pointer-events-auto absolute right-16 top-20 hidden max-h-[calc(100%-6rem)] w-80 overflow-y-auto rounded-3xl p-4 lg:block">
               <ComparePanel
-                labels={labels.compare}
-                layers={layers}
-                lang={lang}
-                step={selectedStep}
-                shapeCount={shapeCount}
-                value={compare}
-                onValue={setCompare}
-                waterOn={waterOn}
-                onWaterOn={setWaterOn}
-              />
+                  labels={labels.compare}
+                  lang={lang}
+                  step={selectedStep}
+                  detail={currentDetail}
+                  status={detailStatus}
+                  onRetry={() => setDetailTry((n) => n + 1)}
+                  changes={switches}
+                  onChanges={setSwitches}
+                />
             </div>
           )}
 
