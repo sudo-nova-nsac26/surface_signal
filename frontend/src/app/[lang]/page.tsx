@@ -51,11 +51,16 @@ const LAYERS: {
   },
 ];
 
+// Corresponds to the seven *ingested* scientific sources in the PT/EN dictionaries.
+// Presentation tools are credited separately, never treated as environmental data.
 const SOURCE_ICONS = [
-  <SatelliteIcon key="satellite" className="size-8" />,
-  <WaterIcon key="water" className="size-8" />,
-  <MapIcon key="outline" className="size-8" />,
-  <HillIcon key="relief" className="size-8" />,
+  <SatelliteIcon key="nisar" className="size-8" />,
+  <WaterIcon key="chirps" className="size-8" />,
+  <WaterIcon key="jrc" className="size-8" />,
+  <PlantIcon key="worldcover" className="size-8" />,
+  <HillIcon key="dem" className="size-8" />,
+  <MapIcon key="ibge" className="size-8" />,
+  <WaterIcon key="sgb" className="size-8" />,
 ];
 
 function SectionHeading({
@@ -225,22 +230,51 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
               {dict.sources.title}
             </SectionHeading>
             <p className="mt-4 max-w-2xl text-xl text-ink-soft">{dict.sources.lead}</p>
-            <EnvironmentalSources labels={dict.environment} />
           </Reveal>
           <Reveal>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {dict.sources.items.map((item, index) => (
                 <li
                   key={item.name}
                   className="card flex flex-col gap-3 rounded-3xl border border-line bg-surface p-6 hc:border-2"
                 >
-                  <span className="text-brand-text">{SOURCE_ICONS[index]}</span>
-                  <h3 className="text-xl font-bold leading-tight">{item.name}</h3>
+                  <span aria-hidden="true" className="text-brand-text">
+                    {SOURCE_ICONS[index]}
+                  </span>
+                  <h4 className="text-xl font-bold leading-tight">{item.name}</h4>
                   <p className="text-base font-bold text-brand-text">{item.who}</p>
                   <p className="text-base text-ink-soft">{item.body}</p>
+                  <a
+                    className="mt-auto inline-flex min-h-11 items-center font-semibold text-brand-text underline underline-offset-4"
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {dict.sources.sourceLink}
+                    <span className="sr-only">: {item.name}</span>
+                  </a>
                 </li>
               ))}
             </ul>
+            <div className="mt-10 border-t border-line pt-6">
+              <h3 className="text-2xl font-bold">{dict.sources.toolsTitle}</h3>
+              <p className="mt-2 max-w-3xl text-ink-soft">{dict.sources.toolsLead}</p>
+              <ul className="mt-4 flex flex-wrap gap-3">
+                {dict.sources.tools.map((tool) => (
+                  <li key={tool.name}>
+                    <a
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center rounded-xl border border-line px-4 py-2 text-brand-text underline underline-offset-4"
+                    >
+                      {tool.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <EnvironmentalSources labels={dict.environment} />
           </Reveal>
         </div>
       </section>
