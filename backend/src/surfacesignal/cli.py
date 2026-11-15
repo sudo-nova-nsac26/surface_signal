@@ -193,6 +193,7 @@ def main(argv=None):
                         a.analysis_id,
                         threshold_db=args.threshold_db,
                         min_component_pixels=args.min_component_pixels,
+                        max_pixels=selected_area.max_pixels,
                     )
                     for a in Repository(settings).analyses(area_id=args.area)
                 ],

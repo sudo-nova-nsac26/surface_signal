@@ -189,3 +189,18 @@ def test_publication_rejects_unresolved_urls_before_replacement(prepared, monkey
     with pytest.raises(ValueError, match="Unresolved internal"):
         build_publication(Settings(root=root), "test", output)
     assert (output / "publication-report.json").read_bytes() == original
+
+
+def test_derive_cli_respects_configured_area_budget(prepared):
+    from test_pipeline_api import client_for
+
+    from surfacesignal.cli import main
+    from surfacesignal.storage import read_json, write_json
+
+    _, args, root = prepared
+    client_for(root, args[-1])
+    path = root / "config/areas/test.geojson"
+    area = read_json(path)
+    area["properties"]["max_pixels"] = 1
+    write_json(path, area)
+    assert main(["--root", str(root), "derive", "build", "--area", "test"]) == 2
