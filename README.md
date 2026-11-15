@@ -163,6 +163,12 @@ assets/                Sudo Nova and SurfaceSignal project logos
 
 [Documentation index](docs/README.md) · [API contract](docs/api-contract.md) · [Cloudflare Pages](docs/cloudflare-pages.md) · [Security](SECURITY.md).
 
+## AI-assisted development disclosure
+
+SurfaceSignal was developed with assistance from **Claude Code (Anthropic)**, **Codex (OpenAI)** and **Antigravity (Google)**. These tools supported software implementation, code review, debugging, research and project documentation. Their use is acknowledged here for transparency; responsibility for the project, scientific interpretations and published results remains with the Sudo Nova team.
+
+**Data provenance:** the NASA–ISRO NISAR observations and environmental source datasets are real third-party scientific data, **not AI-generated observations**. Derived comparisons are produced by the documented processing pipeline; AI assistance does not constitute independent scientific validation.
+
 ## Team, license and credits
 
 **Arthur Henrique Fassina**, **Mateus Carniel Brambilla** and **Yuri Korolko** · [Team portfolio](https://sudonova.surfacesignal.earth) · [Project presentation](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) · [NASA Space Apps entry](https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project).

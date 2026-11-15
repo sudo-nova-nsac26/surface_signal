@@ -159,6 +159,12 @@ assets/                logos Sudo Nova e SurfaceSignal
 
 O site oficial **[surfacesignal.earth](https://surfacesignal.earth)** estático é publicado via Cloudflare Pages, sem precisar de API em produção. Consulte o [índice de documentação](docs/README.md), [arquitetura](docs/architecture.md), [API](docs/api-contract.md) e [publicação](docs/cloudflare-pages.md).
 
+## Transparência sobre o uso de inteligência artificial
+
+O SurfaceSignal foi desenvolvido com auxílio do **Claude Code (Anthropic)**, **Codex (OpenAI)** e **Antigravity (Google)**. Essas ferramentas apoiaram implementação de software, revisão de código, depuração, pesquisa e documentação do projeto. O uso é declarado aqui por transparência; a responsabilidade pelo projeto, pelas interpretações científicas e pelos resultados publicados permanece com a equipe Sudo Nova.
+
+**Proveniência dos dados:** as observações NASA–ISRO NISAR e os conjuntos ambientais utilizados são dados científicos reais de terceiros, **não observações geradas por IA**. As comparações derivadas são produzidas pelo pipeline de processamento documentado; o auxílio de IA não equivale a validação científica independente.
+
 ## Equipe, licença e segurança
 
 **Arthur Henrique Fassina**, **Mateus Carniel Brambilla** e **Yuri Korolko** · [Portfólio da equipe](https://sudonova.surfacesignal.earth) · [Apresentação](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) · [Inscrição oficial](https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project).
