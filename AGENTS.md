@@ -130,7 +130,15 @@ with a drawing whose before/after line can be dragged (pointer + hidden range in
 sticky section menu (`SectionNav`), new sections 04 "De onde vêm os dados" and 05 "Dúvidas" (FAQ), an
 "Em caso de cheia" block (tap-to-call 199/193, SMS 40199) that replaced the small notice, "Ouvir" read-aloud on
 every section (`ListenButton`, browser speech, one section at a time), WhatsApp share + copy link
-(`ShareButtons`), and "Sobre nós" (header + footer) linking to the team site (`src/links.ts`).
+(`ShareButtons`), and "Sobre nós" (header + footer + section menu) linking to the team site (`src/links.ts`).
+
+Owner feedback on that round (2026-11-14, done): the "How it works" drawing is now a large night scene of the valley
+(Lajeado, Estrela, the bridge, hills, fields) across the full width, before/after as two stacked SVGs with a CSS
+`clip-path` on the "after" one; the 4 steps are a row below it and the chosen step is told in one panel (no long
+text column, no empty space). FAQ keeps only: why we made the site, how radar sees through clouds, plans to cover
+other regions/countries (yes: that is why the map starts on a globe), who made it. **Emergency numbers are NOT
+clickable** (owner: older people could call by accident) and all three cards share one colour. The section menu is
+centred on wide screens.
 
 Not done (in this order): landmarks and "Onde estou", VLibras, mobile and weak-phone checks,
 anything that needs real data. Stepping the timeline does not change the map yet because no step has real shapes:

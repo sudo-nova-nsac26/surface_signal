@@ -240,6 +240,7 @@ const en: Dictionary = {
     data: "Data",
     faq: "Questions",
     help: "If there is a flood",
+    about: "About us",
   },
   listen: {
     start: "Listen",
@@ -282,20 +283,16 @@ const en: Dictionary = {
     title: "Common questions",
     items: [
       {
-        q: "Does this site warn me before a flood?",
-        a: "No. It shows what the satellite already saw, after it passed. For warnings in Brazil, register your street's postal code by texting it to 40199 and follow Civil Defense.",
+        q: "Why did we make this site?",
+        a: "The Taquari River has overflowed several times in recent years. Many people, especially older adults and deaf people, do not get or do not understand warnings and technical maps. We wanted to show what a NASA satellite saw in a way anyone can understand: large letters, plain colors and no technical terms.",
       },
       {
         q: "How can a satellite see through clouds?",
         a: "It uses radar, not an ordinary camera. The radar sends its own signal and listens to the echo. Clouds and rain do not block that signal, and it works at night too.",
       },
       {
-        q: "Why only some dates?",
-        a: "The satellite passes over the same place every 12 days. Only two passes made the same way can be compared, so not every day has a comparison.",
-      },
-      {
-        q: "Does a patch on the map mean my house flooded?",
-        a: "Not necessarily. A patch shows where the surface changed between two dates. It may be water, or another change. It is a clue, not a confirmation.",
+        q: "Do you plan to cover other regions and countries?",
+        a: "Yes. That is why the map starts on a globe: the whole world is already there, with other countries, states and regions marked as “coming soon”. The NISAR satellite observes almost all of the planet's land every 12 days, so the same method can be taken to other places.",
       },
       {
         q: "Who made this site?",
@@ -306,15 +303,11 @@ const en: Dictionary = {
   help: {
     title: "If there is a flood",
     lead: "This site is not an official alert. If you are in danger in Brazil, get help now:",
-    call: "Call",
     contacts: [
-      { number: "199", name: "Civil Defense", body: "Danger, shelter and guidance.", href: "tel:199" },
-      { number: "193", name: "Fire Department", body: "Rescue and emergencies with people.", href: "tel:193" },
+      { number: "199", name: "Civil Defense", body: "Call for danger, shelter and guidance." },
+      { number: "193", name: "Fire Department", body: "Call for rescue and emergencies with people." },
+      { number: "40199", name: "Alerts by text message", body: "Text your street's postal code (CEP) to get Civil Defense alerts on your phone. It is free." },
     ],
-    smsNumber: "40199",
-    smsName: "Alerts by text message",
-    smsBody: "Send your street's postal code (CEP) to get Civil Defense alerts on your phone. It is free.",
-    smsAction: "Send a text",
     shareTitle: "Share with people who live in the Valley",
     shareBody: "Send it to family and neighbours. The more people understand what the satellite saw, the better.",
     whatsapp: "Send on WhatsApp",

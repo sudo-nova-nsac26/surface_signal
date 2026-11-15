@@ -6,8 +6,6 @@ import {
   HillIcon,
   InfoIcon,
   MapIcon,
-  MessageIcon,
-  PhoneIcon,
   PlantIcon,
   SatelliteIcon,
   WaterIcon,
@@ -280,39 +278,17 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
           <Reveal>
             <ul className="mt-8 grid gap-4 md:grid-cols-3">
               {dict.help.contacts.map((contact) => (
-                <li key={contact.number}>
-                  <a
-                    href={contact.href}
-                    className="pressable flex h-full flex-col gap-2 rounded-3xl border-2 border-highlight bg-surface p-6 hover:bg-bg"
-                  >
-                    <span className="brand-name text-6xl leading-none text-highlight">
-                      {contact.number}
-                    </span>
-                    <span className="text-2xl font-bold">{contact.name}</span>
-                    <span className="text-ink-soft">{contact.body}</span>
-                    <span className="mt-auto inline-flex items-center gap-2 pt-2 text-lg font-bold text-highlight">
-                      <PhoneIcon className="size-5" />
-                      {dict.help.call} {contact.number}
-                    </span>
-                  </a>
+                <li
+                  key={contact.number}
+                  className="flex flex-col gap-2 rounded-3xl border-2 border-line border-t-highlight bg-surface p-6 hc:border-ink"
+                >
+                  <span className="brand-name text-6xl leading-none text-highlight">
+                    {contact.number}
+                  </span>
+                  <span className="text-2xl font-bold">{contact.name}</span>
+                  <span className="text-lg text-ink-soft">{contact.body}</span>
                 </li>
               ))}
-              <li>
-                <a
-                  href={`sms:${dict.help.smsNumber}`}
-                  className="pressable flex h-full flex-col gap-2 rounded-3xl border-2 border-brand bg-surface p-6 hover:bg-bg"
-                >
-                  <span className="brand-name text-6xl leading-none text-brand-text">
-                    {dict.help.smsNumber}
-                  </span>
-                  <span className="text-2xl font-bold">{dict.help.smsName}</span>
-                  <span className="text-ink-soft">{dict.help.smsBody}</span>
-                  <span className="mt-auto inline-flex items-center gap-2 pt-2 text-lg font-bold text-brand-text">
-                    <MessageIcon className="size-5" />
-                    {dict.help.smsAction}
-                  </span>
-                </a>
-              </li>
             </ul>
           </Reveal>
           <Reveal>

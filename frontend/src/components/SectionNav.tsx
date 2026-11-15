@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { TEAM_SITE_URL } from "@/links";
+import { ExternalIcon } from "./icons";
 
 type Labels = Dictionary["nav"];
 const IDS = ["map", "how", "layers", "region", "data", "faq", "help"] as const;
@@ -53,9 +55,9 @@ export function SectionNav({ labels }: { labels: Labels }) {
   return (
     <nav
       aria-label={labels.label}
-      className="section-nav sticky top-0 z-20 border-b border-line hc:border-b-2 hc:border-ink"
+      className="section-nav sticky top-0 z-30 border-b border-line hc:border-b-2 hc:border-ink"
     >
-      <ul ref={listRef} className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2">
+      <ul ref={listRef} className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2 lg:justify-center">
         {IDS.map((id) => (
           <li key={id} className="shrink-0">
             <a
@@ -73,6 +75,17 @@ export function SectionNav({ labels }: { labels: Labels }) {
             </a>
           </li>
         ))}
+        <li className="shrink-0 border-l border-line pl-1">
+          <a
+            href={TEAM_SITE_URL}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-base font-bold text-ink-soft hover:bg-surface hover:text-ink"
+          >
+            {labels.about}
+            <ExternalIcon className="size-4" />
+          </a>
+        </li>
       </ul>
     </nav>
   );

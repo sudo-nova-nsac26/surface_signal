@@ -7,9 +7,11 @@ import { ArrowRightIcon } from "./icons";
 
 type Labels = Dictionary["how"];
 
-const W = 640;
-const H = 300;
-const RIVER = "M300 118 C372 156 236 186 312 222 S392 262 336 300";
+// One viewBox for every layer of the drawing, cropped from the sides on
+// narrow screens ("slice"), so the important part sits in the middle.
+const VIEW = "0 0 1200 500";
+const RIVER =
+  "M556 236 C626 276 506 316 596 352 S716 412 606 452 S548 492 586 530";
 
 function fill(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (_, key: string) =>
@@ -17,135 +19,258 @@ function fill(template: string, values: Record<string, string | number>) {
   );
 }
 
-/**
- * The explanatory drawing. Left of the line is the valley before the flood,
- * right of it the same valley during the flood. Each step adds a layer
- * (satellite, radar echo, dates, new water). Plain SVG and CSS so it stays
- * light on slow phones; it is decorative, the text tells the same story.
- */
-function Scene({ step, split }: { step: number; split: number }) {
-  const show = (...indexes: number[]) => ({
-    opacity: indexes.includes(step) ? 1 : 0,
-  });
-  const x = split * W;
+function House({
+  x,
+  y,
+  w,
+  h,
+  tall = false,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  tall?: boolean;
+}) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx="2" fill="var(--scene-town)" />
+      {tall ? (
+        <g fill="var(--scene-sky)" opacity="0.55">
+          <rect x={x + 5} y={y + 7} width="5" height="6" />
+          <rect x={x + w - 10} y={y + 7} width="5" height="6" />
+          <rect x={x + 5} y={y + 20} width="5" height="6" />
+          <rect x={x + w - 10} y={y + 20} width="5" height="6" />
+        </g>
+      ) : (
+        <path
+          d={`M${x - 3} ${y + 1} L${x + w / 2} ${y - h * 0.55} L${x + w + 3} ${y + 1} Z`}
+          fill="var(--slopes)"
+        />
+      )}
+    </g>
+  );
+}
 
+function Tree({ x, y, r = 11 }: { x: number; y: number; r?: number }) {
+  return (
+    <g>
+      <rect x={x - 2} y={y + r * 0.6} width="4" height={r * 0.8} fill="var(--scene-stroke)" />
+      <path
+        d={`M${x} ${y - r * 1.6} L${x + r} ${y + r * 0.7} H${x - r} Z`}
+        fill="var(--vegetation)"
+        opacity="0.55"
+      />
+    </g>
+  );
+}
+
+function TownLabel({ x, y, text }: { x: number; y: number; text: string }) {
+  const width = text.length * 11 + 26;
+  return (
+    <g>
+      <rect
+        x={x - width / 2}
+        y={y - 17}
+        width={width}
+        height="30"
+        rx="15"
+        fill="var(--scene-stroke)"
+        opacity="0.82"
+      />
+      <text
+        x={x}
+        y={y + 4}
+        textAnchor="middle"
+        fontSize="17"
+        fontWeight="700"
+        fill="var(--scene-town)"
+      >
+        {text}
+      </text>
+    </g>
+  );
+}
+
+const FLOOD = [
+  "M430 344 C470 312 548 318 586 346 C610 372 600 420 560 436 C510 452 446 430 424 400 C412 382 414 360 430 344 Z",
+  "M610 300 C654 282 742 290 782 318 C806 340 790 376 748 386 C700 396 640 384 616 360 C600 342 598 312 610 300 Z",
+];
+
+/**
+ * The valley seen from above at night: hills, fields, Lajeado and Estrela on
+ * each bank, the bridge between them. `flooded` draws the river out of its
+ * banks over the low houses. Decorative; the text tells the same story.
+ */
+function Landscape({ flooded, hatch }: { flooded: boolean; hatch: boolean }) {
+  const id = flooded ? "after" : "before";
   return (
     <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="block h-auto w-full"
+      viewBox={VIEW}
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 size-full"
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        <clipPath id="how-before">
-          <rect width={x} height={H} />
-        </clipPath>
-        <clipPath id="how-after">
-          <rect x={x} width={W - x} height={H} />
-        </clipPath>
-        <pattern
-          id="how-hatch"
-          width="10"
-          height="10"
-          patternUnits="userSpaceOnUse"
-          patternTransform="rotate(45)"
-        >
-          <rect width="10" height="10" fill="var(--water)" />
-          <rect width="4" height="10" fill="var(--highlight)" />
-        </pattern>
-        <linearGradient id="how-sky" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`sky-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--bg)" />
           <stop offset="1" stopColor="var(--scene-sky)" />
         </linearGradient>
+        <linearGradient id={`land-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--scene-land)" />
+          <stop offset="1" stopColor="var(--scene-hill)" />
+        </linearGradient>
+        <pattern
+          id={`hatch-${id}`}
+          width="14"
+          height="14"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <rect width="14" height="14" fill="var(--water)" />
+          <rect width="6" height="14" fill="var(--highlight)" />
+        </pattern>
       </defs>
 
-      <rect width={W} height={H} fill="url(#how-sky)" />
-      {/* A few stars: it was night at the pass. */}
-      <g fill="var(--scene-town)" opacity="0.7">
-        <circle cx="40" cy="22" r="1.4" />
-        <circle cx="120" cy="56" r="1" />
-        <circle cx="210" cy="18" r="1.2" />
-        <circle cx="470" cy="30" r="1.4" />
-        <circle cx="560" cy="64" r="1" />
-        <circle cx="610" cy="20" r="1.2" />
+      <rect width="1200" height="500" fill={`url(#sky-${id})`} />
+      <g fill="var(--scene-town)">
+        {[
+          [90, 40], [210, 92], [330, 30], [450, 70], [760, 46], [880, 96],
+          [990, 30], [1110, 80], [170, 150], [1040, 150],
+        ].map(([cx, cy]) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" opacity="0.7" />
+        ))}
       </g>
+      <circle cx="1030" cy="70" r="22" fill="var(--scene-town)" opacity="0.85" />
+      <circle cx="1040" cy="64" r="20" fill="var(--bg)" />
+
+      {/* The hills of the Serra, far and near. */}
       <path
-        d="M0 118 Q90 62 190 104 T380 92 T640 108 V300 H0 Z"
+        d="M0 200 C140 140 250 180 380 150 C520 116 640 176 780 146 C930 112 1050 168 1200 136 V500 H0 Z"
+        fill="var(--scene-hill)"
+        opacity="0.7"
+      />
+      <path
+        d="M0 236 C180 196 300 226 430 214 C560 202 700 236 860 214 C1000 196 1100 222 1200 210 V500 H0 Z"
         fill="var(--scene-hill)"
       />
       <path
-        d="M0 140 Q140 116 300 134 T640 130 V300 H0 Z"
-        fill="var(--scene-land)"
+        d="M0 268 C300 244 900 250 1200 262 V500 H0 Z"
+        fill={`url(#land-${id})`}
       />
-      {/* Fields, so the land is not empty. */}
-      <g fill="var(--vegetation)" opacity="0.28">
-        <rect x="36" y="232" width="70" height="26" rx="4" />
-        <rect x="520" y="244" width="80" height="26" rx="4" />
-        <rect x="560" y="150" width="54" height="20" rx="4" />
-      </g>
 
-      {/* Before: the river inside its banks. */}
-      <g clipPath="url(#how-before)">
-        <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="18" strokeLinecap="round" />
+      {/* Fields and trees. */}
+      <g fill="var(--vegetation)" opacity="0.22">
+        <rect x="90" y="330" width="150" height="46" rx="6" transform="rotate(-4 165 353)" />
+        <rect x="120" y="400" width="190" height="52" rx="6" transform="rotate(-3 215 426)" />
+        <rect x="900" y="350" width="170" height="48" rx="6" transform="rotate(3 985 374)" />
+        <rect x="940" y="420" width="190" height="50" rx="6" transform="rotate(4 1035 445)" />
       </g>
+      {[
+        [80, 236], [130, 226], [300, 222], [880, 222], [1010, 214], [1100, 220],
+        [270, 300], [930, 300], [370, 440], [820, 440],
+      ].map(([x, y]) => (
+        <Tree key={`${x}-${y}`} x={x} y={y} />
+      ))}
 
-      {/* Houses: two towns, plus a few low houses close to the river. */}
-      <g fill="var(--scene-town)" stroke="var(--scene-stroke)" strokeWidth="1.5">
-        <rect x="104" y="170" width="24" height="18" rx="2" />
-        <rect x="134" y="162" width="18" height="26" rx="2" />
-        <rect x="116" y="198" width="30" height="16" rx="2" />
-        <rect x="456" y="176" width="26" height="18" rx="2" />
-        <rect x="488" y="168" width="18" height="26" rx="2" />
-        <rect x="468" y="204" width="30" height="16" rx="2" />
-        <rect x="222" y="232" width="20" height="15" rx="2" />
-        <rect x="250" y="250" width="18" height="14" rx="2" />
-        <rect x="380" y="212" width="20" height="15" rx="2" />
-        <rect x="402" y="232" width="18" height="14" rx="2" />
-      </g>
+      {/* Riverbanks and the river in its bed. */}
+      <path d={RIVER} fill="none" stroke="var(--water-soft)" strokeWidth="46" strokeLinecap="round" />
 
-      {/* After: the river out of its banks, over the low houses. */}
-      <g clipPath="url(#how-after)">
-        <g fill="var(--water)" opacity="0.92">
-          <ellipse cx="250" cy="248" rx="80" ry="26" />
-          <ellipse cx="392" cy="224" rx="70" ry="22" />
-        </g>
-        <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="64" strokeLinecap="round" />
-        {/* Step 4: the new water, hatched so it reads without colour. */}
-        <g className="scene-layer" style={show(3)}>
-          <g className="scene-pulse" fill="url(#how-hatch)">
-            <ellipse cx="250" cy="248" rx="80" ry="26" />
-            <ellipse cx="392" cy="224" rx="70" ry="22" />
-            <path d={RIVER} fill="none" stroke="url(#how-hatch)" strokeWidth="64" strokeLinecap="round" />
+      {/* Low houses by the river: the first to be reached by the water. */}
+      <House x={470} y={372} w={26} h={20} />
+      <House x={506} y={394} w={24} h={18} />
+      <House x={460} y={404} w={22} h={18} />
+      <House x={660} y={326} w={24} h={18} />
+      <House x={696} y={346} w={26} h={20} />
+      <House x={734} y={330} w={22} h={18} />
+
+      {flooded && (
+        <g>
+          <g fill="var(--water)" opacity="0.88">
+            {FLOOD.map((d) => (
+              <path key={d} d={d} />
+            ))}
           </g>
-          {/* The normal river stays solid: only what is new is hatched. */}
-          <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="18" strokeLinecap="round" />
+          <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="120" strokeLinecap="round" opacity="0.92" />
+          {hatch && (
+            <g className="scene-pulse">
+              {FLOOD.map((d) => (
+                <path key={d} d={d} fill={`url(#hatch-${id})`} />
+              ))}
+              <path d={RIVER} fill="none" stroke={`url(#hatch-${id})`} strokeWidth="120" strokeLinecap="round" />
+            </g>
+          )}
         </g>
+      )}
+      <path d={RIVER} fill="none" stroke="var(--water)" strokeWidth="26" strokeLinecap="round" />
+
+      {/* Lajeado (left bank) and Estrela (right bank), on higher ground. */}
+      <g>
+        <House x={340} y={268} w={26} h={44} tall />
+        <House x={372} y={254} w={30} h={58} tall />
+        <House x={408} y={276} w={24} h={36} tall />
+        <House x={354} y={322} w={26} h={20} />
+        <House x={392} y={328} w={24} h={18} />
+        <House x={426} y={320} w={26} h={20} />
+        <House x={780} y={276} w={26} h={20} />
+        <House x={814} y={266} w={30} h={34} tall />
+        <House x={852} y={282} w={24} h={20} />
+        <House x={800} y={312} w={24} h={18} />
+        <House x={836} y={318} w={26} h={20} />
       </g>
 
-      {/* Steps 1 and 2: the satellite. */}
+      {/* The bridge between the two towns. */}
+      <g>
+        <rect x="508" y="342" width="190" height="9" rx="2" fill="var(--scene-town)" />
+        {[530, 576, 622, 668].map((x) => (
+          <rect key={x} x={x} y="351" width="6" height="16" fill="var(--scene-town)" opacity="0.8" />
+        ))}
+      </g>
+
+      <TownLabel x={390} y={222} text="Lajeado" />
+      <TownLabel x={826} y={236} text="Estrela" />
+    </svg>
+  );
+}
+
+/** Satellite, radar echo and clouds, drawn over both halves. */
+function Sky({ step }: { step: number }) {
+  const show = (...steps: number[]) => ({
+    opacity: steps.includes(step) ? 1 : 0,
+  });
+  return (
+    <svg
+      viewBox={VIEW}
+      preserveAspectRatio="xMidYMid slice"
+      className="pointer-events-none absolute inset-0 size-full"
+      aria-hidden="true"
+      focusable="false"
+    >
       <g className="scene-layer" style={show(0, 1)}>
         <g className="how-beam" style={{ opacity: step === 0 ? 1 : 0 }}>
-          <path d="M320 46 L240 210 H400 Z" fill="var(--highlight)" opacity="0.35" />
+          <path d="M600 92 L452 360 H748 Z" fill="var(--highlight)" opacity="0.28" />
         </g>
-        <g stroke="var(--scene-stroke)" strokeWidth="1.5">
-          <rect x="280" y="34" width="28" height="16" fill="var(--water)" />
-          <rect x="332" y="34" width="28" height="16" fill="var(--water)" />
-          <rect x="308" y="28" width="24" height="28" rx="4" fill="var(--scene-town)" />
+        <g stroke="var(--scene-stroke)" strokeWidth="2">
+          <rect x="508" y="62" width="62" height="28" rx="3" fill="var(--water)" />
+          <rect x="630" y="62" width="62" height="28" rx="3" fill="var(--water)" />
+          <path d="M529 62 V90 M549 62 V90 M651 62 V90 M671 62 V90" />
+          <rect x="574" y="52" width="52" height="48" rx="8" fill="var(--scene-town)" />
+          <circle cx="600" cy="108" r="10" fill="var(--scene-town)" />
         </g>
       </g>
 
-      {/* Step 2: clouds, and the radar echo going through them. */}
       <g className="scene-layer" style={show(1)}>
-        <g fill="var(--scene-town)" opacity="0.5">
-          <ellipse cx="250" cy="96" rx="58" ry="16" />
-          <ellipse cx="292" cy="86" rx="40" ry="14" />
-          <ellipse cx="420" cy="104" rx="64" ry="15" />
-          <ellipse cx="458" cy="94" rx="36" ry="12" />
+        <g fill="var(--scene-town)" opacity="0.55">
+          <ellipse cx="470" cy="180" rx="96" ry="24" />
+          <ellipse cx="530" cy="164" rx="64" ry="22" />
+          <ellipse cx="760" cy="196" rx="104" ry="24" />
+          <ellipse cx="820" cy="180" rx="56" ry="18" />
         </g>
-        <g fill="none" stroke="var(--highlight)" strokeWidth="3" strokeLinecap="round">
-          <path className="how-wave" d="M290 80 Q320 96 350 80" />
-          <path className="how-wave how-wave-2" d="M276 120 Q320 142 364 120" />
-          <path className="how-wave how-wave-3" d="M262 160 Q320 188 378 160" />
+        <g fill="none" stroke="var(--highlight)" strokeWidth="5" strokeLinecap="round">
+          <path className="how-wave" d="M554 136 Q600 160 646 136" />
+          <path className="how-wave how-wave-2" d="M530 200 Q600 236 670 200" />
+          <path className="how-wave how-wave-3" d="M506 264 Q600 310 694 264" />
         </g>
       </g>
     </svg>
@@ -160,6 +285,7 @@ export function HowItWorks({ labels }: { labels: Labels }) {
   const dragging = useRef(false);
   const glide = useRef(0);
   const total = labels.steps.length;
+  const current = labels.steps[step];
 
   // At "compare", the line sweeps once to show that it moves.
   useEffect(() => {
@@ -185,11 +311,11 @@ export function HowItWorks({ labels }: { labels: Labels }) {
   const pct = Math.round(split * 100);
 
   return (
-    <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-      <figure className="card overflow-hidden rounded-3xl border border-line bg-surface p-3 hc:border-2">
+    <div className="mt-8 flex flex-col gap-4">
+      <figure className="card overflow-hidden rounded-3xl border border-line bg-surface p-2 hc:border-2 sm:p-3">
         <div
           ref={frameRef}
-          className="relative cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-2xl"
+          className="relative aspect-[4/3] cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-2xl sm:aspect-[2/1] lg:aspect-[12/5]"
           onPointerDown={(event) => {
             dragging.current = true;
             event.currentTarget.setPointerCapture(event.pointerId);
@@ -205,16 +331,22 @@ export function HowItWorks({ labels }: { labels: Labels }) {
             dragging.current = false;
           }}
         >
-          <Scene step={step} split={split} />
+          <Landscape flooded={false} hatch={false} />
+          <div
+            className="absolute inset-0"
+            style={{ clipPath: `inset(0 0 0 ${split * 100}%)` }}
+          >
+            <Landscape flooded hatch={step === 3} />
+          </div>
+          <Sky step={step} />
 
-          {/* Date labels as text, so they translate and stay sharp. */}
-          <span className="how-pill left-3">{labels.before}</span>
-          <span className="how-pill right-3">{labels.after}</span>
+          <span className="how-pill left-3 sm:left-4 sm:top-4">{labels.before}</span>
+          <span className="how-pill right-3 sm:right-4 sm:top-4">{labels.after}</span>
           <span
-            className="how-pill scene-layer bottom-3 left-1/2 -translate-x-1/2"
+            className="how-pill scene-layer bottom-3 right-3 sm:bottom-4 sm:right-4"
             style={{ opacity: step === 3 ? 1 : 0, top: "auto" }}
           >
-            {labels.newWater}
+            <span className="how-swatch" aria-hidden="true" /> {labels.newWater}
           </span>
 
           {/* The native slider gives keyboard and screen-reader control. */}
@@ -246,80 +378,67 @@ export function HowItWorks({ labels }: { labels: Labels }) {
             }`}
             style={{ left: `${split * 100}%` }}
           >
-            <svg viewBox="0 0 24 24" width="1.4em" height="1.4em" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="1.6em" height="1.6em" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" />
             </svg>
-            <span className="sr-only">{labels.dragHint}</span>
           </div>
         </div>
-        <figcaption className="flex flex-wrap items-center justify-between gap-2 px-2 pt-3 text-base text-ink-soft">
+        <figcaption className="flex flex-wrap items-center justify-between gap-2 px-2 pt-2 text-base text-ink-soft">
           <span>{labels.sceneNote}</span>
           <span className="font-bold text-brand-text">↔ {labels.dragHint}</span>
         </figcaption>
       </figure>
 
-      <div className="flex flex-col gap-3">
-        <div
-          className="flex gap-1.5"
-          role="presentation"
-          aria-hidden="true"
-        >
-          {labels.steps.map((item, index) => (
-            <span
-              key={item.title}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                index <= step ? "bg-brand hc:bg-highlight" : "bg-line"
-              }`}
-            />
-          ))}
-        </div>
-        <p className="text-base font-bold text-ink-soft" aria-live="polite">
-          {fill(labels.stepOf, { current: step + 1, total })}
-        </p>
-
-        <ol className="flex flex-col gap-2">
-          {labels.steps.map((item, index) => {
-            const active = index === step;
-            return (
-              <li key={item.title}>
-                <button
-                  type="button"
-                  aria-current={active ? "step" : undefined}
-                  aria-expanded={active}
-                  onClick={() => setStep(index)}
-                  className={`flex w-full items-start gap-4 rounded-2xl border-2 p-4 text-left transition-colors ${
+      {/* The four steps, side by side; the chosen one is told below. */}
+      <ol className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+        {labels.steps.map((item, index) => {
+          const active = index === step;
+          return (
+            <li key={item.title}>
+              <button
+                type="button"
+                aria-current={active ? "step" : undefined}
+                onClick={() => setStep(index)}
+                aria-label={item.title}
+                className={`flex h-full min-h-16 w-full items-center justify-center gap-3 rounded-2xl sm:justify-start border-2 px-4 py-3 text-left transition-colors ${
+                  active
+                    ? "border-brand bg-brand-soft hc:border-highlight"
+                    : "border-line bg-surface hover:border-brand"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-full text-lg font-bold ${
                     active
-                      ? "border-brand bg-brand-soft hc:border-highlight"
-                      : "border-line bg-surface hover:border-brand"
+                      ? "bg-brand text-brand-ink hc:bg-highlight hc:text-highlight-ink"
+                      : index < step
+                        ? "bg-brand-soft text-brand-text ring-2 ring-brand"
+                        : "bg-line text-ink hc:bg-surface hc:outline hc:outline-2 hc:outline-ink"
                   }`}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={`flex size-11 shrink-0 items-center justify-center rounded-full text-xl font-bold ${
-                      active
-                        ? "bg-brand text-brand-ink hc:bg-highlight hc:text-highlight-ink"
-                        : index < step
-                          ? "bg-brand-soft text-brand-text ring-2 ring-brand"
-                          : "bg-line text-ink hc:bg-surface hc:outline hc:outline-2 hc:outline-ink"
-                    }`}
-                  >
-                    {index < step ? "✓" : index + 1}
-                  </span>
-                  <span>
-                    <span className="block text-xl font-bold">{item.title}</span>
-                    <span className="block text-ink-soft">{item.body}</span>
-                    {active && (
-                      <span className="rise-in mt-2 block border-l-4 border-highlight pl-3 text-base text-ink">
-                        {item.detail}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+                  {index < step ? "✓" : index + 1}
+                </span>
+                <span aria-hidden="true" className="hidden text-lg font-bold leading-tight sm:inline">
+                  {item.title}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
 
+      <div
+        key={step}
+        className="rise-in flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 hc:border-2 md:flex-row md:items-center md:justify-between"
+      >
+        <div className="max-w-3xl" aria-live="polite">
+          <p className="text-base font-bold text-brand-text">
+            {fill(labels.stepOf, { current: step + 1, total })}
+          </p>
+          <h3 className="mt-1 text-2xl font-bold">{current.title}</h3>
+          <p className="mt-2 text-xl text-ink-soft">{current.body}</p>
+          <p className="mt-3 border-l-4 border-highlight pl-3 text-lg">{current.detail}</p>
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -330,7 +449,7 @@ export function HowItWorks({ labels }: { labels: Labels }) {
             // Last step: carry on down the page instead of starting over.
             document.getElementById("layers")?.scrollIntoView({ block: "start" });
           }}
-          className="pressable mt-1 inline-flex min-h-14 items-center justify-center gap-3 self-start rounded-2xl border-2 border-transparent bg-brand px-6 text-xl font-bold text-brand-ink hc:border-ink"
+          className="pressable inline-flex min-h-14 shrink-0 items-center justify-center gap-3 self-start rounded-2xl border-2 border-transparent bg-brand px-6 text-xl font-bold text-brand-ink hc:border-ink md:self-center"
         >
           {step < total - 1 ? labels.next : labels.continue}
           <ArrowRightIcon className={step < total - 1 ? "" : "rotate-90"} />

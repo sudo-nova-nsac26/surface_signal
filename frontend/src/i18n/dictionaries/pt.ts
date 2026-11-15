@@ -243,6 +243,7 @@ const pt = {
     data: "Dados",
     faq: "Dúvidas",
     help: "Em caso de cheia",
+    about: "Sobre nós",
   },
   listen: {
     start: "Ouvir",
@@ -285,20 +286,16 @@ const pt = {
     title: "Dúvidas comuns",
     items: [
       {
-        q: "Este site avisa quando vai ter cheia?",
-        a: "Não. Ele mostra o que o satélite já viu, depois que passou. Para avisos, cadastre o CEP da sua rua enviando um SMS para 40199 e siga a Defesa Civil.",
+        q: "Por que fizemos este site?",
+        a: "O Rio Taquari já transbordou várias vezes nos últimos anos. Muita gente, principalmente pessoas idosas e surdas, não recebe ou não entende os avisos e os mapas técnicos. Queríamos mostrar o que um satélite da NASA viu de um jeito que qualquer pessoa entenda: letras grandes, cores simples e nenhum termo técnico.",
       },
       {
         q: "Como um satélite vê através das nuvens?",
         a: "Ele usa radar, não uma câmera comum. O radar manda o próprio sinal e escuta o eco. Nuvem e chuva não bloqueiam esse sinal, e ele funciona também de noite.",
       },
       {
-        q: "Por que só algumas datas?",
-        a: "O satélite passa pelo mesmo lugar a cada 12 dias. Só dá para comparar duas passagens feitas do mesmo jeito, por isso nem todo dia tem comparação.",
-      },
-      {
-        q: "Uma mancha no mapa quer dizer que minha casa alagou?",
-        a: "Não necessariamente. A mancha mostra onde a superfície mudou entre duas datas. Pode ser água, mas também outra mudança. É uma pista, não uma confirmação.",
+        q: "Vocês pretendem ampliar para outras regiões e países?",
+        a: "Sim. É por isso que o mapa começa num globo: o mundo inteiro já está lá, com outros países, estados e regiões marcados como “em breve”. O satélite NISAR observa quase toda a terra firme do planeta a cada 12 dias, então o mesmo método pode ser levado para outros lugares.",
       },
       {
         q: "Quem fez este site?",
@@ -309,15 +306,11 @@ const pt = {
   help: {
     title: "Em caso de cheia",
     lead: "Este site não é um alerta oficial. Em perigo, procure ajuda agora:",
-    call: "Ligar",
     contacts: [
-      { number: "199", name: "Defesa Civil", body: "Situações de risco, abrigo e orientação.", href: "tel:199" },
-      { number: "193", name: "Bombeiros", body: "Resgate e emergências com pessoas.", href: "tel:193" },
+      { number: "199", name: "Defesa Civil", body: "Ligue em situações de risco, para abrigo e orientação." },
+      { number: "193", name: "Bombeiros", body: "Ligue para resgate e emergências com pessoas." },
+      { number: "40199", name: "Alertas por SMS", body: "Envie o CEP da sua rua por SMS para receber alertas da Defesa Civil no celular. É gratuito." },
     ],
-    smsNumber: "40199",
-    smsName: "Alertas por SMS",
-    smsBody: "Envie o CEP da sua rua para receber alertas da Defesa Civil no celular. É gratuito.",
-    smsAction: "Enviar SMS",
     shareTitle: "Compartilhe com quem mora no Vale",
     shareBody: "Mande para a família e os vizinhos. Quanto mais gente entende o que o satélite viu, melhor.",
     whatsapp: "Enviar no WhatsApp",

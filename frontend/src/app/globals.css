@@ -712,6 +712,16 @@ body {
   pointer-events: none;
 }
 
+.how-swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.3rem;
+  vertical-align: -0.1rem;
+  border-radius: 0.2rem;
+  background: repeating-linear-gradient(45deg, var(--water) 0 4px, var(--highlight) 4px 7px);
+}
+
 .how-line {
   width: 3px;
   background: var(--scene-town);
@@ -738,7 +748,8 @@ body {
 }
 
 .how-beam {
-  transform-origin: 320px 46px;
+  transform-origin: 600px 92px;
+  transform-box: view-box;
   animation: beam-sweep 2.8s ease-in-out infinite alternate;
   transition: opacity 320ms ease-out;
 }

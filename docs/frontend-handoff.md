@@ -62,7 +62,8 @@ change shapes in, and layer switches (water interactive; vegetation/slopes shown
 Header: logo + Poppins wordmark (logo links to `/<lang>` = reload), sliding PT/EN switch, accessibility button.
 "How it works" (4 steps, draggable before/after line in the drawing) ends with "Continue" that scrolls to the next
 section. Below the map: sticky section menu, 01 How it works, 02 Layers, 03 Region, 04 Data sources, 05 FAQ,
-"Em caso de cheia" (199/193/SMS 40199 + WhatsApp share), each with an "Ouvir" read-aloud button. "Sobre nós" in the
+"Em caso de cheia" (199/193/SMS 40199 as plain, non-clickable cards on purpose + WhatsApp share), each with an
+"Ouvir" read-aloud button. "Sobre nós" in the
 header and footer opens https://sudonova.surfacesignal.earth/ in a new tab.
 
 ## 5. Decisions already made (do not re-litigate)
