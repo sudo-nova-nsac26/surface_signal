@@ -186,7 +186,7 @@ Configuration/docs: root `.env.example`, snapshot descriptor, frontend `.env.exa
 `.node-version`, `.gitignore`, CI static job, READMEs, source evidence,
 [snapshot procedure](snapshot-delivery.md), [Cloudflare procedure](cloudflare-pages.md) and this report.
 
-Final static export sizes: compact mode 325 files/19,148,748bytes, largest 2,499,427 bytes;
+Historical validation measurements (before removal of the unused synthetic public-demo fixtures): compact mode 325 files/19,148,748bytes, largest 2,499,427 bytes;
 full mode 584 files/167,050,306bytes, largest 11,057,526 bytes. Both pass the Pages
 25 MiB individual-asset check. The final output was restored to compact default.
 The largest full artifact is an 11.06 MB general-change GeoJSON; it required no scientific
