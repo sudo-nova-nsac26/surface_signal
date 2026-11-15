@@ -1,11 +1,13 @@
 # SurfaceSignal — technical documentation
 
-Start with the [English README](../README.md) or [Portuguese README](../README.pt-BR.md). Live website: **https://surfacesignal.earth/**.
+**Evaluating the project? Start with the [five-minute reviewer guide](reviewer-guide.md).** It distinguishes working features, scientific limits and future work. The live website is **https://surfacesignal.earth/**. Full setup: [English README](../README.md) · [Portuguese README](../README.pt-BR.md).
 
 ## Documentation map
 
 | Area | Reference |
 |---|---|
+| Reviewer quick path and submission checks | [Reviewer guide](reviewer-guide.md), [Submission checklist](submission-checklist.md) |
+| Planned but not implemented | [Future-work register](future-work.md) |
 | Get started (static or optional API) | [Project README](../README.md), [Frontend](../frontend/README.md), [Backend operations](backend-operations.md) |
 | Runtime architecture | [Architecture](architecture.md), [API contract](api-contract.md), [Backend deployment](backend-deployment.md) |
 | Scientific algorithms and interpretation | [Scientific method](scientific-method.md), [General radar changes](general-change-analysis.md), [Interpretation model](interpretation-model.md) |
