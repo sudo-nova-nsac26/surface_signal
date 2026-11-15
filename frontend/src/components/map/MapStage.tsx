@@ -257,6 +257,7 @@ export function MapStage({
 
   return (
     <section
+      id="map"
       aria-label={labels.label}
       className="relative h-[calc(100svh-4.75rem)] min-h-[36rem] overflow-hidden bg-bg hc:border-b-2 hc:border-ink"
     >
@@ -299,8 +300,16 @@ export function MapStage({
               />
               {hero.eyebrow}
             </p>
-            <h1 className="text-gradient max-w-3xl text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
-              {hero.title}
+            <h1
+              aria-label={hero.title}
+              className="max-w-4xl text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-8xl"
+            >
+              <span aria-hidden="true" className="block">
+                {hero.titleLines[0]}
+              </span>
+              <span aria-hidden="true" className="text-gradient block">
+                {hero.titleLines[1]}
+              </span>
             </h1>
             <p className="mt-6 max-w-xl text-xl text-ink-soft sm:text-2xl">
               {hero.lead}
@@ -326,13 +335,13 @@ export function MapStage({
                 {tier === "high" ? labels.auto3d : labels.auto2d}
               </p>
             )}
-            <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
+            <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-5">
               {hero.facts.map((fact) => (
                 <div key={fact.label} className="border-l-2 border-brand pl-4">
                   <dt className="text-base font-bold text-brand-text">
                     {fact.label}
                   </dt>
-                  <dd className="text-lg font-bold leading-snug">
+                  <dd className="brand-name text-3xl leading-tight sm:text-4xl">
                     {fact.value}
                   </dd>
                 </div>

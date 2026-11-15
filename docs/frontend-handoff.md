@@ -60,7 +60,10 @@ chosen by device check + 1.5 s fps probe (`hardware.ts`, 40 fps is an estimate).
 comparisons the catalog allows (prev/next/slider/play). `ComparePanel`: Before/After buttons + slider that fade the
 change shapes in, and layer switches (water interactive; vegetation/slopes shown with honest "not available").
 Header: logo + Poppins wordmark (logo links to `/<lang>` = reload), sliding PT/EN switch, accessibility button.
-"How it works" ends with "Continue" that scrolls to the next section.
+"How it works" (4 steps, draggable before/after line in the drawing) ends with "Continue" that scrolls to the next
+section. Below the map: sticky section menu, 01 How it works, 02 Layers, 03 Region, 04 Data sources, 05 FAQ,
+"Em caso de cheia" (199/193/SMS 40199 + WhatsApp share), each with an "Ouvir" read-aloud button. "Sobre nós" in the
+header and footer opens https://sudonova.surfacesignal.earth/ in a new tab.
 
 ## 5. Decisions already made (do not re-litigate)
 
@@ -109,8 +112,8 @@ Header: logo + Poppins wordmark (logo links to `/<lang>` = reload), sliding PT/E
    "Centro de Estrela" that fly the camera there; a GPS button that only centres the map (never sent anywhere,
    ask permission, explain it). Put landmark names in both dictionaries; coordinates in `places.ts` or a new data
    file.
-2. **Accessibility extras.** VLibras widget (PT only, official government widget), "Ouvir" read-aloud button for
-   the info card using the browser's speech synthesis (respect language), WhatsApp share (plain text + link).
+2. **Accessibility extras.** VLibras widget (PT only, official government widget). "Ouvir" exists for the page
+   sections; the map info card does not have it yet. WhatsApp share is done.
 3. **Polish and checks.** Mobile layouts of timeline/compare/language switch, high contrast, English, keyboard and
    screen reader on map controls, a real weak phone, auto-play of the timeline, 2D fallback.
 4. **When data exists** (owner agrees a deadline with Mateus; ask for the 11 Jul -> 23 Jul pair first, needs an

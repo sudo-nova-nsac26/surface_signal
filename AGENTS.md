@@ -124,7 +124,15 @@ stepper (17 steps from the real catalog), logo/wordmark/header buttons.
 
 Also done: before/after control and layer switches (`ComparePanel`), on PR #6.
 
-Not done (in this order): landmarks and "Onde estou", VLibras / "Ouvir" / WhatsApp, mobile and weak-phone checks,
+Outside the map (2026-11-14, owner asked): stronger hero ("A cheia do Taquari, vista do espaço", pass at 18h33 BRT,
+747 km, 2 h 34 min after the river bulletin; times from `scenes.json` / `analyses.json`), "How it works" in 4 steps
+with a drawing whose before/after line can be dragged (pointer + hidden range input for keyboard/screen reader),
+sticky section menu (`SectionNav`), new sections 04 "De onde vêm os dados" and 05 "Dúvidas" (FAQ), an
+"Em caso de cheia" block (tap-to-call 199/193, SMS 40199) that replaced the small notice, "Ouvir" read-aloud on
+every section (`ListenButton`, browser speech, one section at a time), WhatsApp share + copy link
+(`ShareButtons`), and "Sobre nós" (header + footer) linking to the team site (`src/links.ts`).
+
+Not done (in this order): landmarks and "Onde estou", VLibras, mobile and weak-phone checks,
 anything that needs real data. Stepping the timeline does not change the map yet because no step has real shapes:
 expected, see the handoff doc.
 
@@ -186,7 +194,7 @@ code change (data comes through `src/data/source.ts`).
    georeferenced, so decide with the owner whether to show them at all.
 3. **Landmarks** ("Centro de Lajeado", the bridge, "Centro de Estrela") and "Onde estou" (centres the map
    only, never sent anywhere).
-4. **Accessibility extras:** VLibras (PT), "Ouvir" read-aloud (browser speech), WhatsApp share.
+4. **Accessibility extras:** VLibras (PT). ("Ouvir" read-aloud and WhatsApp share are done.)
 5. **Polish and checks:** phone-sized screens, high contrast, English, keyboard and screen reader on the new
    map controls and timeline, a real weak phone (the 40 fps threshold in `hardware.ts` is an estimate),
    the 2D fallback on a weak device.
