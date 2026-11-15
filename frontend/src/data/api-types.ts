@@ -287,12 +287,79 @@ export interface AnalysisValidation {
   coverage?: unknown; limitations: string[]; provenance?: Record<string, unknown>;
 }
 /** Prior complete UTC date labels; never acquisition-hour rainfall windows. */
+export interface DailyRainfallPoint {
+  date_label_utc: string;
+  mean_mm: number | null;
+  max_mm: number | null;
+  min_mm: number | null;
+  valid_coverage_fraction: number | null;
+  pixel_count: number | null;
+}
+
 export interface DailyRainfallSummary {
   end_label_exclusive: string;
   totals_mm: Record<string, number | null>;
   coverage_by_days: Record<string, number>;
+  days?: DailyRainfallPoint[];
   semantics: string;
 }
+
+export interface IbgeMunicipalitySummary {
+  code?: string;
+  municipality_code?: string;
+  name: string;
+  state?: string;
+  intersection_km2?: number;
+  intersection_area_km2?: number;
+}
+
+export interface IbgeSpatialSummary {
+  source_id: string;
+  reference_year: number | null;
+  municipality_count: number;
+  municipalities_intersecting_aoi?: IbgeMunicipalitySummary[];
+  municipalities_intersecting_candidate?: IbgeMunicipalitySummary[];
+  candidate_union_area_km2?: number | null;
+}
+
+export interface WorldCoverSummary {
+  source_id: string;
+  reference_year: number | null;
+  valid_pixel_count: number;
+  classes: Array<{ class_id: string; label: string; percent: number | null }>;
+}
+
+export interface JrcGswSummary {
+  source_id: string;
+  reference_start_year?: number | null;
+  reference_year: number | null;
+  valid_pixel_count: number;
+  mean_frequency: number | null;
+  max_frequency: number | null;
+}
+
+export interface CopernicusDemSummary {
+  source_id: string;
+  elevation_m: number | null;
+  min_elevation_m: number | null;
+  max_elevation_m: number | null;
+  slope_deg: number | null;
+  valid_pixel_count: number;
+}
+
+export interface EnvironmentalSpatialSummaries {
+  ibge?: IbgeSpatialSummary;
+  worldcover?: WorldCoverSummary;
+  "jrc-gsw"?: JrcGswSummary;
+  "copernicus-dem"?: CopernicusDemSummary;
+}
+
+export interface EnvironmentalProvenance {
+  spatial_summaries?: EnvironmentalSpatialSummaries;
+  candidate_summaries?: EnvironmentalSpatialSummaries;
+  [key: string]: unknown;
+}
+
 export interface EnvironmentalContextReport {
   schema_version: string; area_id: string; analysis_id: string;
   observed_at: string; generated_at: string; data_status: ContextAvailability;
@@ -316,7 +383,7 @@ export interface EnvironmentalContextReport {
   topography: {status: ContextAvailability; elevation_m: number | null;
     slope_deg: number | null; limitations: string[]};
   validation: AnalysisValidation; sources: EvidenceSource[]; limitations: string[];
-  is_operational_alert: false; provenance: Record<string, unknown>;
+  is_operational_alert: false; provenance: EnvironmentalProvenance;
 }
 export interface ReferenceLayer {
   layer_id: string; status: ContextAvailability; title: string;

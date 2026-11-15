@@ -93,23 +93,64 @@ const en: Dictionary = {
     ],
   },
   layers: {
-    title: "What you can see",
+    title: "What you can see and how far we can expand",
+    lead: "See what is already active today on the Taquari Valley map (with real radar, 3D relief, rainfall and land-cover data) and how the platform scales with new data and live integrations.",
     status: {
-      available: "Available",
-      exploratory: "Being tested",
-      unavailable: "Not yet",
+      available: "Active on map",
+      exploratory: "Active + Expanding",
+      unavailable: "Next phase",
     },
     water: {
-      name: "Water",
-      body: "Where the river went beyond its normal banks.",
+      name: "Water and floods",
+      body: "Where the Taquari River went beyond its normal banks and where new water sheets appeared across floodplains and low ground.",
+      today: "On the map today: Before vs. After patches (NISAR GCOV), crossed with 40-year water history (JRC), daily rainfall (CHIRPS), river level (SGB) and municipal boundaries (IBGE).",
     },
     vegetation: {
       name: "Plants and crops",
-      body: "Where plant cover changed. This result is still being tested.",
+      body: "Where agricultural or forest cover changed its radar behavior after extreme rain across the valley.",
+      today: "On the map today: automatic crossing with land cover (ESA WorldCover 10 m — 34.2% of patches on cropland and 30.5% on riparian trees) plus radar echo increase or drop.",
     },
     slopes: {
-      name: "Slopes and hills",
-      body: "Measuring ground movement needs a different kind of satellite data. That is why we do not show it yet.",
+      name: "Slopes, relief and hills",
+      body: "What happens across the higher, steeper parts of the valley when heavy rain hits the hills.",
+      today: "On the map today: 3D relief and slope in degrees (Copernicus DEM 30 m, from 18 m to 58+ m) + hillslope surface roughness change (spot Q6). Next step: InSAR phase (GUNW).",
+    },
+    expansion: {
+      badge: "Future vision and scale",
+      title: "How far can we expand SurfaceSignal?",
+      lead: "Our foundation already processes real NISAR satellite passes and official environmental layers. Here is what we deliver today and where we can go next:",
+      items: [
+        {
+          tag: "1 · Live today",
+          title: "Water, crops, 3D relief and hillslope roughness",
+          body: "Interactive inspection across squares Q1 to Q6 with real satellite imagery, 3-day rainfall (CHIRPS), river bulletin (SGB), elevation/slope (Copernicus 30 m) and slope texture.",
+        },
+        {
+          tag: "2 · Live Hydrological Integration",
+          title: "Real-time Taquari River level",
+          body: "Connect the map to real-time telemetric river gauges (SGB/ANA and existing regional monitoring projects in the Taquari Valley), tracking rising water hour by hour alongside satellite patches.",
+        },
+        {
+          tag: "3 · Next Radar Leap (NISAR GUNW)",
+          title: "Landslides and millimeter-scale slope movement",
+          body: "Today the GCOV product shows where hillslope surface texture changed. With interferometric phase (NISAR L2 GUNW), we will measure millimeter-scale ground displacement to warn of hillside risks.",
+        },
+        {
+          tag: "4 · Civil Defense & Citizen Support",
+          title: "Critical infrastructure and elevation-safe routes",
+          body: "Automatically cross flood stage and 30 m elevation relief with hospitals, schools, bridges (such as BR-386) and safe evacuation routes over higher ground.",
+        },
+        {
+          tag: "5 · Multi-Sensor Fusion",
+          title: "Radar + High-Resolution Optical Before/After Photos",
+          body: "Combine radar (which sees through clouds during the storm) with optical imagery (Sentinel-2 / Planet) as soon as skies clear, visually confirming every inspection square.",
+        },
+        {
+          tag: "6 · National & Global Scale (12 days)",
+          title: "From Lajeado and Estrela to any river basin",
+          body: "Because NISAR revisits the entire planet every 12 days (240 km swath, day and night), the same pipeline can monitor other basins across Brazil and the world.",
+        },
+      ],
     },
   },
   story: {

@@ -96,23 +96,64 @@ const pt = {
     ],
   },
   layers: {
-    title: "O que você pode ver",
+    title: "O que você pode ver e até onde podemos ampliar",
+    lead: "Veja o que já está ativo hoje no mapa do Vale do Taquari (com dados reais de radar, relevo 3D, chuva e uso do solo) e como a plataforma evolui com novos dados e integrações.",
     status: {
-      available: "Disponível",
-      exploratory: "Em teste",
-      unavailable: "Ainda não",
+      available: "Ativo no mapa",
+      exploratory: "Ativo + Em expansão",
+      unavailable: "Próxima fase",
     },
     water: {
-      name: "Água",
-      body: "Onde o rio passou da margem normal.",
+      name: "Água e cheias",
+      body: "Onde o Rio Taquari passou da margem normal e onde surgiram lâminas d'água sobre várzeas e áreas baixas.",
+      today: "Hoje no mapa: manchas Antes x Depois (NISAR GCOV), cruzadas com histórico de 40 anos de água (JRC), chuva diária (CHIRPS), nível do rio (SGB) e limites municipais (IBGE).",
     },
     vegetation: {
       name: "Plantas e lavouras",
-      body: "Onde a cobertura de plantas mudou. Este resultado ainda está em teste.",
+      body: "Onde a cobertura agrícola ou florestal mudou de comportamento no radar após a chuva extrema no vale.",
+      today: "Hoje no mapa: cruzamento automático com uso do solo (ESA WorldCover 10 m — 34,2% das manchas em lavouras e 30,5% em mata ciliar) e aumento ou queda do eco do radar.",
     },
     slopes: {
-      name: "Encostas e morros",
-      body: "Medir o movimento do solo exige outro tipo de dado do satélite. Por isso ainda não mostramos.",
+      name: "Encostas, relevo e morros",
+      body: "O que acontece nas áreas mais altas e inclinadas do vale quando chove forte sobre os morros.",
+      today: "Hoje no mapa: Relevo 3D e inclinação em graus (Copernicus DEM 30 m, de 18 m a 58+ m) + mudança de rugosidade na encosta (ponto Q6). Próximo passo: fase InSAR (GUNW).",
+    },
+    expansion: {
+      badge: "Visão de futuro e escala",
+      title: "Até onde podemos ampliar o SurfaceSignal?",
+      lead: "Nossa base já processa passagens reais do satélite NISAR e camadas ambientais oficiais. Veja o que já entregamos hoje e onde podemos chegar:",
+      items: [
+        {
+          tag: "1 · Já ativo hoje",
+          title: "Água, lavouras, relevo 3D e rugosidade em encostas",
+          body: "Inspeção interativa nos quadradinhos Q1 a Q6 com imagem real de satélite, chuva de 3 dias (CHIRPS), boletim do rio (SGB), altitude/inclinação (Copernicus 30 m) e textura em encostas.",
+        },
+        {
+          tag: "2 · Integração Hidrológica ao Vivo",
+          title: "Nível do Rio Taquari em tempo real",
+          body: "Conectar o mapa às réguas telemétricas em tempo real (SGB/ANA e projetos já desenvolvidos na região do Vale do Taquari), acompanhando a subida da água hora a hora junto às manchas do satélite.",
+        },
+        {
+          tag: "3 · Próximo Salto de Radar (NISAR GUNW)",
+          title: "Deslizamentos e movimento milimétrico de encostas",
+          body: "Hoje o produto GCOV mostra onde a superfície da encosta mudou de textura. Com a fase interferométrica (NISAR L2 GUNW), mediremos deslocamentos milimétricos do solo para alertar riscos em morros.",
+        },
+        {
+          tag: "4 · Apoio à Defesa Civil e Cidadãos",
+          title: "Infraestrutura crítica e rotas seguras por altitude",
+          body: "Cruzar automaticamente a cota de inundação e o relevo de 30 m com hospitais, escolas, pontes (como a BR-386) e rotas de saída seguras em terrenos mais altos.",
+        },
+        {
+          tag: "5 · Fusão de Sensores",
+          title: "Radar + Fotos Ópticas de Alta Resolução Antes/Depois",
+          body: "Combinar o radar (que enxerga através das nuvens durante a tempestade) com imagens ópticas (Sentinel-2 / Planet) assim que o céu abre, confirmando visualmente cada quadradinho.",
+        },
+        {
+          tag: "6 · Escala Nacional e Global (12 dias)",
+          title: "De Lajeado e Estrela para qualquer bacia hidrográfica",
+          body: "Como o NISAR revisita todo o planeta a cada 12 dias (faixa de 240 km, dia e noite), o mesmo pipeline pode monitorar outras bacias do RS, do Brasil e do mundo.",
+        },
+      ],
     },
   },
   story: {

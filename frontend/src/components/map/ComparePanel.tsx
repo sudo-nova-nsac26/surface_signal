@@ -1,6 +1,7 @@
 "use client";
 
-import type { ApiLayer } from "@/data/api-types";
+import type { ApiLayer, EnvironmentalContextReport } from "@/data/api-types";
+import { extractCandidateCrossings, extractDailyRainfallComparison } from "@/data/environmental";
 import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
@@ -62,6 +63,7 @@ export function ComparePanel({
   onRetry,
   changes,
   onChanges,
+  environmentalReport,
 }: {
   labels: Labels;
   featured: Featured;
@@ -72,6 +74,7 @@ export function ComparePanel({
   onRetry: () => void;
   changes: ChangeLayers;
   onChanges: (next: ChangeLayers) => void;
+  environmentalReport?: EnvironmentalContextReport | null;
 }) {
   const { number, area } = makeFormat(lang, labels);
 
@@ -122,6 +125,12 @@ export function ComparePanel({
   }
   if (summary.length === 0) summary.push(labels.summaryMissing);
 
+  const rainView = environmentalReport ? extractDailyRainfallComparison(environmentalReport) : null;
+  const crossings = environmentalReport ? extractCandidateCrossings(environmentalReport) : null;
+  const rain3dAfter = rainView?.windows.find((win) => win.key === "3d")?.afterMm ?? null;
+  const rain3dBefore = rainView?.windows.find((win) => win.key === "3d")?.beforeMm ?? null;
+  const topMunis = crossings?.municipalitiesInCandidates ?? [];
+
   return (
     <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
       {/* Plain words first. */}
@@ -133,6 +142,30 @@ export function ComparePanel({
           ))}
         </div>
         {stop && <p className="mt-2 text-sm text-ink-soft">{stop.body}</p>}
+        {(rain3dAfter !== null || topMunis.length > 0 || crossings?.candidateElevationM !== null) && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-line pt-2 text-xs">
+            {rain3dAfter !== null && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {lang === "pt" ? "Chuva (3 dias):" : "Rain (3d):"}{" "}
+                <strong>{number(rain3dAfter, 1)} mm</strong>
+                {rain3dBefore !== null ? ` (${lang === "pt" ? "antes:" : "prior:"} ${number(rain3dBefore, 1)} mm)` : ""}
+              </span>
+            )}
+            {topMunis.length > 0 && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {topMunis
+                  .map((m) => `${m.name}${m.sharePercent !== null ? ` ${number(m.sharePercent, 0)}%` : ""}`)
+                  .join(" · ")}
+              </span>
+            )}
+            {crossings?.candidateElevationM != null && (
+              <span className="rounded-lg border border-line bg-canvas px-2 py-1 text-ink">
+                {lang === "pt" ? "Terreno nas manchas:" : "Patch height:"}{" "}
+                <strong>~{number(crossings.candidateElevationM, 0)} m</strong>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2">

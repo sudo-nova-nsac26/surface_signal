@@ -18,6 +18,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { useMotionLevel } from "@/preferences/store";
 import { ArrowRightIcon } from "../icons";
+import { GlobeLoader } from "../GlobeLoader";
 import {
   assessGraphics,
   measureFps,
@@ -25,7 +26,14 @@ import {
   type GraphicsTier,
 } from "./hardware";
 import type { ViewMode } from "./camera";
-import { NO_CHANGES, type ChangeLayers, type MapMarker, type MapViewHandle } from "./MapView";
+import { NO_CHANGES, type ChangeLayers, type MapHotspotPin, type MapMarker, type MapViewHandle } from "./MapView";
+import {
+  buildHotspotsGeoJson,
+  computeHotspotLiveStats,
+  VALLEY_HOTSPOTS,
+} from "./hotspots";
+import { HotspotPopup } from "./HotspotPopup";
+import { MapTour, useAutoValleyTour } from "./MapTour";
 import {
   buildPlaces,
   childrenOf,
@@ -38,6 +46,7 @@ import { InfoAccordion, type InfoTab } from "./ComparisonInfo";
 import { Timeline } from "./Timeline";
 import { EnvironmentalContextPanel } from "../environment/EnvironmentalContextPanel";
 import { useEnvironmental } from "../environment/useEnvironmental";
+import { environmentalNumber } from "@/data/environmental";
 import { getReferenceGeoJson } from "@/data/source";
 import type { ReferenceLayer } from "@/data/api-types";
 import type { FeatureCollection } from "geojson";
@@ -174,8 +183,8 @@ export function MapStage({
       .then((areas) => {
         setArea(
           areas.find((item) => item.area_id === STORY_AREA_ID) ??
-            areas[0] ??
-            null,
+          areas[0] ??
+          null,
         );
       })
       .catch(() => {
@@ -282,6 +291,95 @@ export function MapStage({
     };
   }, [analysisId, currentDetail, switches]);
 
+  // Clickable inspection squares (hotspots) around Lajeado & Estrela.
+  const [showHotspots, setShowHotspots] = useState(true);
+  const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
+  const [hotspotGeoData, setHotspotGeoData] = useState<{
+    id: string;
+    water: FeatureCollection | null;
+    general: FeatureCollection | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!closeUp || !analysisId) return;
+    const controller = new AbortController();
+    const fetchJson = async (url: string | null): Promise<FeatureCollection | null> => {
+      if (!url) return null;
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return null;
+        return (await res.json()) as FeatureCollection;
+      } catch {
+        return null;
+      }
+    };
+    Promise.all([fetchJson(changes.waterUrl), fetchJson(changes.generalUrl)]).then(
+      ([water, general]) => {
+        if (!controller.signal.aborted) {
+          setHotspotGeoData({ id: analysisId, water, general });
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [closeUp, analysisId, changes.waterUrl, changes.generalUrl]);
+
+  const activeHotspot = useMemo(
+    () => (closeUp && showHotspots ? VALLEY_HOTSPOTS.find((h) => h.id === selectedHotspotId) ?? null : null),
+    [closeUp, showHotspots, selectedHotspotId],
+  );
+
+  const activeHotspotStats = useMemo(() => {
+    if (!activeHotspot) return null;
+    const match = hotspotGeoData && hotspotGeoData.id === analysisId ? hotspotGeoData : null;
+    return computeHotspotLiveStats(activeHotspot, match?.water ?? null, match?.general ?? null);
+  }, [activeHotspot, hotspotGeoData, analysisId]);
+
+  const hotspotsGeoJson = useMemo(
+    () => (closeUp && showHotspots ? buildHotspotsGeoJson(VALLEY_HOTSPOTS, lang, selectedHotspotId) : null),
+    [closeUp, showHotspots, lang, selectedHotspotId],
+  );
+
+  const hotspotPins = useMemo<MapHotspotPin[]>(
+    () =>
+      closeUp && showHotspots
+        ? VALLEY_HOTSPOTS.map((h) => ({
+          id: h.id,
+          code: h.code,
+          kind: h.kind,
+          title: h.title[lang],
+          point: [h.bounds[0], h.bounds[3]] as LngLat,
+          selected: h.id === selectedHotspotId,
+        }))
+        : [],
+    [closeUp, showHotspots, lang, selectedHotspotId],
+  );
+
+  const { tourOpen, setTourOpen } = useAutoValleyTour(phase === "map" && closeUp);
+
+  const closeHotspot = () => {
+    setSelectedHotspotId(null);
+    mapHandle.current?.restoreSavedView();
+  };
+
+  const selectHotspot = (id: string) => {
+    setTourOpen(false);
+    setSelectedHotspotId((prev) => {
+      const nextId = prev === id ? null : id;
+      if (!nextId) {
+        mapHandle.current?.restoreSavedView();
+        return null;
+      }
+      const found = VALLEY_HOTSPOTS.find((h) => h.id === nextId);
+      if (found) {
+        mapHandle.current?.focusAt(found.center, found.kind === "hillslope" ? 13.9 : 13.7);
+      }
+      return nextId;
+    });
+  };
+
+  const envReport = environmental.report?.status === "ready" ? environmental.report.value : null;
+  const fmtNum = (v: number | null | undefined) => environmentalNumber(v, lang) ?? "0";
+
   const go = (id: string) => {
     if (!busy) setPlaceId(id as PlaceId);
   };
@@ -351,6 +449,9 @@ export function MapStage({
           reference={
             closeUp && reference && referenceData?.id === reference.layer_id ? referenceData.data : null
           }
+          hotspots={phase === "map" ? hotspotsGeoJson : null}
+          hotspotPins={phase === "map" ? hotspotPins : []}
+          onHotspotSelect={selectHotspot}
           area={area?.geometry ?? null}
           label={labels.label}
           dotHint={labels.dotHint}
@@ -368,11 +469,12 @@ export function MapStage({
         />
       )}
 
+      {status === "loading" && <GlobeLoader lang={lang} overlay />}
+
       {phase !== "map" && (
         <div
-          className={`intro-scrim absolute inset-0 z-10 flex overflow-y-auto ${
-            phase === "leaving" ? "intro-leaving" : ""
-          }`}
+          className={`intro-scrim absolute inset-0 z-10 flex overflow-y-auto ${phase === "leaving" ? "intro-leaving" : ""
+            }`}
         >
           <div className="stagger mx-auto my-auto w-full max-w-6xl px-4 py-8">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand bg-brand-soft px-4 py-1 text-base font-bold text-brand-text">
@@ -487,132 +589,240 @@ export function MapStage({
               </ol>
             </nav>
 
-            <div
-              role="radiogroup"
-              aria-label={labels.view}
-              className="glass pointer-events-auto flex gap-1 rounded-2xl p-1.5"
-            >
-              {(
-                [
-                  ["2d", labels.view2d, labels.view2dHint],
-                  ["3d", labels.view3d, labels.view3dHint],
-                ] as const
-              ).map(([value, title, hint]) => {
-                const checked = view === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={checked}
-                    aria-label={`${title}: ${hint}`}
-                    onClick={() => chooseView(value)}
-                    disabled={busy}
-                    className={`flex min-h-12 items-center gap-2 rounded-xl px-4 ${
-                      checked
-                        ? "bg-brand text-brand-ink"
-                        : "text-ink hover:bg-brand-soft"
-                    }`}
-                  >
-                    <span className="text-2xl font-bold leading-none">
-                      {title}
-                    </span>
-                    <span className="hidden text-sm leading-tight sm:block">
-                      {hint}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+              {closeUp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedHotspotId(null);
+                    setTourOpen(true);
+                  }}
+                  aria-label={lang === "pt" ? "Abrir tutorial passo a passo" : "Open step-by-step tour"}
+                  title={lang === "pt" ? "Como usar (Tutorial)" : "How to use (Tour)"}
+                  className="glass flex size-12 items-center justify-center rounded-2xl border border-brand/60 bg-brand-soft text-lg font-extrabold text-brand-text transition hover:bg-brand hover:text-brand-ink"
+                >
+                  ?
+                </button>
+              )}
+              <div
+                role="radiogroup"
+                aria-label={labels.view}
+                className="glass flex gap-1 rounded-2xl p-1.5"
+              >
+                {(
+                  [
+                    ["2d", labels.view2d, labels.view2dHint],
+                    ["3d", labels.view3d, labels.view3dHint],
+                  ] as const
+                ).map(([value, title, hint]) => {
+                  const checked = view === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      aria-label={`${title}: ${hint}`}
+                      onClick={() => chooseView(value)}
+                      disabled={busy}
+                      className={`flex min-h-12 items-center gap-2 rounded-xl px-4 ${checked
+                          ? "bg-brand text-brand-ink"
+                          : "text-ink hover:bg-brand-soft"
+                        }`}
+                    >
+                      <span className="text-2xl font-bold leading-none">
+                        {title}
+                      </span>
+                      <span className="hidden text-sm leading-tight sm:block">
+                        {hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
+          {/* Interactive 4-step guided tour (opens on first visit to the valley or via top button). */}
+          {closeUp && (
+            <MapTour
+              lang={lang}
+              open={tourOpen}
+              onClose={() => setTourOpen(false)}
+            />
+          )}
+
+          {/* Modern floating popup when a hotspot square (Q1..Q6) is clicked. */}
+          {activeHotspot && (
+            <HotspotPopup
+              spot={activeHotspot}
+              stats={activeHotspotStats}
+              lang={lang}
+              labels={environment}
+              view={view}
+              onSwitch3d={() => chooseView("3d")}
+              onSelectSpot={selectHotspot}
+              onClose={closeHotspot}
+              fmtNum={fmtNum}
+            />
+          )}
+
           {/* Bottom left: what you are looking at and where to go next. */}
           <div
+            data-tour="left-panel"
             aria-live="polite"
             className={`glass rise-in pointer-events-auto absolute inset-x-3 bottom-3 flex flex-col rounded-3xl sm:inset-x-auto sm:left-4 sm:bottom-6 ${
+              activeHotspot ? "hidden" : ""
+            } ${
               closeUp
                 ? `max-h-[60svh] overflow-hidden p-3 lg:bottom-auto lg:top-[13.75rem] lg:max-h-[calc(100svh-31rem)] xl:top-[5rem] xl:max-h-[calc(100svh-20rem)] ${
-                  infoTab ? "sm:w-[23rem]" : "sm:w-[19rem]"
-                }`
+                    infoTab ? "sm:w-[23rem]" : "sm:w-[19rem]"
+                  }`
                 : "gap-3 p-4 sm:w-[24rem]"
             }`}
           >
             <div
-              className={`flex min-h-0 flex-col ${
-                closeUp ? "flex-1 gap-2 overflow-y-auto pr-1" : "gap-3"
-              }`}
+              className={`flex min-h-0 flex-col ${closeUp ? "flex-1 gap-2 overflow-y-auto pr-1" : "gap-3"
+                }`}
             >
-            <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
-              {labels.places[current.id].name}
-            </h2>
-            <p className={`text-ink-soft ${closeUp ? "text-sm" : ""}`}>
-              {labels.places[current.id].description}
-            </p>
-            {free3d && <p className="text-sm text-ink-soft">{labels.hint3d}</p>}
-            {!free3d && !closeUp && (
-              <p className="hidden text-sm text-ink-soft lg:block">
-                {labels.mouseHint}
+              <h2 className={`font-bold leading-tight ${closeUp ? "text-lg" : "text-2xl"}`}>
+                {labels.places[current.id].name}
+              </h2>
+              <p className={`text-ink-soft ${closeUp ? "text-sm" : ""}`}>
+                {labels.places[current.id].description}
               </p>
-            )}
-            {closeUp && area && (
-              <p className="flex items-center gap-2 text-sm font-bold">
-                <span
-                  aria-hidden="true"
-                  className="h-0 w-5 border-t-2 border-dashed border-brand"
-                />
-                {labels.area}
-              </p>
-            )}
-            {closeUp && currentDetail && (
-              <InfoAccordion
-                labels={labels.compare}
-                lang={lang}
-                detail={currentDetail}
-                tab={infoTab}
-                onTab={setInfoTab}
-              />
-            )}
-            {closeUp && timelineStatus === "error" && (
-              <div className="flex flex-col items-start gap-2 border-t border-line pt-3">
-                <p className="text-base">{labels.timeline.error}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTimelineStatus("loading");
-                    setTimelineTry((n) => n + 1);
-                  }}
-                  className="tool-button"
-                >
-                  {labels.timeline.retry}
-                </button>
-              </div>
-            )}
-            {closeUp && timeline && (
-              <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
-                <Timeline
-                  environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
-                  environmentLabels={environment}
-                  data={timeline}
-                  lang={lang}
-                  labels={labels.timeline}
-                  featured={labels.featured}
-                  selectedId={selectedId}
-                  onSelect={(step) => setSelectedId(step.id)}
-                />
-                <ComparePanel
+              {free3d && <p className="text-sm text-ink-soft">{labels.hint3d}</p>}
+              {!free3d && !closeUp && (
+                <p className="hidden text-sm text-ink-soft lg:block">
+                  {labels.mouseHint}
+                </p>
+              )}
+              {closeUp && area && (
+                <p className="flex items-center gap-2 text-sm font-bold">
+                  <span
+                    aria-hidden="true"
+                    className="h-0 w-5 border-t-2 border-dashed border-brand"
+                  />
+                  {labels.area}
+                </p>
+              )}
+              {closeUp && (
+                <div className="rounded-2xl border border-line bg-surface p-2.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-brand-text">{environment.hotspotsToggle}</span>
+                    <input
+                      type="checkbox"
+                      checked={showHotspots}
+                      onChange={(e) => {
+                        setShowHotspots(e.target.checked);
+                        if (!e.target.checked) closeHotspot();
+                      }}
+                      aria-label={environment.hotspotsToggle}
+                      className="size-4 accent-cyan-400"
+                    />
+                  </div>
+                  {showHotspots && (
+                    <>
+                      {/* Hotspot Square Buttons */}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {VALLEY_HOTSPOTS.map((spot) => {
+                          const active = spot.id === selectedHotspotId;
+                          return (
+                            <button
+                              key={spot.id}
+                              type="button"
+                              onClick={() => selectHotspot(spot.id)}
+                              title={spot.title[lang]}
+                              className={`rounded-lg border px-2 py-1 text-xs font-bold transition-colors ${
+                                active
+                                  ? "border-amber-300 bg-amber-400 text-slate-950"
+                                  : "border-line bg-canvas text-ink hover:border-brand"
+                              }`}
+                            >
+                              {spot.kind === "hillslope" ? "⛰" : "▣"} {spot.code}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quick Relief & Context Toggle */}
+                      <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
+                        <span className="text-[11px] text-ink-soft">
+                          {lang === "pt" ? "Relevo de morros (Copernicus 30m):" : "Hill relief (Copernicus 30m):"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => chooseView(view === "3d" ? "2d" : "3d")}
+                          className={`rounded-lg border px-2 py-0.5 text-[11px] font-extrabold transition ${
+                            view === "3d"
+                              ? "border-amber-300 bg-amber-300 text-slate-950"
+                              : "border-line bg-bg text-ink hover:border-brand"
+                          }`}
+                        >
+                          {view === "3d"
+                            ? lang === "pt"
+                              ? "⛰ 3D Ativo"
+                              : "⛰ 3D On"
+                            : lang === "pt"
+                              ? "Ativar 3D"
+                              : "Enable 3D"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {closeUp && currentDetail && (
+                <InfoAccordion
                   labels={labels.compare}
-                  featured={labels.featured}
                   lang={lang}
-                  step={selectedStep}
                   detail={currentDetail}
-                  status={detailStatus}
-                  onRetry={() => setDetailTry((n) => n + 1)}
-                  changes={switches}
-                  onChanges={setSwitches}
+                  tab={infoTab}
+                  onTab={setInfoTab}
                 />
-                {environmentPanel}
-              </div>
-            )}
+              )}
+              {closeUp && timelineStatus === "error" && (
+                <div className="flex flex-col items-start gap-2 border-t border-line pt-3">
+                  <p className="text-base">{labels.timeline.error}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTimelineStatus("loading");
+                      setTimelineTry((n) => n + 1);
+                    }}
+                    className="tool-button"
+                  >
+                    {labels.timeline.retry}
+                  </button>
+                </div>
+              )}
+              {closeUp && timeline && (
+                <div className="flex flex-col gap-4 border-t border-line pt-3 lg:hidden">
+                  <Timeline
+                    environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
+                    environmentLabels={environment}
+                    data={timeline}
+                    lang={lang}
+                    labels={labels.timeline}
+                    featured={labels.featured}
+                    selectedId={selectedId}
+                    onSelect={(step) => setSelectedId(step.id)}
+                  />
+                  <ComparePanel
+                    labels={labels.compare}
+                    featured={labels.featured}
+                    lang={lang}
+                    step={selectedStep}
+                    detail={currentDetail}
+                    status={detailStatus}
+                    onRetry={() => setDetailTry((n) => n + 1)}
+                    changes={switches}
+                    onChanges={setSwitches}
+                    environmentalReport={envReport}
+                  />
+                  {environmentPanel}
+                </div>
+              )}
             </div>
             <div className={`flex flex-wrap gap-2 ${closeUp ? "shrink-0 border-t border-line pt-2" : ""}`}>
               {current.parent && (
@@ -643,7 +853,10 @@ export function MapStage({
 
           {/* Bottom: the timeline of passes and comparisons (wide screens). */}
           {closeUp && timeline && (
-            <div className="glass rise-in pointer-events-auto absolute bottom-6 left-4 right-[26.5rem] hidden rounded-3xl px-4 py-3 lg:block">
+            <div
+              data-tour="timeline"
+              className="glass rise-in pointer-events-auto absolute bottom-6 left-4 right-[26.5rem] hidden rounded-3xl px-4 py-3 lg:block"
+            >
               <Timeline
                 environmentalEvents={environmental.region?.status === "ready" ? environmental.region.value.events : []}
                 environmentLabels={environment}
@@ -659,19 +872,23 @@ export function MapStage({
 
           {/* Right: before/after and the layers (wide screens). */}
           {closeUp && timeline && (
-            <div className="glass rise-in pointer-events-auto absolute bottom-6 right-16 top-20 hidden w-[22rem] overflow-y-auto rounded-3xl p-3 lg:block">
+            <div
+              data-tour="right-panel"
+              className="glass rise-in pointer-events-auto absolute bottom-6 right-16 top-20 hidden w-[22rem] overflow-y-auto rounded-3xl p-3 lg:block"
+            >
               <ComparePanel
-                  labels={labels.compare}
-                  featured={labels.featured}
-                  lang={lang}
-                  step={selectedStep}
-                  detail={currentDetail}
-                  status={detailStatus}
-                  onRetry={() => setDetailTry((n) => n + 1)}
-                  changes={switches}
-                  onChanges={setSwitches}
-                />
-                {environmentPanel}
+                labels={labels.compare}
+                featured={labels.featured}
+                lang={lang}
+                step={selectedStep}
+                detail={currentDetail}
+                status={detailStatus}
+                onRetry={() => setDetailTry((n) => n + 1)}
+                changes={switches}
+                onChanges={setSwitches}
+                environmentalReport={envReport}
+              />
+              {environmentPanel}
             </div>
           )}
 
@@ -729,9 +946,8 @@ export function MapStage({
           {/* Bottom centre: the way down to the rest of the page. */}
           <a
             href="#how"
-            className={`glass quiet pointer-events-auto absolute bottom-8 left-1/2 hidden min-h-11 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-base font-bold ${
-              closeUp ? "" : "lg:flex"
-            }`}
+            className={`glass quiet pointer-events-auto absolute bottom-8 left-1/2 hidden min-h-11 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-base font-bold ${closeUp ? "" : "lg:flex"
+              }`}
           >
             {labels.more}
             <span aria-hidden="true">↓</span>

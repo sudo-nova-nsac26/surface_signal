@@ -127,3 +127,19 @@ test('environmental timeline markers aggregate by UTC day and kind without alter
   assert.ok(rain.endPercent>rain.startPercent);
   assert.deepEqual(values,original);
 });
+test('daily rainfall and candidate crossings extract real July flood metrics accurately', () => {
+  const report = JSON.parse(
+    fs.readFileSync('public/data/compact/api/v1/analyses/5e434ec81b10578ba7ba6dfb/environmental-context.json', 'utf8'),
+  );
+  const rain = e.extractDailyRainfallComparison(report);
+  assert.equal(rain.hasDailyData, true);
+  assert.equal(rain.windows.find(w => w.key === '3d').beforeMm, 0);
+  assert.ok(rain.windows.find(w => w.key === '3d').afterMm > 87);
+  assert.equal(rain.peakAfterDay.dateLabel, '2026-07-21');
+
+  const crossings = e.extractCandidateCrossings(report);
+  assert.equal(crossings.municipalitiesInCandidates[0].name, 'Estrela');
+  assert.equal(crossings.municipalitiesInCandidates[1].name, 'Lajeado');
+  assert.ok(crossings.candidateElevationM < 20 && crossings.aoiElevationM > 45);
+  assert.ok(crossings.rarelyWetSharePercent > 85);
+});

@@ -20,6 +20,8 @@ export interface MapViewHandle {
   rotateBy: (degrees: number) => void;
   tiltBy: (degrees: number) => void;
   resetView: () => void;
+  focusAt: (center: LngLat, zoom?: number) => void;
+  restoreSavedView: () => void;
 }
 
 export interface MapMarker {
@@ -28,6 +30,15 @@ export interface MapMarker {
   point: LngLat;
   /** False for places that are shown but cannot be opened yet. */
   available: boolean;
+}
+
+export interface MapHotspotPin {
+  id: string;
+  code: string;
+  kind?: "floodplain" | "river_corridor" | "hillslope";
+  title: string;
+  point: LngLat;
+  selected: boolean;
 }
 
 export interface MapViewProps {
@@ -45,6 +56,10 @@ export interface MapViewProps {
   changes: ChangeLayers;
   /** Optional bounded reference outline (independent of the change layers). */
   reference?: FeatureCollection | null;
+  /** Optional clickable inspection squares (hotspots) at the close-up. */
+  hotspots?: FeatureCollection | null;
+  hotspotPins?: MapHotspotPin[];
+  onHotspotSelect?: (id: string) => void;
   /** Outline of the analysed area, shown at the close-up. */
   area: GeoJsonPolygon | null;
   label: string;
@@ -415,6 +430,9 @@ export default function MapView({
   intro,
   changes,
   reference,
+  hotspots,
+  hotspotPins = [],
+  onHotspotSelect,
   area,
   label,
   dotHint,
@@ -431,6 +449,7 @@ export default function MapView({
   const mapRef = useRef<MapLibreMap | null>(null);
   const loadedRef = useRef(false);
   const dotRefs = useRef(new Map<string, HTMLButtonElement>());
+  const hotspotRefs = useRef(new Map<string, HTMLButtonElement>());
   const flightTimer = useRef<number | undefined>(undefined);
   const freeRef = useRef(false);
   const fadeRef = useRef<HTMLDivElement>(null);
@@ -449,6 +468,7 @@ export default function MapView({
   const latest = useRef({
     place,
     markers,
+    hotspotPins,
     view,
     motion,
     intro,
@@ -460,6 +480,7 @@ export default function MapView({
     latest.current = {
       place,
       markers,
+      hotspotPins,
       view,
       motion,
       intro,
@@ -468,7 +489,7 @@ export default function MapView({
       waterMotion,
     };
   });
-  const callbacks = useRef({ onReady, onError, onBusyChange });
+  const callbacks = useRef({ onReady, onError, onBusyChange, onHotspotSelect });
   // While a transition runs (2D <-> 3D, flying into a place), dragging or
   // zooming would cut the camera move in half and leave the view broken, so
   // every gesture and camera button is off until it ends.
@@ -534,8 +555,10 @@ export default function MapView({
     if (overlayRef.current) overlayRef.current.dataset.locked = "false";
     callbacks.current.onBusyChange?.(false);
   }
+  const savedCameraRef = useRef<{ center: LngLat; zoom: number; pitch: number; bearing: number } | null>(null);
+
   useEffect(() => {
-    callbacks.current = { onReady, onError, onBusyChange };
+    callbacks.current = { onReady, onError, onBusyChange, onHotspotSelect };
   });
 
   useImperativeHandle(ref, () => ({
@@ -564,11 +587,59 @@ export default function MapView({
     },
     resetView() {
       if (lockedRef.current) return;
+      savedCameraRef.current = null;
       mapRef.current?.easeTo({
         bearing: 0,
         pitch: latest.current.view === "3d" ? DETAIL_PITCH : 0,
         duration: latest.current.motion === "none" ? 0 : 500,
       });
+    },
+    focusAt(center, zoom = 13.7) {
+      if (lockedRef.current) return;
+      const map = mapRef.current;
+      if (!map) return;
+      if (!savedCameraRef.current) {
+        const c = map.getCenter();
+        savedCameraRef.current = {
+          center: [c.lng, c.lat],
+          zoom: map.getZoom(),
+          pitch: map.getPitch(),
+          bearing: map.getBearing(),
+        };
+      }
+      const isWide = typeof window !== "undefined" && window.innerWidth >= 1024;
+      map.easeTo({
+        center,
+        zoom: Math.max(map.getZoom(), zoom),
+        offset: isWide ? [40, -25] : [0, -60],
+        duration: latest.current.motion === "none" ? 0 : 650,
+      });
+    },
+    restoreSavedView() {
+      if (lockedRef.current) return;
+      const map = mapRef.current;
+      if (!map) return;
+      const prev = savedCameraRef.current;
+      savedCameraRef.current = null;
+      if (prev) {
+        map.easeTo({
+          center: prev.center,
+          zoom: prev.zoom,
+          pitch: prev.pitch,
+          bearing: prev.bearing,
+          duration: latest.current.motion === "none" ? 0 : 650,
+        });
+      } else if (latest.current.place.detail) {
+        const d = latest.current.place.detail;
+        const is3d = latest.current.view === "3d";
+        map.easeTo({
+          center: d.center,
+          zoom: is3d ? d.zoom : d.zoom - 0.3,
+          pitch: is3d ? DETAIL_PITCH : 0,
+          bearing: 0,
+          duration: latest.current.motion === "none" ? 0 : 650,
+        });
+      }
     },
   }));
 
@@ -579,7 +650,7 @@ export default function MapView({
     if (!map || !container) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
-    const { markers, view } = latest.current;
+    const { markers, hotspotPins: pins, view } = latest.current;
     const center = map.getCenter();
     for (const marker of markers) {
       const element = dotRefs.current.get(marker.id);
@@ -598,6 +669,18 @@ export default function MapView({
       element.style.visibility = !hidden && inside ? "visible" : "hidden";
       element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
       element.dataset.side = point.x > width * 0.62 ? "left" : "right";
+    }
+    for (const pin of pins) {
+      const element = hotspotRefs.current.get(pin.id);
+      if (!element) continue;
+      const point = map.project(pin.point);
+      const inside =
+        point.x > 16 &&
+        point.x < width - 16 &&
+        point.y > 16 &&
+        point.y < height - 16;
+      element.style.visibility = inside ? "visible" : "hidden";
+      element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
     }
   }
 
@@ -1193,6 +1276,7 @@ export default function MapView({
     latest.current = {
       place,
       markers,
+      hotspotPins,
       view,
       motion,
       intro,
@@ -1248,10 +1332,73 @@ export default function MapView({
     return () => { map.off("style.load", apply); map.off("idle", applyOnce); };
   }, [reference, place.detail]);
 
+  // Clickable inspection squares (hotspots) at the close-up.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const srcId = "env-hotspots";
+    const fillId = "env-hotspots-fill";
+    const lineId = "env-hotspots-line";
+    const apply = () => {
+      if (!map.isStyleLoaded()) return;
+      if (map.getLayer(lineId)) map.removeLayer(lineId);
+      if (map.getLayer(fillId)) map.removeLayer(fillId);
+      if (map.getSource(srcId)) map.removeSource(srcId);
+      if (!hotspots || !place.detail) return;
+      map.addSource(srcId, { type: "geojson", data: hotspots });
+      map.addLayer({
+        id: fillId,
+        type: "fill",
+        source: srcId,
+        paint: {
+          "fill-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
+          "fill-opacity": ["case", ["==", ["get", "selected"], true], 0.18, 0.07],
+        },
+      });
+      map.addLayer({
+        id: lineId,
+        type: "line",
+        source: srcId,
+        paint: {
+          "line-color": ["case", ["==", ["get", "selected"], true], "#ffd166", "#19e3ff"],
+          "line-width": ["case", ["==", ["get", "selected"], true], 3, 2],
+          "line-dasharray": [2, 2],
+        },
+      });
+    };
+    const handleClick = (e: { features?: Array<{ properties?: Record<string, unknown> }> }) => {
+      const id = e.features?.[0]?.properties?.id;
+      if (typeof id === "string") callbacks.current.onHotspotSelect?.(id);
+    };
+    const handleEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const handleLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
+    apply();
+    map.on("style.load", apply);
+    map.on("idle", applyOnce);
+    map.on("click", fillId, handleClick as never);
+    map.on("mouseenter", fillId, handleEnter);
+    map.on("mouseleave", fillId, handleLeave);
+    function applyOnce() {
+      apply();
+      map?.off("idle", applyOnce);
+    }
+    return () => {
+      map.off("style.load", apply);
+      map.off("idle", applyOnce);
+      map.off("click", fillId, handleClick as never);
+      map.off("mouseenter", fillId, handleEnter);
+      map.off("mouseleave", fillId, handleLeave);
+    };
+  }, [hotspots, place.detail]);
+
   // New dots appear in the right spot as soon as they are rendered.
   useEffect(() => {
     updateDots();
-  }, [markers]);
+  }, [markers, hotspotPins]);
 
   return (
     // MapLibre sets its own positioning on the element it is given, so the
@@ -1299,6 +1446,28 @@ export default function MapView({
                 <span className="map-dot-note">{upcomingLabel}</span>
               )}
             </span>
+          </button>
+        ))}
+        {hotspotPins.map((pin) => (
+          <button
+            key={pin.id}
+            ref={(element) => {
+              if (element) hotspotRefs.current.set(pin.id, element);
+              else hotspotRefs.current.delete(pin.id);
+            }}
+            type="button"
+            aria-pressed={pin.selected}
+            aria-label={pin.title}
+            title={pin.title}
+            onClick={() => onHotspotSelect?.(pin.id)}
+            className={`pointer-events-auto invisible absolute left-0 top-0 flex items-center gap-1 rounded-lg border-2 px-2 py-0.5 text-xs font-extrabold shadow-lg transition-colors ${
+              pin.selected
+                ? "border-amber-300 bg-amber-400 text-slate-950"
+                : "border-cyan-300/90 bg-slate-950/90 text-cyan-200 hover:border-amber-300 hover:text-white"
+            }`}
+          >
+            <span>▣</span>
+            <span>{pin.code}</span>
           </button>
         ))}
       </div>

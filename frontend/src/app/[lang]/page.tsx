@@ -44,7 +44,7 @@ const LAYERS: {
   },
   {
     id: "slopes",
-    status: "unavailable",
+    status: "exploratory",
     icon: <HillIcon className="size-9" />,
     colorClass: "bg-slopes",
     textClass: "text-slopes",
@@ -130,6 +130,7 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             <SectionHeading id="layers-title" number="02" action={listen("layers")}>
               {dict.layers.title}
             </SectionHeading>
+            <p className="mt-4 max-w-3xl text-xl text-ink-soft">{dict.layers.lead}</p>
           </Reveal>
           <Reveal>
             <ul className="mt-8 grid gap-4 md:grid-cols-3">
@@ -148,21 +149,53 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
                       className={`rounded-full border px-3 py-1 text-base font-bold ${
                         status === "available"
                           ? "border-brand bg-brand text-brand-ink"
-                          : "border-line text-ink-soft hc:border-ink hc:text-ink"
+                          : "border-brand/50 bg-brand/10 text-brand-text hc:border-ink hc:text-ink"
                       }`}
                     >
                       {dict.layers.status[status]}
                     </span>
                   </div>
                   <h3 className="text-2xl font-bold">{dict.layers[id].name}</h3>
-                  <p className="text-ink-soft">{dict.layers[id].body}</p>
+                  <p className="min-h-[3.25rem] text-ink-soft">{dict.layers[id].body}</p>
+                  <div className="flex-1 rounded-2xl border border-line/80 bg-bg/60 p-3.5 text-sm leading-relaxed text-ink">
+                    {dict.layers[id].today}
+                  </div>
                   <span
                     aria-hidden="true"
-                    className={`mt-auto h-1 w-16 rounded-full ${colorClass}`}
+                    className={`mt-2 h-1 w-16 rounded-full ${colorClass}`}
                   />
                 </li>
               ))}
             </ul>
+          </Reveal>
+          <Reveal>
+            <div className="mt-8 rounded-3xl border border-brand/40 bg-surface p-6 sm:p-8 hc:border-2 hc:border-ink">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand/50 bg-brand/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-brand-text">
+                  {dict.layers.expansion.badge}
+                </span>
+              </div>
+              <h3 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                {dict.layers.expansion.title}
+              </h3>
+              <p className="mt-2 max-w-3xl text-base text-ink-soft sm:text-lg">
+                {dict.layers.expansion.lead}
+              </p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {dict.layers.expansion.items.map((item) => (
+                  <div
+                    key={item.tag}
+                    className="flex flex-col gap-2 rounded-2xl border border-line bg-bg/70 p-4 transition hover:border-brand/60 hc:border-ink"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider text-brand-text">
+                      {item.tag}
+                    </span>
+                    <h4 className="text-lg font-bold text-ink">{item.title}</h4>
+                    <p className="text-sm leading-relaxed text-ink-soft">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </Reveal>
         </div>
       </section>
