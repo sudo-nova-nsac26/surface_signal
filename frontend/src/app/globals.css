@@ -99,7 +99,11 @@
   --color-water-soft: var(--water-soft);
   --color-vegetation: var(--vegetation);
   --color-slopes: var(--slopes);
-  --font-sans: var(--font-atkinson), system-ui, "Segoe UI", sans-serif;
+  /* [TESTE DE FONTE — Google Sans] Para voltar à fonte anterior (Atkinson Hyperlegible), troque as duas linhas ativas pelas comentadas abaixo: */
+  /* --font-sans: var(--font-atkinson), system-ui, "Segoe UI", sans-serif; */
+  /* --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; */
+  --font-sans: "Google Sans", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Google Sans", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /*
@@ -113,11 +117,11 @@ html {
 }
 
 html[data-text="lg"] {
-  font-size: 118.75%;
+  font-size: 112.5%;
 }
 
 html[data-text="xl"] {
-  font-size: 137.5%;
+  font-size: 125%;
 }
 
 /* Colorblind-safe high-distinction palette (Cyan / Gold / Magenta) */

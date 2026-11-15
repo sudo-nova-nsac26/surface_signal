@@ -41,8 +41,14 @@ export function LanguageSwitch({ current }: { current: Locale }) {
         }
         event.preventDefault();
         setShown(target);
+        try {
+          sessionStorage.setItem("surface_signal_lang_switch", "1");
+        } catch {
+          // Ignore storage restrictions.
+        }
         // A full page load on purpose (see above), so the address is absolute.
-        const destination = new URL(`/${target}`, window.location.origin).href;
+        const hash = window.location.hash || "";
+        const destination = new URL(`/${target}${hash}`, window.location.origin).href;
         window.setTimeout(() => window.location.assign(destination), 260);
       }}
       className="lang-switch"

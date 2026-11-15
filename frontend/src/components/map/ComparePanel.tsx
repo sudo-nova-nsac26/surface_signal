@@ -6,6 +6,7 @@ import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { usePreferences } from "@/preferences/store";
+import { SpeakButton } from "../ui/SpeakButton";
 import { makeFormat } from "./ComparisonInfo";
 import { CHANGE_COLORS, COLORBLIND_CHANGE_COLORS, type ChangeLayers } from "./MapView";
 
@@ -82,7 +83,26 @@ export function ComparePanel({
   const activeColors = prefs.colorblind ? COLORBLIND_CHANGE_COLORS : CHANGE_COLORS;
 
   if (status === "loading" && !detail) {
-    return <p className="text-base text-ink-soft">{labels.loading}</p>;
+    return (
+      <div className="flex flex-col gap-3" aria-busy="true" aria-label={labels.loading}>
+        <div className="min-h-[12.5rem] animate-pulse rounded-2xl border border-line bg-surface p-3">
+          <div className="h-4 w-32 rounded bg-line/80" />
+          <div className="mt-3 h-4 w-full rounded bg-line/70" />
+          <div className="mt-2 h-4 w-5/6 rounded bg-line/70" />
+          <div className="mt-2 h-4 w-3/4 rounded bg-line/60" />
+          <div className="mt-5 flex gap-2 border-t border-line pt-2.5">
+            <div className="h-6 w-28 rounded-lg bg-line/70" />
+            <div className="h-6 w-28 rounded-lg bg-line/70" />
+          </div>
+        </div>
+        <div className="h-11 animate-pulse rounded-full bg-surface" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2 h-28 animate-pulse rounded-2xl border border-line bg-surface" />
+          <div className="h-32 animate-pulse rounded-2xl border border-line bg-surface" />
+          <div className="h-32 animate-pulse rounded-2xl border border-line bg-surface" />
+        </div>
+      </div>
+    );
   }
   if (status === "error" || !detail || !step) {
     return (
@@ -133,18 +153,47 @@ export function ComparePanel({
   const rain3dAfter = rainView?.windows.find((win) => win.key === "3d")?.afterMm ?? null;
   const rain3dBefore = rainView?.windows.find((win) => win.key === "3d")?.beforeMm ?? null;
   const topMunis = crossings?.municipalitiesInCandidates ?? [];
+  const spokenSummary = [
+    stop?.title,
+    ...summary,
+    stop?.body,
+    rain3dAfter !== null
+      ? `${lang === "pt" ? "Chuva em 3 dias:" : "Rain in 3 days:"} ${number(rain3dAfter, 1)} mm`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   return (
     <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
       {/* Plain words first. */}
-      <div className="rounded-2xl border border-line bg-surface p-3 hc:border-ink">
-        {stop && <h3 className="text-base font-bold text-brand-text">{stop.title}</h3>}
-        <div aria-live="polite" className="mt-1 flex flex-col gap-1.5 text-base leading-snug">
-          {summary.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
+      <div
+        className={`flex min-h-[12.5rem] flex-col justify-between rounded-2xl border border-line bg-surface p-3 transition-opacity duration-150 hc:border-ink ${
+          status === "loading" ? "animate-pulse opacity-70" : ""
+        }`}
+      >
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            {stop ? (
+              <h3 className="text-base font-bold text-brand-text">{stop.title}</h3>
+            ) : (
+              <h3 className="text-base font-bold text-brand-text">
+                {lang === "pt" ? "Passagem do satélite" : "Satellite pass"}
+              </h3>
+            )}
+            <SpeakButton
+              text={spokenSummary}
+              lang={lang}
+              label={lang === "pt" ? "Ouvir" : "Listen"}
+            />
+          </div>
+          <div aria-live="polite" className="mt-1 flex flex-col gap-1.5 text-base leading-snug">
+            {summary.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+          {stop && <p className="mt-2 text-sm text-ink-soft">{stop.body}</p>}
         </div>
-        {stop && <p className="mt-2 text-sm text-ink-soft">{stop.body}</p>}
         {(rain3dAfter !== null || topMunis.length > 0 || crossings?.candidateElevationM !== null) && (
           <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-line pt-2 text-xs">
             {rain3dAfter !== null && (

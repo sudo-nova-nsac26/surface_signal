@@ -222,6 +222,10 @@ export interface TimelineAnalysis {
   hasChangeShapes: boolean;
   candidateAreaKm2: number | null;
   validAreaKm2: number | null;
+  changedAreaKm2?: number | null;
+  decreaseAreaKm2?: number | null;
+  increaseAreaKm2?: number | null;
+  meanDeltaDb?: number | null;
 }
 
 export interface TimelineStep {
@@ -257,14 +261,26 @@ export interface TimelineView {
 const dayOf = (iso: string) => iso.slice(0, 10);
 
 export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
-  const byDates = new Map(
-    timeline.comparisons.map((c) => [`${dayOf(c.before_time)}|${dayOf(c.after_time)}`, c]),
+  const featuredReasons = new Map(
+    FEATURED.map((pick) => [`${pick.before}|${pick.after}`, pick.reason]),
+  );
+  // Keep all comparisons from the primary Descending pass (Track 53, Frame 103)
+  // in chronological order so the user can scrub the entire June-October season
+  // and compare non-sequential periods (e.g. 1st reading vs. last reading).
+  const descending = timeline.comparisons.filter(
+    (c) => c.direction === "DESCENDING" && c.track === 53,
+  );
+  const pool = descending.length > 0 ? descending : timeline.comparisons;
+  const sortedPool = [...pool].sort(
+    (a, b) => Date.parse(a.after_time) - Date.parse(b.after_time),
   );
   const steps: TimelineStep[] = [];
-  for (const pick of FEATURED) {
-    const c = byDates.get(`${pick.before}|${pick.after}`);
-    if (!c) continue;
+  for (const c of sortedPool) {
+    const key = `${dayOf(c.before_time)}|${dayOf(c.after_time)}`;
+    const reason = featuredReasons.get(key) ?? null;
     const analysisId = c.analysis_ids[0] ?? null;
+    const genStats = analysisId ? c.statistics?.[analysisId]?.general_change?.statistics : undefined;
+    const watStats = analysisId ? c.statistics?.[analysisId]?.open_water?.statistics : undefined;
     steps.push({
       id: c.comparison_id,
       groupId: c.group_id,
@@ -272,7 +288,7 @@ export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
       beforeAt: c.before_time,
       afterAt: c.after_time,
       direction: c.direction,
-      reason: pick.reason,
+      reason,
       validation: c.validation_status,
       summary: analysisId ? (c.summaries[analysisId] ?? null) : null,
       analysis: analysisId
@@ -280,12 +296,12 @@ export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
             analysisId,
             illustrative: timeline.data_status !== "real",
             hasChangeShapes: true,
-            candidateAreaKm2:
-              c.statistics?.[analysisId]?.open_water?.statistics?.candidate_area_km2 ?? null,
-            validAreaKm2:
-              c.statistics?.[analysisId]?.general_change?.statistics?.valid_area_km2 ??
-              c.statistics?.[analysisId]?.open_water?.statistics?.valid_area_km2 ??
-              null,
+            candidateAreaKm2: watStats?.candidate_area_km2 ?? null,
+            validAreaKm2: genStats?.valid_area_km2 ?? watStats?.valid_area_km2 ?? null,
+            changedAreaKm2: genStats?.changed_area_km2 ?? null,
+            decreaseAreaKm2: genStats?.decrease_area_km2 ?? null,
+            increaseAreaKm2: genStats?.increase_area_km2 ?? null,
+            meanDeltaDb: genStats?.mean_delta_db ?? watStats?.mean_delta_db ?? null,
           }
         : null,
     });
