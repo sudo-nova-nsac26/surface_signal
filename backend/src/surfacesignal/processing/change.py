@@ -2,7 +2,7 @@
 
 Outputs are exploratory signal measurements, not remotely validated flood extents.
 The caller is responsible for verifying scene compatibility and source quality.
-""" 
+"""
 
 import numpy as np
 from rasterio.enums import Resampling

@@ -30,25 +30,17 @@ O **[SurfaceSignal](https://surfacesignal.earth)** é uma aplicação bilíngue 
 
 As mudanças no sinal de radar são **candidatos exploratórios**, não inundações, danos ou riscos confirmados. O projeto **não** é um sistema de alerta ou previsão de desastres.
 
-## Mapa da documentação
+## Para os avaliadores
 
-O README apresenta os passos essenciais. Os documentos abaixo explicam os procedimentos, a origem dos dados e suas limitações.
+**Comece pelo [guia de avaliação de cinco minutos](docs/reviewer-guide.md).** Ele apresenta a demonstração, as 19 cenas originais / 17 comparações, a execução local e o que o radar **não** permite confirmar. O [registro de melhorias futuras](docs/future-work.md) separa as integrações planejadas do que já foi implementado.
 
-| Assunto | Guia |
+| Objetivo | Acesso |
 |---|---|
-| **Rodar o site sem backend** | [Modo estático abaixo](#opção-1--frontend-estático), [guia do frontend](frontend/README.md) |
-| **Rodar com a API opcional** | [FastAPI abaixo](#opção-2--backend-somente-leitura), [operações do backend](docs/backend-operations.md), [contrato da API](docs/api-contract.md) |
-| **Criar conta Earthdata, autorizar ASF e configurar credenciais com segurança** | **[Passo a passo Earthdata: .netrc, fish/Bash/Windows e erros 401/403](docs/earthdata-access.md)** |
-| **Baixar HDF5 NISAR, processar o histórico e verificar os arquivos** | [Processamento científico abaixo](#baixar-e-processar-novos-hdf5--opcional), [execução real](docs/real-data-execution.md), [reprodutibilidade](docs/reproducibility.md) |
-| **Conhecer as fontes utilizadas e o tratamento dos dados** | [Fontes e licenças](docs/data-sources.md), [evidências de aquisição](docs/public-source-evidence.md), [contexto ambiental](docs/environmental-data-integration.md) |
-| **Entender estatísticas e incertezas do radar** | [Método científico](docs/scientific-method.md), [variações de sinal](docs/general-change-analysis.md), [níveis de validação](docs/validation.md), [limitações](docs/limitations.md) |
-| **Gerar relatórios de interpretação e preparação** | [Análise local](docs/local-analysis-preparation.md), [regras de interpretação](docs/interpretation-model.md) |
-| **Gerar, publicar e verificar dados pré-processados** | [Publicação estática](docs/static-publication.md), [snapshots compactos/completos](docs/snapshot-delivery.md), [evidências de publicação](docs/public-data-delivery-report.md) |
-| **Publicar e configurar a aplicação** | [Cloudflare Pages](docs/cloudflare-pages.md), [deploy da API opcional](docs/backend-deployment.md), [arquitetura](docs/architecture.md) |
-| **Configurar variáveis de ambiente e segurança** | [Exemplo .env do backend](.env.example), [exemplo .env do frontend](frontend/.env.example), [SECURITY.md](SECURITY.md) |
-| **Conferir SEO/GEO, licenças e contribuições** | [Auditoria SEO/GEO](docs/seo-geo-review.md), [Apache-2.0](LICENSE), [créditos de terceiros](NOTICE), [colaboradores](AGENTS.md), [checklist de submissão](docs/submission-checklist.md) |
-
-[Índice técnico completo](docs/README.md)
+| Conhecer a demonstração | [Aplicação publicada](https://surfacesignal.earth/pt/), [apresentação](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) |
+| Executar após clonar | [Modo estático abaixo](#como-executar--com-ou-sem-api), [guia do frontend](frontend/README.md) |
+| Conferir método e limites | [Método](docs/scientific-method.md), [fontes](docs/data-sources.md), [validação](docs/validation.md), [limitações](docs/limitations.md) |
+| Reprocessar dados (avançado) | [Acesso Earthdata](docs/earthdata-access.md), [reprodutibilidade](docs/reproducibility.md), [execução real](docs/real-data-execution.md) |
+| Entender arquitetura e API | [Arquitetura](docs/architecture.md), [contrato da API](docs/api-contract.md), [documentação completa](docs/README.md) |
 
 ## Como executar — com ou sem API
 
