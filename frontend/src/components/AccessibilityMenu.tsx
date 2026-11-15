@@ -35,14 +35,14 @@ function Switch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex min-h-14 w-full items-center justify-between gap-4 rounded-xl border-2 border-ink bg-surface px-4 py-2 text-left"
+      className="flex min-h-14 w-full shrink-0 items-center justify-between gap-3 rounded-xl border-2 border-ink bg-surface px-4 py-3 text-left"
     >
-      <span>
-        <span className="block font-bold">{label}</span>
-        <span className="block text-base text-ink-soft">{hint}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold leading-snug">{label}</span>
+        <span className="mt-0.5 block text-sm leading-snug text-ink-soft">{hint}</span>
       </span>
       <span
-        className={`shrink-0 rounded-full border-2 border-ink px-3 py-1 text-base font-bold ${
+        className={`shrink-0 rounded-full border-2 border-ink px-3 py-1 text-sm font-bold ${
           checked ? "bg-ink text-bg" : "bg-surface text-ink"
         }`}
       >
@@ -100,9 +100,9 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
         hidden={!open}
         role="group"
         aria-label={labels.title}
-        className="absolute inset-x-4 top-full z-20 mt-2 flex max-h-[calc(100svh-5.5rem)] flex-col gap-3 overflow-y-auto rounded-3xl border-2 border-ink bg-surface p-4 shadow-2xl sm:inset-x-auto sm:right-0 sm:w-96"
+        className="absolute inset-x-4 top-full z-30 mt-2 flex max-h-[calc(100svh-5.5rem)] flex-col gap-3 overflow-y-auto rounded-3xl border-2 border-ink bg-surface p-4 shadow-2xl sm:inset-x-auto sm:right-0 sm:w-[25rem]"
       >
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-4">
           <h2 className="text-xl font-bold">{labels.title}</h2>
           <button
             type="button"
@@ -111,13 +111,13 @@ export function AccessibilityMenu({ labels }: { labels: Dictionary["a11y"] }) {
               buttonRef.current?.focus();
             }}
             aria-label={labels.close}
-            className="flex size-12 items-center justify-center rounded-xl border-2 border-ink"
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl border-2 border-ink"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <div role="radiogroup" aria-label={labels.textSize}>
+        <div role="radiogroup" aria-label={labels.textSize} className="shrink-0">
           <p className="mb-2 font-bold" aria-hidden="true">
             {labels.textSize}
           </p>

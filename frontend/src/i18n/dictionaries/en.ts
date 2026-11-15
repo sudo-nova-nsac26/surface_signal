@@ -336,7 +336,7 @@ const en: Dictionary = {
     },
   },
   region: {
-    title: "What we have for this region",
+    title: "From technical data (HDF5) to plain language",
     loading: "Loading data…",
     error: "We could not load the data right now.",
     retry: "Try again",
@@ -363,7 +363,7 @@ const en: Dictionary = {
     map: "Map",
     how: "How it works",
     layers: "Layers",
-    region: "Region",
+    region: "HDF5 Data",
     data: "Data",
     faq: "Questions",
     help: "If there is a flood",
@@ -377,7 +377,7 @@ const en: Dictionary = {
   },
   sources: {
     title: "Where the data comes from",
-    lead: "Everything here comes from public sources. Nothing is made up: what is still an example is labelled.",
+    lead: "Everything shown here comes from public, official sources crossed on the same time and space grid.",
     items: [
       {
         name: "NISAR satellite",

@@ -339,7 +339,7 @@ const pt = {
     },
   },
   region: {
-    title: "O que temos para esta região",
+    title: "Dos dados técnicos (HDF5) à linguagem simples",
     loading: "Carregando os dados…",
     error: "Não conseguimos carregar os dados agora.",
     retry: "Tentar de novo",
@@ -366,7 +366,7 @@ const pt = {
     map: "Mapa",
     how: "Como funciona",
     layers: "Camadas",
-    region: "Região",
+    region: "Dados HDF5",
     data: "Dados",
     faq: "Dúvidas",
     help: "Em caso de cheia",
@@ -380,7 +380,7 @@ const pt = {
   },
   sources: {
     title: "De onde vêm os dados",
-    lead: "Tudo o que aparece aqui vem de fontes públicas. Nada é inventado: o que ainda é exemplo fica marcado.",
+    lead: "Tudo o que aparece aqui vem de fontes públicas e oficiais, cruzadas na mesma grade de tempo e espaço.",
     items: [
       {
         name: "Satélite NISAR",

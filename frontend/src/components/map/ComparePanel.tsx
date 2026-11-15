@@ -6,6 +6,7 @@ import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { usePreferences } from "@/preferences/store";
+import { SpeakButton } from "../ui/SpeakButton";
 import { makeFormat } from "./ComparisonInfo";
 import { CHANGE_COLORS, COLORBLIND_CHANGE_COLORS, type ChangeLayers } from "./MapView";
 
@@ -133,12 +134,33 @@ export function ComparePanel({
   const rain3dAfter = rainView?.windows.find((win) => win.key === "3d")?.afterMm ?? null;
   const rain3dBefore = rainView?.windows.find((win) => win.key === "3d")?.beforeMm ?? null;
   const topMunis = crossings?.municipalitiesInCandidates ?? [];
+  const spokenSummary = [
+    stop?.title,
+    ...summary,
+    stop?.body,
+    rain3dAfter !== null
+      ? `${lang === "pt" ? "Chuva em 3 dias:" : "Rain in 3 days:"} ${number(rain3dAfter, 1)} mm`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   return (
     <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
       {/* Plain words first. */}
       <div className="rounded-2xl border border-line bg-surface p-3 hc:border-ink">
-        {stop && <h3 className="text-base font-bold text-brand-text">{stop.title}</h3>}
+        <div className="flex items-start justify-between gap-2">
+          {stop ? (
+            <h3 className="text-base font-bold text-brand-text">{stop.title}</h3>
+          ) : (
+            <span />
+          )}
+          <SpeakButton
+            text={spokenSummary}
+            lang={lang}
+            label={lang === "pt" ? "Ouvir" : "Listen"}
+          />
+        </div>
         <div aria-live="polite" className="mt-1 flex flex-col gap-1.5 text-base leading-snug">
           {summary.map((line) => (
             <p key={line}>{line}</p>
