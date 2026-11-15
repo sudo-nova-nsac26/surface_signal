@@ -6,7 +6,7 @@ const en: Dictionary = {
   meta: {
     title: "SurfaceSignal — what the satellite saw on the Taquari River",
     description:
-      "See, in plain colors, what a NASA radar observed in Lajeado and Estrela, Brazil, during the July 2026 flood. Built for anyone to understand.",
+      "Explore NISAR radar observations and possible surface changes in Brazil's Taquari Valley. Exploratory results, not a verified flood map.",
   },
   skipToContent: "Skip to content",
   brand: {
@@ -50,15 +50,15 @@ const en: Dictionary = {
     close: "Close settings",
   },
   hero: {
-    eyebrow: "Taquari Valley, Brazil · July 2026 flood",
-    title: "The Taquari flood, seen from space",
-    titleLines: ["The Taquari flood,", "seen from space."],
-    lead: "A radar in space sees through clouds and in the dark. We turn what it sees into simple pictures: we compare Lajeado and its region before and after the flood to show how far the water reached and its many impacts and changes on the planet.",
+    eyebrow: "Taquari Valley, Brazil · 2026 radar observations",
+    title: "The Taquari Valley, seen by radar",
+    titleLines: ["The Taquari Valley,", "seen by radar."],
+    lead: "Satellite radar can observe through clouds and at night. Compare NISAR passes over Lajeado and nearby areas to explore changes in the radar signal and their environmental context. Candidate changes are not confirmed flooded areas or impacts.",
     start: "Start",
     startHint: "Takes about 2 minutes",
     facts: [
       { label: "Where", value: "Lajeado and region" },
-      { label: "What we compare", value: "before × after the flood" },
+      { label: "What we compare", value: "two radar acquisition dates" },
       { label: "Back over the same place", value: "every 12 days" },
     ],
   },
@@ -96,12 +96,12 @@ const en: Dictionary = {
       },
       {
         title: "We compare two dates",
-        body: "We put side by side what the radar saw before the flood (July 11) and during it (July 23).",
+        body: "We compare radar observations from July 11 and July 23, around a documented river event.",
         detail: "We only compare passes of the same kind: same path, same side and same time of day. Drag the line to see the difference.",
       },
       {
         title: "We show what changed",
-        body: "We paint on the map the places where the surface changed: water in the streets, houses hit, a damaged bridge, ground that slid and crops covered.",
+        body: "We map differences in radar backscatter and examine possible open-water candidates alongside environmental context. This does not identify damaged buildings, flooded streets or landslides.",
         detail: "On the globe, each kind of change becomes a layer you switch on and off. A patch is a clue to what the satellite saw, not a confirmation: in an emergency, follow Civil Defense.",
       },
     ],
@@ -116,12 +116,12 @@ const en: Dictionary = {
     },
     water: {
       name: "Water and floods",
-      body: "Where the Taquari River went beyond its normal banks and where new water sheets appeared across floodplains and low ground.",
-      today: "On the map today: Before vs. After patches (NISAR GCOV), crossed with 40-year water history (JRC), daily rainfall (CHIRPS), river level (SGB) and municipal boundaries (IBGE).",
+      body: "Areas with radar decreases that meet an exploratory open-water heuristic, not a verified flood extent.",
+      today: "On the map today: Before vs. After patches (NISAR GCOV), crossed with 40-year water history (JRC), daily rainfall (CHIRPS), dated qualitative river bulletin (SGB) and municipal boundaries (IBGE).",
     },
     vegetation: {
       name: "Plants and crops",
-      body: "Where agricultural or forest cover changed its radar behavior after extreme rain across the valley.",
+      body: "Where radar response changed in areas classified as crops or vegetation by historical land-cover data; cause is not established.",
       today: "On the map today: automatic crossing with land cover (ESA WorldCover 10 m — 34.2% of patches on cropland and 30.5% on riparian trees) plus radar echo increase or drop.",
     },
     slopes: {
@@ -140,24 +140,24 @@ const en: Dictionary = {
           body: "Interactive inspection across squares Q1 to Q6 with real satellite imagery, 3-day rainfall (CHIRPS), river bulletin (SGB), elevation/slope (Copernicus 30 m) and slope texture.",
         },
         {
-          tag: "2 · Live Hydrological Integration",
+          tag: "2 · Planned hydrological integration",
           title: "Real-time Taquari River level",
           body: "Connect the map to real-time telemetric river gauges (SGB/ANA and existing regional monitoring projects in the Taquari Valley), tracking rising water hour by hour alongside satellite patches.",
         },
         {
           tag: "3 · Next Radar Leap (NISAR GUNW)",
           title: "Landslides and millimeter-scale slope movement",
-          body: "Today the GCOV product shows where hillslope surface texture changed. With interferometric phase (NISAR L2 GUNW), we will measure millimeter-scale ground displacement to warn of hillside risks.",
+          body: "GCOV highlights possible radar-response changes, not slope movement. Future interferometric research would require suitable products, calibration and independent validation before any displacement or risk claim.",
         },
         {
           tag: "4 · Civil Defense & Citizen Support",
           title: "Critical infrastructure and elevation-safe routes",
-          body: "Automatically cross flood stage and 30 m elevation relief with hospitals, schools, bridges (such as BR-386) and safe evacuation routes over higher ground.",
+          body: "Research how verified hazard maps could be combined with critical infrastructure information; do not generate evacuation routes or safety decisions without official validation.",
         },
         {
           tag: "5 · Multi-Sensor Fusion",
           title: "Radar + High-Resolution Optical Before/After Photos",
-          body: "Combine radar (which sees through clouds during the storm) with optical imagery (Sentinel-2 / Planet) as soon as skies clear, visually confirming every inspection square.",
+          body: "Evaluate appropriately licensed optical reference imagery when available, with temporal alignment and uncertainty checks; visual agreement alone would not confirm every candidate.",
         },
         {
           tag: "6 · National & Global Scale (12 days)",
@@ -300,15 +300,15 @@ const en: Dictionary = {
     },
     featured: {
       before: {
-        title: "Before the flood",
-        body: "Two passes before the flood. A reference: the radar saw few changes.",
+        title: "Before the July event",
+        body: "An earlier comparison that provides context for the July observations.",
       },
       flood: {
-        title: "During the flood",
-        body: "The July 23 pass, a few hours after the bulletin that put the river above flood level.",
+        title: "July event context",
+        body: "The July 23 radar pass near a dated SGB river bulletin; radar candidates are not a confirmed flood map.",
       },
       after: {
-        title: "After the flood",
+        title: "Later comparison",
         body: "Compares the July 23 pass with the August 16 pass, the next one of the same kind.",
       },
       increase: {
@@ -448,7 +448,7 @@ const en: Dictionary = {
     whatsapp: "Send on WhatsApp",
     copy: "Copy link",
     copied: "Link copied",
-    shareText: "See what the NISAR satellite saw during the Taquari River flood in Lajeado and Estrela, explained in plain words:",
+    shareText: "Explore NISAR radar changes in Lajeado and Estrela, with source context and scientific limitations:",
     newTab: "opens in a new tab",
   },
   footer: {

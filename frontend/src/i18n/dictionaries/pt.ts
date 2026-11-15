@@ -9,7 +9,7 @@ const pt = {
   meta: {
     title: "SurfaceSignal — o que o satélite viu no Rio Taquari",
     description:
-      "Veja em cores simples o que um radar da NASA observou em Lajeado e Estrela na cheia de julho de 2026. Feito para qualquer pessoa entender.",
+      "Explore observações do radar NISAR e possíveis mudanças na superfície do Vale do Taquari. Resultados exploratórios, não um mapa de inundação validado.",
   },
   skipToContent: "Pular para o conteúdo",
   brand: {
@@ -53,15 +53,15 @@ const pt = {
     close: "Fechar ajustes",
   },
   hero: {
-    eyebrow: "Vale do Taquari, RS · Cheia de julho de 2026",
-    title: "A cheia do Taquari, vista do espaço",
-    titleLines: ["A cheia do Taquari,", "vista do espaço."],
-    lead: "Um radar no espaço enxerga através das nuvens e no escuro. Transformamos o que ele vê em imagens simples: comparamos Lajeado e região antes e depois da cheia para mostrar até onde a água chegou e seus diversos impactos e mudanças no planeta.",
+    eyebrow: "Vale do Taquari, RS · Observações de radar em 2026",
+    title: "O Vale do Taquari, visto por radar",
+    titleLines: ["O Vale do Taquari,", "visto por radar."],
+    lead: "O radar de satélite observa através das nuvens e à noite. Compare passagens do NISAR em Lajeado e região para explorar mudanças no sinal de radar e seu contexto ambiental. As manchas não confirmam áreas inundadas nem impactos.",
     start: "Começar",
     startHint: "Leva cerca de 2 minutos",
     facts: [
       { label: "Onde", value: "Lajeado e região" },
-      { label: "O que comparamos", value: "antes × depois da cheia" },
+      { label: "O que comparamos", value: "duas datas de aquisição" },
       { label: "Volta ao mesmo lugar", value: "a cada 12 dias" },
     ],
   },
@@ -99,12 +99,12 @@ const pt = {
       },
       {
         title: "Comparamos duas datas",
-        body: "Colocamos lado a lado o que o radar viu antes da cheia (11 de julho) e durante (23 de julho).",
+        body: "Comparamos observações de radar de 11 e 23 de julho, próximas a um evento documentado no rio.",
         detail: "Só comparamos passagens do mesmo tipo: mesmo caminho, mesmo lado e mesmo horário. Arraste a linha para ver a diferença.",
       },
       {
         title: "Mostramos o que mudou",
-        body: "Pintamos no mapa os lugares onde a superfície mudou: água nas ruas, casas atingidas, ponte danificada, terra que deslizou e lavouras cobertas.",
+        body: "Mapeamos diferenças no retorno do radar e examinamos possíveis candidatos a água aberta com dados ambientais. Isso não identifica casas danificadas, ruas alagadas nem deslizamentos.",
         detail: "No globo, cada tipo de mudança vira uma camada que você liga e desliga. Uma mancha é uma pista do que o satélite viu, não uma confirmação: em emergências, siga a Defesa Civil.",
       },
     ],
@@ -119,12 +119,12 @@ const pt = {
     },
     water: {
       name: "Água e cheias",
-      body: "Onde o Rio Taquari passou da margem normal e onde surgiram lâminas d'água sobre várzeas e áreas baixas.",
-      today: "Hoje no mapa: manchas Antes x Depois (NISAR GCOV), cruzadas com histórico de 40 anos de água (JRC), chuva diária (CHIRPS), nível do rio (SGB) e limites municipais (IBGE).",
+      body: "Áreas com redução do retorno do radar que atendem a uma hipótese exploratória de água aberta, sem delimitação de cheia validada.",
+      today: "Hoje no mapa: manchas Antes x Depois (NISAR GCOV), cruzadas com histórico de 40 anos de água (JRC), chuva diária (CHIRPS), boletim qualitativo e datado do rio (SGB) e limites municipais (IBGE).",
     },
     vegetation: {
       name: "Plantas e lavouras",
-      body: "Onde a cobertura agrícola ou florestal mudou de comportamento no radar após a chuva extrema no vale.",
+      body: "Onde o retorno do radar mudou em áreas classificadas historicamente como lavouras ou vegetação; a causa ainda não foi demonstrada.",
       today: "Hoje no mapa: cruzamento automático com uso do solo (ESA WorldCover 10 m — 34,2% das manchas em lavouras e 30,5% em mata ciliar) e aumento ou queda do eco do radar.",
     },
     slopes: {
@@ -143,24 +143,24 @@ const pt = {
           body: "Inspeção interativa nos quadradinhos Q1 a Q6 com imagem real de satélite, chuva de 3 dias (CHIRPS), boletim do rio (SGB), altitude/inclinação (Copernicus 30 m) e textura em encostas.",
         },
         {
-          tag: "2 · Integração Hidrológica ao Vivo",
+          tag: "2 · Integração hidrológica planejada",
           title: "Nível do Rio Taquari em tempo real",
           body: "Conectar o mapa às réguas telemétricas em tempo real (SGB/ANA e projetos já desenvolvidos na região do Vale do Taquari), acompanhando a subida da água hora a hora junto às manchas do satélite.",
         },
         {
           tag: "3 · Próximo Salto de Radar (NISAR GUNW)",
           title: "Deslizamentos e movimento milimétrico de encostas",
-          body: "Hoje o produto GCOV mostra onde a superfície da encosta mudou de textura. Com a fase interferométrica (NISAR L2 GUNW), mediremos deslocamentos milimétricos do solo para alertar riscos em morros.",
+          body: "O GCOV destaca possíveis mudanças no sinal, mas não mede deslocamento de encostas. Pesquisas futuras com interferometria exigem produtos compatíveis, calibração e validação independente antes de qualquer conclusão de risco.",
         },
         {
           tag: "4 · Apoio à Defesa Civil e Cidadãos",
           title: "Infraestrutura crítica e rotas seguras por altitude",
-          body: "Cruzar automaticamente a cota de inundação e o relevo de 30 m com hospitais, escolas, pontes (como a BR-386) e rotas de saída seguras em terrenos mais altos.",
+          body: "Estudar como mapas de perigo validados poderiam ser relacionados à infraestrutura crítica; não indicar rotas de evacuação ou decisões de segurança sem validação oficial.",
         },
         {
           tag: "5 · Fusão de Sensores",
           title: "Radar + Fotos Ópticas de Alta Resolução Antes/Depois",
-          body: "Combinar o radar (que enxerga através das nuvens durante a tempestade) com imagens ópticas (Sentinel-2 / Planet) assim que o céu abre, confirmando visualmente cada quadradinho.",
+          body: "Avaliar imagens ópticas de referência com licença apropriada, alinhamento temporal e incertezas explícitas; concordância visual não confirma todos os candidatos.",
         },
         {
           tag: "6 · Escala Nacional e Global (12 dias)",
@@ -303,15 +303,15 @@ const pt = {
     },
     featured: {
       before: {
-        title: "Antes da cheia",
-        body: "Duas passagens antes da cheia. Serve de referência: o radar viu poucas mudanças.",
+        title: "Antes do evento de julho",
+        body: "Comparação anterior que oferece contexto para as observações de julho.",
       },
       flood: {
-        title: "Durante a cheia",
-        body: "A passagem de 23 de julho, poucas horas depois do boletim que indicava o rio acima da cota de inundação.",
+        title: "Contexto do evento de julho",
+        body: "Passagem de radar de 23 de julho próxima a um boletim datado do SGB; os candidatos não são um mapa de cheia confirmado.",
       },
       after: {
-        title: "Depois da cheia",
+        title: "Comparação posterior",
         body: "Compara a passagem de 23 de julho com a de 16 de agosto, a seguinte do mesmo tipo.",
       },
       increase: {
@@ -451,7 +451,7 @@ const pt = {
     whatsapp: "Enviar no WhatsApp",
     copy: "Copiar link",
     copied: "Link copiado",
-    shareText: "Veja o que o satélite NISAR viu na cheia do Rio Taquari, em Lajeado e Estrela, explicado em palavras simples:",
+    shareText: "Explore mudanças no radar NISAR em Lajeado e Estrela, com fontes e limitações científicas:",
     newTab: "abre em outra aba",
   },
   footer: {
