@@ -164,3 +164,12 @@ The small generated report in `tests/fixtures/` is synthetic and used only for t
 sources still require operator imports and product terms. See `environmental-data-integration.md`.
 
 Environmental events also decorate the existing timeline with distinct station/reference symbols and rainfall bands. Visual groups use UTC day/category; individual records stay in the panel. `environmentalMarkers` does not mutate events or comparison steps.
+
+## Public static revision — 2026-11-15
+
+The current handoff is `frontend-environmental-handoff.md`. The default data root is
+`/data/compact/api/v1`; all published comparisons are bundled. Full data is optional,
+installed under `/data/api/v1` and selected via `NEXT_PUBLIC_STATIC_SNAPSHOT=full`.
+Next now exports to `out/`, has local fonts and a static language entry. Proxy is
+removed. `npm start` previews `out/` without a Next/Python server. Cloudflare Pages
+is the publication target; no production deployment was performed in this change.

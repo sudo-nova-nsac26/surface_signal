@@ -69,7 +69,7 @@ If CSS looks stale after edits, restart `npm run dev` (Turbopack caches it).
 ## Architecture
 
 ```text
-src/app/[lang]/        pages per language (/pt, /en); "/" redirects via src/proxy.ts
+src/app/[lang]/        pages per language (/pt, /en); "/" uses a static browser-language entry page
 src/i18n/              dictionaries; pt.ts defines the shape, en.ts must match
 src/preferences/       text size, contrast, motion (3 levels); boot script runs before first paint
 src/data/              THE data layer
@@ -78,7 +78,7 @@ src/data/              THE data layer
   region.ts            backend records -> what the UI says (region state, timeline)
   area-labels.ts       everyday names for backend area ids
 src/components/map/    the map (see below)
-public/data/api/v1/    static snapshot of API responses (real AOI + real 19-scene catalog + 1 synthetic sample)
+public/data/compact/api/v1/ versioned compact real snapshot; public/data/api/v1/ optional installed full snapshot
 public/data/boundaries IBGE / Natural Earth outlines (credits in its README)
 ```
 
@@ -266,3 +266,31 @@ no raw environmental raster goes to the browser. See `docs/environmental-data-in
 for accepted formats, local package and tested versus outstanding real-data requirements.
 
 Environmental timeline markers are now wired: separate station/reference symbols and rainfall windows, grouped by UTC day/category with full individual observations retained in the panel. Ten frontend data/presentation tests cover this integration.
+
+
+## Public data and static delivery revision — 2026-11-15
+
+`feature/public-data-static-delivery` supersedes mandatory Earthdata/GEE/ANA assumptions:
+public mode is Next.js static export (`frontend/out`), no Python server/credentials.
+The frontend defaults to the versioned compact real snapshot with all published
+comparisons. Optional installed full snapshot uses `NEXT_PUBLIC_STATIC_SNAPSHOT=full`;
+`NEXT_PUBLIC_API_BASE_URL` still selects local API. Root language selection is static
+with browser selection and visible links; `src/proxy.ts` was removed. Build uses local
+fonts and rejects Pages files over25 MiB. It never downloads scientific source data.
+
+New additive CLI: `sources check|fetch`, `publish compact|full`, `data fetch-snapshot`;
+`context build --area` defaults to all real analyses; older commands remain valid.
+Public sources are acquired only offline with explicit budgets and product provenance.
+CHIRPS daily date labels do not establish exact acquisition-hour rainfall windows.
+Optional authenticated integrations remain available, but cannot block public mode.
+
+Keep compact visualization geometry optimization and hashes separate from original
+scientific statistics/artifacts. Full distributions are deterministic tar.gz packages
+with manifests and bounded anonymous hash/path-verified installation. Release URLs stay
+unconfigured until the owner authorizes publication; no build depends on a future release.
+The read-only API can serve a verified installed/bundled snapshot when scientific
+artifacts are absent. No HDF5 is needed to inspect published results.
+
+See docs/public-source-evidence.md, docs/snapshot-delivery.md,
+docs/cloudflare-pages.md and docs/frontend-environmental-handoff.md for the current
+contracts, commands, live evidence, actual source gaps and publication procedure.
