@@ -56,3 +56,16 @@ Empty overview states: `no_observations`, `no_compatible_pairs`, `not_processed`
 `partially_available`, `available`. Corrupt prepared stores return sanitized 503; unknown
 resources/artifacts 404; invalid language/date/order/pagination 422; unsupported writes 405.
 CORS preflight from disallowed origins/methods returns 400. `/health` checks the service only.
+
+## Local analysis and preparation extension — 2026-11-15
+
+Additive GET routes: `/api/v1/areas/{area_id}/local-analysis?lang=pt|en` and
+`/api/v1/areas/{area_id}/preparation?audience=residents|municipal&lang=pt|en`.
+Defaults are `pt`/`residents`; responses use `LocalReport`/`PreparationPlan` schemas
+in OpenAPI. They read a verified offline `preparation build`; no generation or
+network/raster access occurs in HTTP. Known but unprepared areas return 404 with
+`error.code=preparation_not_prepared`; unknown areas return ordinary 404; corrupt
+or stale builds return sanitized 503; invalid language/audience returns 422.
+Plans are proposed, require human review, and do not confirm environmental impact.
+Optional context is explicitly unavailable when absent. See
+[local analysis and preparation](local-analysis-preparation.md).

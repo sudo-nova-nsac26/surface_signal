@@ -207,3 +207,18 @@ The 19-scene/17-comparison local run is technical evidence, not scientific valid
 The full vector snapshot is distributed outside Git; preserve the isolated synthetic demo.
 Read docs/backend-mvp.md and docs/static-publication.md for handoff. Existing frontend visual
 components remain unchanged; general-layer rendering is a separate frontend integration task.
+
+## Backend local analysis and preparation — 2026-11-15
+
+Backend-only feature branch `feature/local-analysis-preparation-plans` adds offline
+`preparation build|verify`, immutable `data/preparation/<area>/<report>/` outputs,
+PT/EN local evidence and proposed plans for residents/municipal teams, two additive
+GET routes and opt-in `publish build --include-preparation`. No frontend changes.
+Real data is the default; `--illustrative` selects synthetic analyses only. Local
+GeoJSON context is optional and requires provenance. Without it, report unavailable
+context and generic sourced guidance; never invent named facilities or affected people.
+Negative intersections stay unknown because no valid-coverage vector footprint is
+available. Plans require human review and do not establish current conditions,
+confirmed impacts, prediction or official instructions. Keep all writers serial,
+old reports immutable and original artifacts unchanged. Read
+`docs/local-analysis-preparation.md` for budgets, source review and handoff.

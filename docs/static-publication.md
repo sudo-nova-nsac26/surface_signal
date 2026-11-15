@@ -54,3 +54,15 @@ its large vectors to Git. On another computer install the bundle at `frontend/pu
 before building Next.js, or set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for API mode.
 No variable means static mode. The full static bundle works without Python running.
 See `backend-mvp.md` for the measured package size and local delivery location.
+
+## Optional preparation reports — 2026-11-15
+
+After an offline `preparation build`, `publish build --include-preparation` exports
+`areas/{id}/local-analysis.{lang}.json`,
+`areas/{id}/preparation.{audience}.{lang}.json` and `preparation-manifest.json`.
+The manifest remains under the same `areas/{id}/` prefix. Audience defaults to
+`residents`, language to `pt`. Existing default exports are unchanged. Exact selected
+analysis IDs must match; real-only exports reject illustrative preparation builds.
+All files participate in export identity, hashes and byte ceiling. Publication cannot
+replace its `data/preparation` inputs. No new snapshot is written to `frontend/` by
+this backend delivery. See [preparation operations](local-analysis-preparation.md).

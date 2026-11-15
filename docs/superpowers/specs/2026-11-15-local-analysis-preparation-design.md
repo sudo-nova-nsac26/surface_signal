@@ -1,6 +1,6 @@
 # Local analysis and preparation plans
 
-Date: 2026-11-15. Status: proposed design; implementation approval pending.
+Date: 2026-11-15. Status: approved by the owner on 2026-11-15; implementation in this branch.
 Branch: `feature/local-analysis-preparation-plans`, based on `develop`.
 
 ## Intent and agreed scope
