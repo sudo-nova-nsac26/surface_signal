@@ -8,10 +8,10 @@ import type { LngLat } from "@/data/region";
 import {
   BASEMAP_STYLE,
   TERRAIN_ATTRIBUTION,
-  TERRAIN_TILES,
   type ViewMode,
 } from "./camera";
 import type { MotionLevel } from "@/preferences/store";
+import { CLEAN_TERRAIN_TILES, registerCleanDem } from "./clean-dem";
 import type { Outline, Place } from "./places";
 
 export interface MapViewHandle {
@@ -57,6 +57,7 @@ export interface MapViewProps {
 
 // Copied from the installed package by scripts/copy-map-worker.mjs.
 setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
+registerCleanDem();
 
 const AREA_SOURCE = "analysed-area";
 const OUTLINE_SOURCE = "place-outline";
@@ -1002,7 +1003,7 @@ export default function MapView({
         recolourBasemap(map);
         map.addSource(TERRAIN_SOURCE, {
           type: "raster-dem",
-          tiles: [TERRAIN_TILES],
+          tiles: [CLEAN_TERRAIN_TILES],
           encoding: "terrarium",
           tileSize: 256,
           maxzoom: 14,
@@ -1010,7 +1011,7 @@ export default function MapView({
         });
         map.addSource(RELIEF_SOURCE, {
           type: "raster-dem",
-          tiles: [TERRAIN_TILES],
+          tiles: [CLEAN_TERRAIN_TILES],
           encoding: "terrarium",
           tileSize: 256,
           maxzoom: 14,

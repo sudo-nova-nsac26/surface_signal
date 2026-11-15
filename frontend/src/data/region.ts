@@ -266,16 +266,12 @@ export function buildStoryTimeline(timeline: ApiTimeline): TimelineView {
       summary: analysisId ? (c.summaries[analysisId] ?? null) : null,
     });
   }
-  // The passes of the groups the story uses, as dots on the track.
-  const groups = new Set(steps.map((step) => step.groupId));
-  const passes = timeline.groups
-    .filter((group) => groups.has(group.group_id))
-    .flatMap((group) =>
-      timeline.comparisons
-        .filter((c) => c.group_id === group.group_id)
-        .flatMap((c) => [c.before_time, c.after_time])
-        .map((at) => ({ at, groupId: group.group_id })),
-    );
+  // The passes of the comparisons the story shows, as dots on the ruler.
+  // Earlier or later passes cannot be reached, so they are not drawn.
+  const passes = steps.flatMap((step) => [
+    { at: step.beforeAt, groupId: step.groupId },
+    { at: step.afterAt, groupId: step.groupId },
+  ]);
   const uniquePasses = [...new Map(passes.map((p) => [p.at, p])).values()].sort(
     (a, b) => Date.parse(a.at) - Date.parse(b.at),
   );

@@ -114,6 +114,14 @@ export function MapStage({
     opacity: 1,
   });
   const mapHandle = useRef<MapViewHandle>(null);
+  // Tells the header (outside this component) when the map has the stage.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.stage = phase === "map" ? "map" : "intro";
+    return () => {
+      delete root.dataset.stage;
+    };
+  }, [phase]);
   // True while the camera runs a transition: navigation waits until it ends.
   const [busy, setBusy] = useState(false);
   const motion = useMotionLevel();

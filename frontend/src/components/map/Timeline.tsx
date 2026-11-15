@@ -231,7 +231,9 @@ export function Timeline({
               style={{ left: `${at(pass.at)}%` }}
             />
           ))}
-          {data.events.map((event) => (
+          {data.events
+            .filter((event) => at(event.at) >= 0 && at(event.at) <= 100)
+            .map((event) => (
             <span
               key={event.at + event.url}
               aria-hidden="true"

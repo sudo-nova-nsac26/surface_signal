@@ -160,10 +160,15 @@ const pt = {
       summaryNoWater: "Nenhum lugar com cara de água nova nesta comparação.",
       summaryMissing: "Esta comparação não tem números disponíveis.",
       cards: {
-        open_water: { title: "Possível água nova", body: "Parece água onde antes não havia" },
-        radar_decrease: { title: "Refletiu menos o radar", body: "Pode ser água, umidade ou plantas" },
-        radar_increase: { title: "Refletiu mais o radar", body: "Pode ser plantas, umidade ou mudança no chão" },
+        open_water: { title: "Água", note: "Possível água nova" },
+        radar_decrease: { title: "Ficou mais escuro", note: "Possível: água, umidade ou plantas" },
+        radar_increase: { title: "Ficou mais claro", note: "Possível: umidade, plantas ou água" },
       },
+      tapHint: "Toque nos cartões para ligar ou desligar cada camada.",
+      learnMore: "Saber mais",
+      learnMoreHint: "Explicação, outras camadas e detalhes",
+      close: "Fechar",
+      tabs: "Mais informações",
       understand: "Entender esta comparação",
       technical: "Detalhes técnicos",
       technicalNote:
@@ -187,7 +192,7 @@ const pt = {
         open_water: "Pode ser água aberta nova (hipótese)",
       },
       signalNote:
-        "Aumento e diminuição descrevem o sinal do radar. Sozinhos, não querem dizer melhora, piora ou dano.",
+        "Mais escuro e mais claro é como o radar do satélite mediu o chão: não é uma foto. Sozinhos, não querem dizer melhora, piora ou dano.",
       otherLayers: "Outras camadas",
       status: {
         available: "Disponível",

@@ -209,6 +209,22 @@ explanations. The full explanation, other layers and exact numbers/method sit in
 (4) The analysed area (dashed circle) **cannot be changed in the browser**: it is the backend's 5 km buffer and
 every result was computed inside it; a new area means new processing by the backend.
 
+Next owner round (2026-11-15, done): (1) the time ruler only draws the 7 passes of the 5 featured comparisons, so
+nothing before the first one (29 Jun) or after the last looks reachable. (2) **Layer cards in plain words**:
+"Água" (possível água nova), "Ficou mais escuro" and "Ficou mais claro" (the radar's measurement of the ground,
+"não é uma foto"), each with "Possível: ..." taken from the backend's own alternative explanations. We did NOT use
+"Terra molhada" or "Deslizamento" on purpose: the backend does not detect landslides (ground motion is
+unavailable) and a radar decrease/increase does not tell wet from dry, so those words would be invented. The
+cards have a sliding switch that pulses a few times plus the line "Toque nos cartões para ligar ou desligar".
+(3) The three collapsible sections became one "Saber mais" button that opens a dialog with three tabs
+(explanation, other layers, technical details). (4) The header (`.site-header-inner`) widens to the screen edges
+when the map has the stage (`html[data-stage="map"]`, set by MapStage). (5) **3D spike fixed**: the free elevation
+tiles have wrong points near the Taquari bridge (+257 m next to ~30 m ground at z10, -365 m at z11); tiles go
+through `clean-dem.ts` (MapLibre protocol `cleandem://`) which replaces points that differ from the median of
+their 5x5 neighbours by more than 120 m, only for zoom 10 to 13, up to 3 passes, and falls back to the original
+tile if anything fails. Testing note: a hidden Browser pane freezes map animations and transitions (the map
+looks stuck in its intro); show the pane (`show_pane` preview) before judging motion.
+
 ## Owner decisions on the map (2026-11-14, done)
 
 - Place tree is **World > Country > State > Region of the state**. No continent or

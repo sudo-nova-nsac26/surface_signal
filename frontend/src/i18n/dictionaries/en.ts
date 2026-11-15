@@ -157,10 +157,15 @@ const en: Dictionary = {
       summaryNoWater: "No place looks like new water in this comparison.",
       summaryMissing: "This comparison has no numbers available.",
       cards: {
-        open_water: { title: "Possible new water", body: "Looks like water where there was none" },
-        radar_decrease: { title: "Reflected less radar", body: "May be water, moisture or plants" },
-        radar_increase: { title: "Reflected more radar", body: "May be plants, moisture or a change on the ground" },
+        open_water: { title: "Water", note: "Possible new water" },
+        radar_decrease: { title: "Got darker", note: "Possible: water, moisture or plants" },
+        radar_increase: { title: "Got brighter", note: "Possible: moisture, plants or water" },
       },
+      tapHint: "Tap a card to turn each layer on or off.",
+      learnMore: "Learn more",
+      learnMoreHint: "Explanation, other layers and details",
+      close: "Close",
+      tabs: "More information",
       understand: "Understand this comparison",
       technical: "Technical details",
       technicalNote:
@@ -184,7 +189,7 @@ const en: Dictionary = {
         open_water: "May be new open water (a hypothesis)",
       },
       signalNote:
-        "Increase and decrease describe the radar signal. On their own they do not mean better, worse or damage.",
+        "Darker and brighter is how the satellite's radar measured the ground: it is not a photo. On their own they do not mean better, worse or damage.",
       otherLayers: "Other layers",
       status: {
         available: "Available",

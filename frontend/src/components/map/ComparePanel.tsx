@@ -1,6 +1,7 @@
 "use client";
 
-import type { ApiLayer } from "@/data/api-types";
+import { useId, useRef, useState } from "react";
+import type { ApiLayer, ApiStory } from "@/data/api-types";
 import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
@@ -9,6 +10,7 @@ import { CHANGE_COLORS, type ChangeLayers } from "./MapView";
 type Labels = Dictionary["map"]["compare"];
 type Featured = Dictionary["map"]["featured"];
 type MapLayerId = "radar_increase" | "radar_decrease" | "open_water";
+type Row = { label: string; value: string; extra?: string | null };
 
 // Water first: it is what people look for after a flood.
 const MAP_LAYERS: { id: MapLayerId; key: "increase" | "decrease" | "water" }[] = [
@@ -31,12 +33,205 @@ function pitches(km2: number) {
   return Math.round(n / 10) * 10;
 }
 
+/** A sliding switch that looks pressable; `pulse` blinks it a few times. */
+function Switch({ on, pulse }: { on: boolean; pulse?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-white/90 p-0.5 ${
+        on ? "justify-end bg-white/30" : "justify-start bg-black/30"
+      } ${pulse ? "hint-pulse" : ""}`}
+    >
+      <span className={`size-4 rounded-full ${on ? "bg-white" : "bg-white/70"}`} />
+    </span>
+  );
+}
+
 /**
- * What the chosen comparison shows, plain words first. A short summary turns
- * the backend numbers into everyday sizes; cards switch each kind of change on
- * the map; the full explanation, other layers and technical numbers wait
- * behind "open" sections. The browser computes no new result: only unit
- * conversions of backend numbers, and null stays "unavailable".
+ * The extra information, away from the main panel: the backend's full
+ * explanation, the other layers and the exact numbers. One button opens it.
+ */
+function LearnMore({
+  labels,
+  lang,
+  story,
+  others,
+  rows,
+  params,
+  number,
+}: {
+  labels: Labels;
+  lang: Locale;
+  story: ApiStory;
+  others: ApiLayer[];
+  rows: Row[];
+  params: Record<string, number> | undefined;
+  number: (value: number | null | undefined, digits?: number) => string;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [tab, setTab] = useState<"story" | "layers" | "tech">("story");
+  const uid = useId();
+  const tabs = [
+    { id: "story" as const, name: labels.understand },
+    { id: "layers" as const, name: labels.otherLayers },
+    { id: "tech" as const, name: labels.technical },
+  ];
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => dialog.current?.showModal()}
+        className="pressable flex min-h-14 w-full flex-col items-start justify-center rounded-xl border-2 border-line bg-surface px-3 py-2 text-left hover:border-brand hc:border-ink"
+      >
+        <span className="font-bold">{labels.learnMore}</span>
+        <span className="text-xs text-ink-soft">{labels.learnMoreHint}</span>
+      </button>
+
+      <dialog
+        ref={dialog}
+        aria-labelledby={`${uid}-title`}
+        onClick={(event) => {
+          if (event.target === dialog.current) dialog.current?.close();
+        }}
+        className="m-auto max-h-[85svh] w-[min(42rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl border border-line bg-bg-raised p-5 text-ink backdrop:bg-black/70 hc:border-2 hc:border-ink"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 id={`${uid}-title`} className="text-xl font-bold">
+            {story.title}
+          </h2>
+          <button type="button" onClick={() => dialog.current?.close()} className="tool-button shrink-0">
+            {labels.close}
+          </button>
+        </div>
+
+        <div role="tablist" aria-label={labels.tabs} className="mt-4 flex flex-wrap gap-2">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`${uid}-tab-${item.id}`}
+              aria-selected={tab === item.id}
+              aria-controls={`${uid}-panel`}
+              onClick={() => setTab(item.id)}
+              className={`min-h-11 rounded-full border-2 px-4 text-sm font-bold ${
+                tab === item.id
+                  ? "border-brand bg-brand text-brand-ink hc:border-highlight hc:bg-highlight hc:text-highlight-ink"
+                  : "border-line bg-surface hover:border-brand hc:border-ink"
+              }`}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
+
+        <div
+          role="tabpanel"
+          id={`${uid}-panel`}
+          aria-labelledby={`${uid}-tab-${tab}`}
+          className="mt-4 flex flex-col gap-3 text-base"
+        >
+          {tab === "story" && (
+            <>
+              <p className="font-bold">{story.summary}</p>
+              <p>
+                <strong>{labels.observation}: </strong>
+                {story.observation}
+              </p>
+              <p>
+                <strong>{labels.interpretation}: </strong>
+                {story.interpretation}
+                {story.water_interpretation ? ` ${story.water_interpretation}` : ""}
+              </p>
+              <div>
+                <strong>{labels.alternatives}</strong>
+                <ul className="list-disc pl-5">
+                  {story.alternative_explanations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <strong>{labels.limitations}</strong>
+                <ul className="list-disc pl-5">
+                  {story.limitations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <strong>{labels.sources}</strong>
+                <ul className="list-disc pl-5">
+                  {story.sources.map((url) => (
+                    <li key={url} className="break-all">
+                      <a href={url} target="_blank" rel="noreferrer" className="text-brand-text underline">
+                        {url.replace(/^https?:\/\//, "")}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {tab === "layers" && (
+            <ul className="flex flex-col gap-3">
+              {others.map((layer) => (
+                <li key={layer.layer_id}>
+                  <span className="font-bold">{layer.name[lang]}</span>
+                  {" · "}
+                  {labels.status[layer.status as keyof Labels["status"]] ?? layer.status}
+                  <span className="block text-sm text-ink-soft">{layer.limitations[lang]}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {tab === "tech" && (
+            <>
+              <p className="text-sm text-ink-soft">{labels.technicalNote}</p>
+              <dl className="flex flex-col gap-1.5">
+                {rows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-3 border-b border-line pb-1.5">
+                    <dt>{row.label}</dt>
+                    <dd className="text-right font-bold">
+                      {row.value}
+                      {row.extra && <span className="block text-xs font-normal text-ink-soft">{row.extra}</span>}
+                    </dd>
+                  </div>
+                ))}
+                {params?.threshold_db != null && (
+                  <div className="flex justify-between gap-3 border-b border-line pb-1.5">
+                    <dt>{labels.threshold}</dt>
+                    <dd className="font-bold">± {number(params.threshold_db, 1)} dB</dd>
+                  </div>
+                )}
+                {params?.min_component_pixels != null && (
+                  <div className="flex justify-between gap-3 border-b border-line pb-1.5">
+                    <dt>{labels.minGroup}</dt>
+                    <dd className="font-bold">
+                      {number(params.min_component_pixels, 0)} {labels.pixelsUnit}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <p className="text-sm text-ink-soft">{story.result}</p>
+              <p className="text-sm text-ink-soft">{labels.areaNote}</p>
+            </>
+          )}
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+/**
+ * What the chosen comparison shows, plain words first: a short summary built
+ * from the backend numbers, then one card per kind of change that you can turn
+ * on and off on the map. Everything else waits behind "Learn more". The
+ * browser computes no new result: only unit conversions of backend numbers,
+ * and null stays "unavailable".
  */
 export function ComparePanel({
   labels,
@@ -117,7 +312,7 @@ export function ComparePanel({
   }
   if (summary.length === 0) summary.push(labels.summaryMissing);
 
-  const rows: { label: string; value: string; extra?: string | null }[] = [
+  const rows: Row[] = [
     { label: labels.validArea, value: area(g?.valid_area_km2) },
     {
       label: labels.increase,
@@ -174,7 +369,12 @@ export function ComparePanel({
         </button>
       </div>
 
-      {/* One card per kind of change, like layers you pick. */}
+      <p className="flex items-center gap-2 text-sm font-bold text-highlight">
+        <span aria-hidden="true">☝</span>
+        {labels.tapHint}
+      </p>
+
+      {/* One card per kind of change; pressing it turns the layer on or off. */}
       <ul className="grid grid-cols-2 gap-2">
         {MAP_LAYERS.map(({ id, key }, i) => {
           const layer = layerById.get(id);
@@ -189,13 +389,13 @@ export function ComparePanel({
                 aria-checked={on}
                 disabled={!usable}
                 onClick={() => onChanges({ ...changes, [key]: !changes[key] })}
-                className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border-2 text-left transition-colors disabled:opacity-50 ${
-                  on ? "border-brand" : "border-line opacity-80 hover:border-ink-soft"
+                className={`pressable flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-2xl border-2 text-left disabled:opacity-50 ${
+                  on ? "border-brand" : "border-line hover:border-ink-soft"
                 } bg-surface hc:border-ink`}
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-12 items-center justify-between px-3 text-xl font-bold text-white"
+                  className="flex h-12 items-center justify-between gap-2 px-3 text-xl font-bold text-white"
                   style={{
                     background: on
                       ? `linear-gradient(135deg, ${CHANGE_COLORS[id]}, ${CHANGE_COLORS[id]}99)`
@@ -203,11 +403,14 @@ export function ComparePanel({
                   }}
                 >
                   {labels.symbols[id]}
-                  <span className="text-sm">{on ? labels.on : labels.off}</span>
+                  <span className="flex items-center gap-2 text-xs">
+                    {on ? labels.on : labels.off}
+                    <Switch on={on} pulse={usable} />
+                  </span>
                 </span>
                 <span className="flex flex-1 flex-col gap-0.5 p-2.5">
-                  <span className="font-bold leading-tight">{card.title}</span>
-                  <span className="text-xs leading-snug text-ink-soft">{card.body}</span>
+                  <span className="text-lg font-bold leading-tight">{card.title}</span>
+                  <span className="text-xs leading-snug text-ink-soft">{card.note}</span>
                   <span className="mt-auto pt-1 text-sm font-bold">{area(areaOf[id])}</span>
                 </span>
               </button>
@@ -219,104 +422,15 @@ export function ComparePanel({
         {labels.signalNote} {labels.showChangesHint}
       </p>
 
-      {/* The backend's full explanation, in the chosen language. */}
-      <details className="rounded-xl border border-line bg-surface px-3">
-        <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-brand-text">
-          {labels.understand}
-        </summary>
-        <div className="flex flex-col gap-2 pb-3 text-sm">
-          <p className="font-bold">{story.title}</p>
-          <p>{story.summary}</p>
-          <p>
-            <strong>{labels.observation}: </strong>
-            {story.observation}
-          </p>
-          <p>
-            <strong>{labels.interpretation}: </strong>
-            {story.interpretation}
-            {story.water_interpretation ? ` ${story.water_interpretation}` : ""}
-          </p>
-          <div>
-            <strong>{labels.alternatives}</strong>
-            <ul className="list-disc pl-5">
-              {story.alternative_explanations.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <strong>{labels.limitations}</strong>
-            <ul className="list-disc pl-5">
-              {story.limitations.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <strong>{labels.sources}</strong>
-            <ul className="list-disc pl-5">
-              {story.sources.map((url) => (
-                <li key={url} className="break-all">
-                  <a href={url} target="_blank" rel="noreferrer" className="text-brand-text underline">
-                    {url.replace(/^https?:\/\//, "")}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </details>
-
-      {others.length > 0 && (
-        <details className="rounded-xl border border-line bg-surface px-3">
-          <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">{labels.otherLayers}</summary>
-          <ul className="flex flex-col gap-2 pb-3 text-sm">
-            {others.map((layer) => (
-              <li key={layer.layer_id}>
-                <span className="font-bold">{layer.name[lang]}</span>
-                {" · "}
-                {labels.status[layer.status as keyof Labels["status"]] ?? layer.status}
-                <span className="block text-ink-soft">{layer.limitations[lang]}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
-      {/* Exact numbers and method, for whoever wants them. */}
-      <details className="rounded-xl border border-line bg-surface px-3">
-        <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">{labels.technical}</summary>
-        <div className="flex flex-col gap-2 pb-3 text-sm">
-          <p className="text-ink-soft">{labels.technicalNote}</p>
-          <dl className="flex flex-col gap-1">
-            {rows.map((row) => (
-              <div key={row.label} className="flex items-start justify-between gap-3 border-b border-line pb-1">
-                <dt>{row.label}</dt>
-                <dd className="text-right font-bold">
-                  {row.value}
-                  {row.extra && <span className="block text-xs font-normal text-ink-soft">{row.extra}</span>}
-                </dd>
-              </div>
-            ))}
-            {params?.threshold_db != null && (
-              <div className="flex justify-between gap-3 border-b border-line pb-1">
-                <dt>{labels.threshold}</dt>
-                <dd className="font-bold">± {number(params.threshold_db, 1)} dB</dd>
-              </div>
-            )}
-            {params?.min_component_pixels != null && (
-              <div className="flex justify-between gap-3 border-b border-line pb-1">
-                <dt>{labels.minGroup}</dt>
-                <dd className="font-bold">
-                  {number(params.min_component_pixels, 0)} {labels.pixelsUnit}
-                </dd>
-              </div>
-            )}
-          </dl>
-          <p className="text-ink-soft">{story.result}</p>
-          <p className="text-ink-soft">{labels.areaNote}</p>
-        </div>
-      </details>
+      <LearnMore
+        labels={labels}
+        lang={lang}
+        story={story}
+        others={others}
+        rows={rows}
+        params={params}
+        number={number}
+      />
     </div>
   );
 }
