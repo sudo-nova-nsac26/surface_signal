@@ -147,6 +147,6 @@ assets/                Sudo Nova and SurfaceSignal project logos
 
 **Arthur Henrique Fassina**, **Mateus Carniel Brambilla** and **Yuri Korolko** · [Team portfolio](https://sudonova.surfacesignal.earth) · [Project presentation](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) · [NASA Space Apps entry](https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project).
 
-Original SurfaceSignal code and original project documentation: **[Apache License 2.0](LICENSE)** (SPDX `Apache-2.0`). Third-party scientific data, map layers, software, fonts and visual assets **retain their own usage terms**, and are **not relicensed** by the project's code license. See [NOTICE](NOTICE) and [source attribution](docs/data-sources.md). Earlier prototyping and unresolved competitive eligibility questions are recorded in [provenance](docs/prototype-provenance.md); a code license does **not** certify competition eligibility.
+Original SurfaceSignal code and original project documentation: **[Apache License 2.0](LICENSE)** (SPDX `Apache-2.0`). Third-party scientific data, map layers, software, fonts and visual assets **retain their own usage terms**, and are **not relicensed** by the project's code license. See [NOTICE](NOTICE) and [source attribution](docs/data-sources.md). Software licenses and NASA Space Apps participation requirements are separate matters.
 
 <div align="center"><sub>Independent Sudo Nova project · Brazil · 2026 · Not affiliated with NASA or ISRO.</sub></div>

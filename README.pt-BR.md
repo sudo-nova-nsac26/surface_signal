@@ -143,6 +143,6 @@ O site oficial **[surfacesignal.earth](https://surfacesignal.earth)** estático 
 
 **Arthur Henrique Fassina**, **Mateus Carniel Brambilla** e **Yuri Korolko** · [Portfólio da equipe](https://sudonova.surfacesignal.earth) · [Apresentação](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) · [Inscrição oficial](https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project).
 
-Código e documentação originais do projeto sob **[Apache License 2.0](LICENSE)** (`Apache-2.0`). Dados científicos, imagens, mapas, bibliotecas, fontes tipográficas e materiais de terceiros conservam seus termos; consulte [NOTICE](NOTICE) e [fontes](docs/data-sources.md). Consulte [SECURITY.md](SECURITY.md) para vulnerabilidades. Trabalhos exploratórios anteriores e dúvidas de elegibilidade permanecem documentados em [proveniência](docs/prototype-provenance.md); não há declaração de autorização oficial.
+Código e documentação originais do projeto sob **[Apache License 2.0](LICENSE)** (`Apache-2.0`). Dados científicos, imagens, mapas, bibliotecas, fontes tipográficas e materiais de terceiros conservam seus termos; consulte [NOTICE](NOTICE) e [fontes](docs/data-sources.md). Consulte [SECURITY.md](SECURITY.md) para vulnerabilidades. Licenciar o código e atender às regras do NASA Space Apps Challenge são questões distintas.
 
 <div align="center"><sub>Projeto independente Sudo Nova · Brasil · 2026 · Sem vínculo oficial com NASA ou ISRO.</sub></div>
