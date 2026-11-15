@@ -82,7 +82,11 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   catch { throw new DataSourceError("Invalid prepared JSON", 503); }
 }
 
-/** Reads every page of a list route (the backend caps a page at 200 items). */
+/** Reads every page of a list route (the backend caps a page at 200 items).
+ * Future: use incremental pagination if a new region has thousands of acquisitions.
+ * Scientific areas and counts must come from server-side original statistics, never
+ * from simplified display GeoJSON.
+ */
 async function getAllPages<T>(
   path: string,
   query: Record<string, string>,
@@ -157,7 +161,7 @@ export function getArtifactJson<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Backend MVP resources. The static bundle stores language variants as
+// Prepared API resources. The static bundle stores language variants as
 // name.pt.json / name.en.json (docs/static-publication.md).
 
 function resource<T>(apiPath: string, staticPath: string, signal?: AbortSignal) {

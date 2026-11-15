@@ -1,3 +1,11 @@
+"""Offline SAR-analysis pipeline with atomic scientific artifacts.
+
+Heavy processing must never run in request handlers. Derived vector exports and
+previews are explanatory products: they do not independently identify flood damage.
+Future: attach field/independent-sensor validation as a separate, auditable stage,
+without rewriting historical manifests or treating heuristic scores as accuracy.
+"""
+
 import hashlib
 import importlib.metadata
 import json

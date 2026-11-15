@@ -1,3 +1,9 @@
+"""Compare compatible, masked GCOV radar power rasters on a metric grid.
+
+Outputs are exploratory signal measurements, not remotely validated flood extents.
+The caller is responsible for verifying scene compatibility and source quality.
+""" 
+
 import numpy as np
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
@@ -7,6 +13,7 @@ from surfacesignal.processing.gcov import Raster
 
 
 def power_db(power):
+    """Convert positive linear gamma0 power to dB; invalid cells remain NaN."""
     result = np.full(power.shape, np.nan, dtype="float32")
     valid = np.isfinite(power) & (power > 0)
     result[valid] = 10 * np.log10(power[valid])
@@ -22,6 +29,13 @@ def compare(
     min_component_pixels=9,
     edge_pixels=1,
 ):
+    """Align linear power, compute delta dB, and extract low-return candidates.
+
+    The negative delta and low after-power thresholds are uncalibrated heuristics.
+    A retained component is *not* a confirmed flood, damage or risk observation.
+    Future work: qualify the detector against time-matched independent reference
+    masks and document performance for each land-cover/acquisition regime.
+    """
     if not before.crs.is_projected or before.crs.linear_units != "metre":
         raise ValueError("Analysis grid must use a projected metre CRS")
     if not all(np.isfinite([delta_threshold, water_threshold])) or delta_threshold >= 0:
