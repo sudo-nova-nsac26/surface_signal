@@ -69,3 +69,12 @@ or stale builds return sanitized 503; invalid language/audience returns 422.
 Plans are proposed, require human review, and do not confirm environmental impact.
 Optional context is explicitly unavailable when absent. See
 [local analysis and preparation](local-analysis-preparation.md).
+
+## Environmental context extension — 2026-11-15
+
+Additive GET routes: `/analyses/{id}/environmental-context`, `/analyses/{id}/validation`,
+`/areas/{id}/environmental-events`, `/areas/{id}/reference-layers`, and `/context/sources`
+under `/api/v1`. Models are in OpenAPI. Events support inclusive UTC `start`/`end`
+calendar dates and offset/limit pagination. Context reads are local only: unprepared
+404 (`context_not_prepared`), corrupt stores 503, invalid filters 422. Nulls and
+per-record synthetic status are preserved. See [integration](environmental-data-integration.md).

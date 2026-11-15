@@ -247,3 +247,20 @@ available. Plans require human review and do not establish current conditions,
 confirmed impacts, prediction or official instructions. Keep all writers serial,
 old reports immutable and original artifacts unchanged. Read
 `docs/local-analysis-preparation.md` for budgets, source review and handoff.
+
+## Environmental context integration — 2026-11-15
+
+`feature/environmental-data-context` adds offline `context sources list|import|build|verify|discover`,
+immutable `data/context` snapshots, typed GET context/events/references/validation routes and
+opt-in `publish build --include-environmental-context`. Local numerical hydrology and documented
+IMERG interval series, MapBiomas/WorldCover/DSM crops and municipal GeoJSON require provenance,
+checksums, units, QA and explicit product redistribution permission. Historical context is not flood
+truth. Qualified reference imports use actual SAR validity coverage; discovery alone never validates.
+RCM/OPERA remote discovery remains blocked pending verified access; no new sensor processing.
+
+Frontend adds a cancellable PT/EN "Entenda esta mudança" panel tied to analysis IDs, separate
+environmental events, source inventory and optional bounded reference outlines. Source reads remain
+in `src/data/source.ts`; original camera/unfold and before/after behavior are preserved. Numerical
+absence stays null and synthetic data remains explicit. Reference V1 primarily uses statistics;
+no raw environmental raster goes to the browser. See `docs/environmental-data-integration.md`
+for accepted formats, local package and tested versus outstanding real-data requirements.

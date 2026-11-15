@@ -134,6 +134,9 @@ def create_app(settings=None):
 
     science_routes = router(repo)
     app.include_router(science_routes)
+    from surfacesignal.api.context_routes import context_router
+
+    app.include_router(context_router(settings))
 
     @app.get("/health", tags=["Health"], summary="Service health without raw data access")
     def health():

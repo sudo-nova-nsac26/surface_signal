@@ -1,0 +1,13 @@
+{
+  "description": "Example operator inventory, not automatic acquisition authorization. CLI uses explicit local files and per-product metadata.",
+  "remote_downloads_enabled": false,
+  "providers": [
+    {"source_id": "ana-hidroweb", "enabled": false},
+    {"source_id": "sgb-taquari", "enabled": false},
+    {"source_id": "gpm-imerg", "enabled": false},
+    {"source_id": "mapbiomas-water", "enabled": false},
+    {"source_id": "worldcover", "enabled": false},
+    {"source_id": "ibge", "enabled": false},
+    {"source_id": "copernicus-dem", "enabled": false}
+  ]
+}

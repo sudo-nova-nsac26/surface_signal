@@ -40,3 +40,13 @@ GCOV XML specification 1.6.0 was inspected for UTC timestamp encoding, HDF5 dime
 references and mask semantics (0 invalid contributors, 255 outside extent):
 https://github.com/isce-framework/nisarqa/blob/main/src/nisarqa/product_specs/1.6.0/nisar_L2_GCOV.xml.
 The reader serializes HDF references as dataset paths and normalizes the documented timezone-free UTC field.
+
+## Environmental adapters — 2026-11-15
+
+The additive `/api/v1/context/sources` inventory distinguishes import readiness,
+discovery and restricted access from sources actually used in a comparison.
+ANA/SGB local measurements, NASA GPM IMERG, MapBiomas Água, ESA WorldCover,
+IBGE and Copernicus DSM require product-specific provenance and terms at import.
+Sentinel/RCM metadata and EMS/OPERA references do not establish scene availability
+or independent truth. See [environmental integration](environmental-data-integration.md).
+The dated findings above remain historical records, not current adapter status.
