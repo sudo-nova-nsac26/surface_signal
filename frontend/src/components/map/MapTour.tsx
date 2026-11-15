@@ -107,8 +107,8 @@ const STEPS: TourStep[] = [
       en: "On the left you can jump directly to squares Q1 to Q6, enable 3D hill relief (Copernicus 30m), and open 'Understand this comparison', 'Other layers', and 'Technical details'.",
     },
     tip: {
-      pt: "Você pode reabrir este tour a qualquer momento clicando no botão '?' no topo do mapa.",
-      en: "You can reopen this tour anytime by clicking the '?' button at the top of the map.",
+      pt: "No topo direito você encontra o botão '♿ Acessibilidade' (letras grandes, alto contraste, modo daltônico, leitura espaçada e voz pausada) e o botão '?' para reabrir este tour.",
+      en: "At the top right you will find the '♿ Accessibility' button (large text, high contrast, colorblind mode, wider spacing, and slower voice) and the '?' button to reopen this tour.",
     },
     targetSelector: '[data-tour="left-panel"]',
     spotlightClass:

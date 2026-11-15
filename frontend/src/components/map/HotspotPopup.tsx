@@ -157,7 +157,7 @@ export function HotspotPopup({
 
       {/* Scrollable Body */}
       <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-3">
-        {/* Large Real Satellite Banner + Live Metrics Overlay */}
+        {/* Clean Real Satellite Banner + Live Metrics Overlay */}
         <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-2xl border border-slate-700/90 bg-slate-900 sm:h-36">
           <div className="grid h-full w-full grid-cols-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}

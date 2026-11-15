@@ -5,8 +5,9 @@ import { extractCandidateCrossings, extractDailyRainfallComparison } from "@/dat
 import type { ComparisonDetail, TimelineStep } from "@/data/region";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { usePreferences } from "@/preferences/store";
 import { makeFormat } from "./ComparisonInfo";
-import { CHANGE_COLORS, type ChangeLayers } from "./MapView";
+import { CHANGE_COLORS, COLORBLIND_CHANGE_COLORS, type ChangeLayers } from "./MapView";
 
 type Labels = Dictionary["map"]["compare"];
 type Featured = Dictionary["map"]["featured"];
@@ -77,6 +78,8 @@ export function ComparePanel({
   environmentalReport?: EnvironmentalContextReport | null;
 }) {
   const { number, area } = makeFormat(lang, labels);
+  const prefs = usePreferences();
+  const activeColors = prefs.colorblind ? COLORBLIND_CHANGE_COLORS : CHANGE_COLORS;
 
   if (status === "loading" && !detail) {
     return <p className="text-base text-ink-soft">{labels.loading}</p>;
@@ -215,7 +218,7 @@ export function ComparePanel({
                   className="flex h-12 items-center justify-between gap-2 px-3 text-xl font-bold text-white"
                   style={{
                     background: on
-                      ? `linear-gradient(135deg, ${CHANGE_COLORS[id]}, ${CHANGE_COLORS[id]}99)`
+                      ? `linear-gradient(135deg, ${activeColors[id]}, ${activeColors[id]}99)`
                       : "var(--line)",
                   }}
                 >

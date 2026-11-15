@@ -19,12 +19,21 @@ export interface Preferences {
    * even when the device asks for less (the visitor chose it here).
    */
   motion: "auto" | "reduce" | "full";
+  /** High-distinction palette for color-vision deficiency (protanopia/deuteranopia/tritanopia). */
+  colorblind?: boolean;
+  /** Wider letter, word, and line spacing for dyslexia and older adults. */
+  readingSpacing?: boolean;
+  /** Slower, calmer speech synthesis rate (0.76x) for older adults and easier listening. */
+  speechSlow?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
   contrast: "default",
   textSize: "md",
   motion: "auto",
+  colorblind: false,
+  readingSpacing: false,
+  speechSlow: false,
 };
 
 let current: Preferences | null = null;
@@ -45,6 +54,9 @@ function readStored(): Preferences {
         parsed.motion === "reduce" || parsed.motion === "full"
           ? parsed.motion
           : "auto",
+      colorblind: parsed.colorblind === true,
+      readingSpacing: parsed.readingSpacing === true,
+      speechSlow: parsed.speechSlow === true,
     };
   } catch {
     // Private windows or blocked storage: the page still works with defaults.
@@ -70,6 +82,12 @@ function applyToDocument(prefs: Preferences) {
   if (motionIsReduced(prefs, systemPrefersReducedMotion()))
     root.dataset.motion = "reduce";
   else delete root.dataset.motion;
+  if (prefs.colorblind) root.dataset.colorblind = "true";
+  else delete root.dataset.colorblind;
+  if (prefs.readingSpacing) root.dataset.spacing = "wide";
+  else delete root.dataset.spacing;
+  if (prefs.speechSlow) root.dataset.speech = "slow";
+  else delete root.dataset.speech;
 }
 
 function getSnapshot(): Preferences {

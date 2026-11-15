@@ -92,6 +92,11 @@ export const CHANGE_COLORS = {
   radar_decrease: "#0072B2",
   open_water: "#56B4E9",
 } as const;
+export const COLORBLIND_CHANGE_COLORS = {
+  radar_increase: "#FFD60A",
+  radar_decrease: "#A855F7",
+  open_water: "#00E5FF",
+} as const;
 const CHANGE_LAYER_IDS = ["increase-fill", "decrease-fill", "water-fill", "water-line"];
 
 // Little glints that run down the river, drawn by shifting a dash pattern.
@@ -325,6 +330,11 @@ function setChangeLayers(map: MapLibreMap, changes: ChangeLayers, visible: boole
       before,
     );
   }
+  const cb = typeof document !== "undefined" && document.documentElement.dataset.colorblind === "true";
+  const palette = cb ? COLORBLIND_CHANGE_COLORS : CHANGE_COLORS;
+  map.setPaintProperty("increase-fill", "fill-color", palette.radar_increase);
+  map.setPaintProperty("decrease-fill", "fill-color", palette.radar_decrease);
+  map.setPaintProperty("water-fill", "fill-color", palette.open_water);
   map.setPaintProperty("increase-fill", "fill-opacity", 0.75 * changes.opacity);
   map.setPaintProperty("decrease-fill", "fill-opacity", 0.75 * changes.opacity);
   map.setPaintProperty("water-fill", "fill-opacity", 0.9 * changes.opacity);

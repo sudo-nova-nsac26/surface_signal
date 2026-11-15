@@ -69,7 +69,7 @@ export function SpeakButton({
     pieces.forEach((piece, index) => {
       const utterance = new SpeechSynthesisUtterance(piece.trim());
       utterance.lang = langTag;
-      utterance.rate = 0.96;
+      utterance.rate = document.documentElement.dataset.speech === "slow" ? 0.76 : 0.96;
       if (voice) utterance.voice = voice;
       if (index === pieces.length - 1) utterance.onend = () => setSpeaking(false);
       utterance.onerror = () => setSpeaking(false);
