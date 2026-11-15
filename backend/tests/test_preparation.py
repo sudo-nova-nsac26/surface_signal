@@ -258,3 +258,58 @@ def test_derivative_budget_checked_before_reading_or_hashing(prepared, monkeypat
     with pytest.raises(ValueError, match="budget"):
         engine.inputs(repo, "test", Budgets(max_input_bytes=50_000), illustrative=True)
     monkeypatch.setattr(engine, "load_derived", original)
+
+
+def test_original_budget_checked_before_full_verification(prepared, monkeypatch):
+    from surfacesignal.preparation import engine
+
+    repo = setup(prepared)
+    path = prepared[-1] / "artifacts" / prepared[0].analysis_id / "change-candidates.geojson"
+    path.write_bytes(b"x" * 50_001)
+
+    def should_not_verify(*args, **kwargs):
+        raise AssertionError("Input budget must precede full verification")
+
+    monkeypatch.setattr(engine, "verify_artifacts", should_not_verify)
+    with pytest.raises(ValueError, match="budget"):
+        engine.inputs(repo, "test", Budgets(max_input_bytes=50_000), illustrative=True, full=True)
+
+
+def test_warm_read_rejects_area_change_with_same_timestamp_and_size(prepared):
+    import os
+
+    from surfacesignal.preparation.store import build_preparation, load_preparation
+
+    repo = setup(prepared)
+    build_preparation(repo.settings, "test", illustrative=True)
+    assert (
+        load_preparation(repo.settings, "test")["payloads"]["local-analysis.en.json"]["area_name"]
+        == "Synthetic test AOI"
+    )
+    path = prepared[-1] / "config/areas/test.geojson"
+    original = path.stat()
+    contents = path.read_text().replace("Synthetic test AOI", "Different test AOI")
+    path.write_text(contents)
+    os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+    assert path.stat().st_size == original.st_size
+    with pytest.raises(ValueError, match="invalid"):
+        load_preparation(repo.settings, "test")
+
+
+def test_warm_read_rechecks_excluded_manifest_bytes(prepared):
+    import os
+
+    from surfacesignal.preparation.store import build_preparation, load_preparation
+
+    repo = setup(prepared)
+    # Real-only report excludes this fixture, but still must not trust stale metadata.
+    build_preparation(repo.settings, "test")
+    repo.analysis(prepared[0].analysis_id)
+    path = prepared[-1] / "artifacts" / prepared[0].analysis_id / "manifest.json"
+    original = path.stat()
+    text = path.read_text().replace('"synthetic": true', '"synthetic": null', 1)
+    assert len(text.encode()) == original.st_size
+    path.write_text(text)
+    os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+    with pytest.raises(ValueError):
+        load_preparation(repo.settings, "test")

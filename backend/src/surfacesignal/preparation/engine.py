@@ -3,6 +3,7 @@
 import hashlib
 import json
 
+from surfacesignal.domain import Analysis, AreaConfig, comparable
 from surfacesignal.preparation.content import COPY, SOURCES, VERSION, guidance
 from surfacesignal.preparation.context import bounded_json, intersections, safe_path
 from surfacesignal.preparation.models import (
@@ -28,14 +29,33 @@ def digest(value):
 
 
 def inputs(repo, area_id, budgets, *, illustrative=False, full=False):
-    area = repo.area(area_id)
     safe_path(repo.settings.areas_dir)
+    # Identity must reflect current bytes, even if mtime/size are preserved.
+    areas = []
+    for path in sorted(repo.settings.areas_dir.glob("*.geojson")):
+        value = bounded_json(path, budgets)
+        area = AreaConfig(**value["properties"], geometry=value["geometry"])
+        if area.area_id == area_id:
+            areas.append(area)
+    if len(areas) != 1:
+        raise ValueError("Area missing or ambiguous")
+    area = areas[0]
     selected = []
     for path in sorted(repo.settings.artifacts_dir.glob("*/manifest.json")):
         if path.parent.name.startswith("."):
             continue
-        bounded_json(path, budgets)
-        analysis = repo.analysis(path.parent.name)
+        analysis = Analysis.model_validate(bounded_json(path, budgets))
+        if (
+            analysis.analysis_id != path.parent.name
+            or len(analysis.scenes) != 2
+            or not comparable(analysis.scenes[0], analysis.scenes[1])
+            or analysis.scenes[0].maturity != analysis.scenes[1].maturity
+            or any(
+                s.area_id != analysis.area_id or s.synthetic != analysis.synthetic
+                for s in analysis.scenes
+            )
+        ):
+            raise ValueError("Analysis identity mismatch")
         if analysis.area_id == area_id and analysis.synthetic == illustrative:
             selected.append(analysis)
     selected.sort(key=lambda a: (a.scenes[-1].start_time, a.analysis_id))
@@ -44,8 +64,10 @@ def inputs(repo, area_id, budgets, *, illustrative=False, full=False):
         folder = safe_path(repo.settings.artifacts_dir / a.analysis_id)
         manifest = folder / "manifest.json"
         bounded_json(manifest, budgets)
-        if full:
-            verify_artifacts(folder)
+        for name in a.artifacts:
+            path = safe_path(folder / safe_id(name))
+            if path.stat().st_size > budgets.max_input_bytes:
+                raise ValueError("Input byte budget exceeded")
         # HTTP verifies prepared vector/metadata inputs, never TIFF/HDF5 content.
         for name in ("change-candidates.geojson", "statistics.json", "evidence.json"):
             path = safe_path(folder / name)
@@ -61,6 +83,8 @@ def inputs(repo, area_id, budgets, *, illustrative=False, full=False):
             safe_path(path)
             if path.is_file() and path.stat().st_size > budgets.max_input_bytes:
                 raise ValueError("Input byte budget exceeded")
+        if full:
+            verify_artifacts(folder)
         d = load_derived(repo.settings.root, a.analysis_id, verify=True)
         if d is None:
             raise ValueError("Selected analysis requires general derivation")
