@@ -1,245 +1,140 @@
-# SurfaceSignal — Sudo Nova
+<div align="center">
 
-**NASA Space Apps project — 2026-11-14. Not an operational alert system.**
-Do not merge into a competition submission without explicit eligibility clearance.
-See [prototype provenance](docs/prototype-provenance.md).
+<p><a href="https://sudonova.surfacesignal.earth"><img src="assets/sudo-nova-logo.png" alt="Sudo Nova" width="150" align="middle" /></a>&nbsp;&nbsp;&nbsp;<a href="https://surfacesignal.earth"><img src="assets/surface-signal-logo.png" alt="SurfaceSignal" width="210" align="middle" /></a></p>
 
-SurfaceSignal investigates changes in NASA/ISRO NISAR L2 GCOV radar backscatter around
-Lajeado/Estrela, Brazil. It catalogs comparable acquisitions, crops HDF5 on a bounded AOI,
-compares gamma0 power in dB, exports candidate polygons and explains evidence and limits.
-A candidate is **not a confirmed flood**. The frontend uses **Next.js**, TypeScript and MapLibre; there is no chatbot or HTTP processing queue.
+<h1>SurfaceSignal</h1>
+<p><strong>Making Earth's Changes Understandable</strong></p>
+<p>NASA Space Apps Challenge 2026 · Dancing with the SARs · Sudo Nova</p>
+<p><strong>English</strong> · <a href="./README.pt-BR.md">Português</a></p>
+<p><a href="https://surfacesignal.earth"><img src="https://img.shields.io/badge/LIVE_APPLICATION-00DBE7?style=for-the-badge&amp;labelColor=071824&amp;logo=cloudflare&amp;logoColor=white" alt="Explore application" /></a> <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf"><img src="https://img.shields.io/badge/PRESENTATION_PDF-172A38?style=for-the-badge&amp;logo=adobeacrobatreader&amp;logoColor=white" alt="View presentation" /></a></p>
+<p><a href="https://surfacesignal.earth">Website</a> · <a href="https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf">Presentation</a> · <a href="https://sudonova.surfacesignal.earth">Team</a> · <a href="https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project">NASA project</a></p>
 
-**SurfaceSignal — Making Earth's changes understandable.** MVP 0.2.0 adds general signal
-increases/decreases, bilingual deterministic explanations, regional timelines and static publication.
-See [backend MVP delivery](docs/backend-mvp.md), [static publication](docs/static-publication.md)
-and [deployment](docs/backend-deployment.md).
+</div>
 
-## Public static mode and developer quick start — 2026-11-15
+---
+## Explore the Earth through real radar observations
 
-The default frontend reads the compact real snapshot committed under
-`frontend/public/data/compact/api/v1`. It needs no Python server, credentials or
-scientific dataset download. All 17 published comparisons remain selectable.
+[SurfaceSignal](https://surfacesignal.earth) is Sudo Nova's bilingual, interactive environmental-change exploration platform. For the Taquari Valley in Brazil (Lajeado and Estrela), it processes **19 NASA–ISRO NISAR L2 GCOV acquisitions** (~**131.39 GB** original HDF5) into **17 historical radar comparisons**, contextualized with independent public environmental information.
+
+The platform shows *candidate* surface changes. A radar threshold is **not** independent evidence of flooding, damage, hazard, or people affected. SurfaceSignal is not an emergency-warning or flood-forecasting system.
+
+## Run it locally: two supported modes
+
+**Both modes read already-prepared results, not raw HDF5.** No visitor needs Earthdata credentials or a Python data processor. They differ in how JSON and GeoJSON are served.
+
+| | Static (default, recommended) | Read-only API (optional) |
+|---|---|---|
+| Purpose | Web development and public Cloudflare Pages deployment | API/contract work, external clients, locally prepared scientific outputs |
+| Where data comes from | Committed `frontend/public/data/compact/api/v1/` | FastAPI `/api/v1/` (prepared local outputs or bundled snapshot) |
+| Python, Docker, NASA login | **None** | Python 3.12 or Docker; Earthdata **not** needed for existing snapshot |
+| Original 131 GB download | **No** | **No** — only needed for new scientific processing |
+
+### Option A — website only (no API)
+
+Requirements: **Node.js 24** (see `frontend/.node-version`) and npm.
 
 ```sh
-cd frontend
+git clone https://github.com/sudo-nova-nsac26/surface_signal.git
+cd surface_signal/frontend
 npm ci
 npm run dev
-# Build static HTML/assets in out/ and check Cloudflare Pages limits:
+```
+
+Open **http://localhost:3000/**, then `/pt/` or `/en/`. Validate/export for Cloudflare Pages:
+
+```sh
+npm test
+npm run lint
 npm run build
+npm run check:static
 npm start
 ```
 
-Use `/pt/` or `/en/`. The root page selects a browser language and also provides
-visible links. The public deployment is a static Cloudflare Pages site. Data is
-prepared in advance; source outages do not affect the published analysis snapshot.
-The basemap still uses external map tiles; it is not an offline map-tile bundle.
+Static output: `frontend/out/`. The committed compact snapshot contains **all 19 scene records and 17 analyses** with original statistics and summarized geometry. **Reduced GeoJSON polygons are for display only**, not for recalculating scientific areas or counting all features. Background map tiles/terrain use external services, so a completely offline basemap is not bundled.
 
-Optional developer operations (repository root, Python3.12):
+### Option B — frontend connected to the local FastAPI
+
+Requirements: Python **3.12** and [uv](https://docs.astral.sh/uv/), or Docker. From the repository root:
 
 ```sh
 uv sync --project backend --frozen --extra dev
-uv run --project backend surfacesignal sources check
-uv run --project backend surfacesignal sources fetch --area vale-do-taquari
-uv run --project backend surfacesignal context build --area vale-do-taquari
-uv run --project backend surfacesignal publish compact --area vale-do-taquari
-uv run --project backend surfacesignal publish full --area vale-do-taquari
-uv run --project backend surfacesignal data fetch-snapshot --help
+uv run --project backend --frozen uvicorn surfacesignal.main:app --host 127.0.0.1 --port 8000
 ```
 
-Public sources use no credentials. Optional authenticated integrations are backend
-only; see `.env.example`. Updating existing context uses prepared outputs rather
-than re-downloading the NISAR HDF5. Compact geometries are explicitly visualization
-derivatives; original measurements and scientific artifacts remain unchanged.
-
-The full archive and SHA manifest are generated locally; no release is uploaded
-without owner approval. Until a public release URL is configured, `data fetch-snapshot`
-requires `--manifest` pointing to a local manifest or published HTTPS manifest.
-The default frontend does not need that command. Use
-`NEXT_PUBLIC_STATIC_SNAPSHOT=full` only after installing the full package, or
-`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` for the local read-only API.
-
-See [source evidence](docs/public-source-evidence.md),
-[snapshot distribution](docs/snapshot-delivery.md),
-[Cloudflare procedure](docs/cloudflare-pages.md) and
-[Yuri's integration handoff](docs/frontend-environmental-handoff.md).
-
-## What is verified
-
-- Real ASF discovery: **19 PROVISIONAL GCOV scenes**, acquired 2026-06-17 through
-  2026-10-19 (query window through 2026-10-31), with the configured 5 km pilot AOI. Snapshot and query are in
-  [docs/evidence/asf-catalog.json](docs/evidence/asf-catalog.json).
-- Mathematical/geospatial processing, deterministic exports and offline API are tested with
-  explicitly synthetic HDF5. Subsequent local execution processed 19 real scenes and 17 comparisons;
-  the dated original access-blocker history remains in the execution document.
-- The initial HDF5 access attempt was blocked (403). A later local run completed the retained
-  19-scene history. Integrity verification is not independent scientific validation. See
-  [dated execution evidence](docs/real-data-execution.md).
-- SGB July 23, 16:00 Brasília bulletin is integrated as qualitative context. Numeric river
-  levels remain null because the reviewed article does not supply station readings.
-- GitHub `main` and `develop` rulesets: **BLOCKED_BY_PLAN** (403); JSON files are templates only.
-
-## Run locally (Python 3.12)
-
-Run the following from the repository root. Copy `.env.example` to the root `.env` if
-you are connecting a frontend. You can skip the copy for API-only development.
-
-```sh
-cd backend
-uv sync --frozen --extra dev
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest -q
-# Optional: import the real metadata snapshot to demonstrate the API offline.
-uv run surfacesignal scenes import --file ../docs/evidence/asf-catalog.json
-uv run uvicorn surfacesignal.main:app --host 127.0.0.1 --port 8000
-```
-
-In another terminal:
-
-```sh
-curl -f http://127.0.0.1:8000/health
-curl -f http://127.0.0.1:8000/api/v1/areas
-curl -f 'http://127.0.0.1:8000/api/v1/scenes?area_id=vale-do-taquari&limit=10'
-curl -f http://127.0.0.1:8000/api/v1/sources
-curl -f http://127.0.0.1:8000/openapi.json
-sh scripts/smoke-test.sh
-```
-
-Interactive contract: http://127.0.0.1:8000/docs. API reads local files only.
-`analyses` starts empty until you process inputs. It never substitutes synthetic observations.
-`SURFACESIGNAL_ROOT` can select another absolute repository/data root.
-
-## Official local Docker execution
-
-From repository root:
+Or start the read-only API container:
 
 ```sh
 mkdir -p data artifacts
 docker compose up --build
 ```
 
-The non-root API container mounts data/artifacts/config read-only. Credentials are not mounted.
-Heavy processing remains an explicit local CLI operation. Docker must be installed locally.
-Compose reads `SURFACESIGNAL_CORS_ORIGINS` from the root `.env`. The container uses `/app` for its
-data root. When running Python directly, the root `.env` is loaded even from `backend/`.
-A `.env` in the current directory can override root settings, and exported variables take priority.
+Verify: `curl http://127.0.0.1:8000/health`, `curl http://127.0.0.1:8000/api/v1/analyses`. Interactive OpenAPI: **http://127.0.0.1:8000/docs**.
 
-## Connect a frontend
+In `frontend/`, copy `.env.example` to **`.env.local`**, uncomment:
 
-Develop the web app under [`frontend/`](frontend/README.md). Use the root `.env` to allow the
-frontend's exact origin and point the frontend at `http://127.0.0.1:8000`.
-See the [API contract](docs/api-contract.md) for endpoints and response shapes.
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
 
-## Search, download, inspect, compare
+Allow frontend origins in the root `.env` when needed:
 
-To retain and process the complete catalog history, run from the repository root:
+```dotenv
+SURFACESIGNAL_CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+```
 
-```bash
-uv sync --project backend --frozen
+Restart `npm run dev`. Remove the frontend API variable to switch back to static mode. **Never deploy the public site with a localhost API URL:** `NEXT_PUBLIC_*` settings are bundled into browser code. No credential belongs in those variables.
+
+The FastAPI server reads prepared data only; it does not contact NASA on HTTP requests. If no original scientific manifests exist, its published reader serves the compact bundled snapshot (the Docker Compose configuration mounts it read-only). Original local artifacts take precedence when present. For advanced processing and source imports, see [backend operations](docs/backend-operations.md).
+
+## Sources used in the actual pilot
+
+| Data product | Processing/use | Critical limit |
+|---|---|---|
+| **NASA–ISRO NISAR L2 GCOV / ASF** | 19 scenes, 17 comparable temporal analyses: masked gamma0 power, dB differences, component candidates | Provisional radar change, not confirmed inundation |
+| **CHIRPS v3 final SAT** | 57 native daily AOI crops; rainfall summaries by complete UTC date labels | Estimated precipitation, not station measurements or exact SAR-hour totals |
+| **JRC Global Surface Water v1.5** | Historical occurrence, 1984–2024 | Not contemporary 2026 flood extent |
+| **ESA WorldCover 2021 v200** | Land-cover classes (10 m) | Not a 2026 land-cover change map |
+| **Copernicus DEM GLO-30** | Surface elevation and derived slope | DSM includes buildings/vegetation; not ground motion |
+| **IBGE** | Official **2022** municipality geometries and names | Geographic context, not affected-population statistics |
+| **SGB/SACE Taquari** | Qualitative, dated river-basin bulletins | No invented numeric readings or independent spatial validation |
+
+NASA GPM **IMERG was not separately ingested**; neither were ANA live readings, MapBiomas, independent Sentinel/OPERA imagery, RCM or Open-Meteo. CHIRPS v3 SAT uses IMERG Late in its production lineage; this is **not equivalent to ingesting IMERG**.
+
+The radar method uses comparable scenes and masks, converts **real diagonal GCOV gamma0 power** with `10 log10(power)`, aligns imagery, computes `ΔdB = after − before`, and identifies exploratory candidate polygons with configurable thresholds and minimum connected-component sizes. Generic signal increases/decreases are mapped separately, **without asserting environmental causes**. Scientific integrity/reproducibility is documented, but independent field/pixelwise validation **has not been completed**.
+
+Read [sources and license conditions](docs/data-sources.md), [scientific method](docs/scientific-method.md), [environmental acquisition evidence](docs/public-source-evidence.md), [real NISAR processing](docs/real-data-execution.md), [validation](docs/validation.md) and [limitations](docs/limitations.md).
+
+## Scientific processing (advanced; not required to run the site)
+
+For a **new** HDF5 download/process, install Python 3.12 and uv, reserve sufficient disk space (~180 GB for the historical batch), and configure your own **authorized** NASA Earthdata/ASF access. Preview the work without downloading:
+
+```sh
+uv sync --project backend --frozen --extra dev
 uv run --project backend --frozen surfacesignal --root "$PWD" history run \
   --snapshot docs/evidence/asf-catalog.json \
   --hydro-csv config/hydrology/sgb-2026-07-23.csv --dry-run
-
-# Configure your own Earthdata token or official .netrc with ASF access locally.
-# Token entry does not echo or put the secret in shell history.
-read -rsp 'Earthdata token: ' EARTHDATA_TOKEN
-printf '\n'
-export EARTHDATA_TOKEN
-uv run --project backend --frozen surfacesignal --root "$PWD" history run \
-  --snapshot docs/evidence/asf-catalog.json \
-  --hydro-csv config/hydrology/sgb-2026-07-23.csv
-uv run --project backend --frozen surfacesignal --root "$PWD" history verify \
-  --area vale-do-taquari
-unset EARTHDATA_TOKEN
 ```
 
-The fixed snapshot contains **131,386,572,800 bytes** (131.39 decimal GB), with
-**9 descending and 8 ascending consecutive candidate pairs**. Start with about **180 GB
-free** on the raw/output volume. All 19 HDF5 files and SHA256 receipts remain in `data/raw/`,
-including scenes without usable pairs. Results use the existing `artifacts/<analysis_id>/`
-format and read-only API. The atomic plan/report live in `data/history/vale-do-taquari/`.
+For actual acquisition use a local `~/.netrc` (permissions `0600`) or `SURFACESIGNAL_EARTHDATA_TOKEN` (legacy `EARTHDATA_TOKEN` is supported); run without `--dry-run`. Never commit credentials or HDF5. The existing published snapshot eliminates this requirement for frontend contributors. See [operations](docs/backend-operations.md), [snapshot distribution](docs/snapshot-delivery.md) and [reproducibility](docs/reproducibility.md).
 
-Add `--with-validated-through 2026-11-14` to include the validated collection over the
-same polygon and inclusive UTC date range; use `--dry-run` to see its additional bytes.
-Validated satellite products still require independent spatial validation of change candidates.
-Frequency `A`, diagonal channel `HHHH` and the `analyze` thresholds are defaults; all are
-explicit CLI options recorded in the plan and manifests. Only real diagonal power is converted
-with `10*log10`.
-
-Repeat exactly the same command after interruption. Verified raw files and complete pairs
-with matching parameters, code, context and artifact hashes are reused. Partial downloads
-may restart for that scene. Unknown byte sizes, corrupt inputs/outputs and authentication
-failures prevent completion and produce a nonzero exit status. Incompatible files/coverage
-are reported per pair and other pairs continue. A completed batch can contain explicitly
-blocked pairs; it does not imply 17 successful analyses or confirmed flooding.
-
-See [operator instructions and recovery](docs/real-data-execution.md#complete-history-runner--2026-11-14).
-The following commands also remain available for individual scenes and nonconsecutive pairs.
-
-From `backend`:
-
-```sh
-uv run surfacesignal scenes search --area vale-do-taquari --start 2026-06-17 --end 2026-10-31
-uv run surfacesignal scenes shortlist --area vale-do-taquari --event 2026-07-23
-```
-
-Use the complete IDs from the shortlist (shell variables below are literal identifiers):
-
-```sh
-BEFORE=NISAR_L2_PR_GCOV_025_053_D_103_4005_DHDH_A_20260711T213351_20260711T213426_P05023_N_F_J_001
-AFTER=NISAR_L2_PR_GCOV_026_053_D_103_4005_DHDH_A_20260723T213350_20260723T213425_P05023_N_F_J_001
-uv run surfacesignal scenes inspect --scene-id "$BEFORE"
-# Configure official Earthdata .netrc (0600) or export EARTHDATA_TOKEN locally first.
-# max-gb is a per-file decimal GB ceiling, not an expected file size.
-uv run surfacesignal scenes download --scene-id "$BEFORE" --max-gb 12
-uv run surfacesignal scenes download --scene-id "$AFTER" --max-gb 12
-uv run surfacesignal gcov inspect --file "../data/raw/$BEFORE.h5" --output ../data/processed/before-inspection.json
-uv run surfacesignal gcov crop --file "../data/raw/$BEFORE.h5" --area vale-do-taquari --output ../data/processed/before-power.tif
-uv run surfacesignal analyze --area vale-do-taquari --before "$BEFORE" --after "$AFTER" --channel HHHH --frequency A --hydro-csv ../config/hydrology/sgb-2026-07-23.csv
-```
-
-Output: `artifacts/<content-derived-id>/` with PNG previews, `delta-db.tif`, candidate
-GeoJSON, statistics, evidence and manifest. Inspect and tune thresholds for each channel;
-HHHH defaults are not calibrated for HVHV. Thresholds do not estimate confidence.
-To process a control pair, repeat with compatible catalog IDs and dates.
-
-## Structure
+## Architecture and documentation
 
 ```text
-backend/src/surfacesignal/
-  domain.py, config.py, storage.py, main.py, cli.py
-  providers/   ASF discovery/download, hydrology CSV, source inventory
-  processing/  bounded GCOV reader, temporal comparison, evidence/artifact export
-backend/tests/ synthetic mathematical, geospatial, provider, CLI and API tests
-frontend/      Next.js application with MapLibre, PT/EN and API/static data adapter
-config/        documented pilot AOI and sourced hydrology context
-.github/       CI, draft PR template, unapplied ruleset templates
-docs/          method, provenance, reproducibility, limitations and submission gates
+frontend/              Next.js 16, React, MapLibre, accessible PT/EN UI
+  src/data/source.ts   single static/API adapter
+  public/data/compact  committed results (visualization-only polygons)
+backend/               Python 3.12, read-only FastAPI, CLI and SAR processing
+config/                pilot AOI, context source examples
+docs/                  methodology, provenance, deployments, operations
+assets/                Sudo Nova and SurfaceSignal project logos
 ```
 
-Add a region by placing a Feature GeoJSON in `config/areas/` with the same properties schema
-as the pilot; supply a valid EPSG:4326 polygon, source URL, unique `area_id`, name and pixel budget.
-No algorithm edits are needed. The pilot is an analyst-defined 5 km buffer, **not an IBGE
-boundary or flood extent**; IBGE retrieval failed with 503 and that limitation is recorded.
+[Documentation index](docs/README.md) · [API contract](docs/api-contract.md) · [Cloudflare Pages](docs/cloudflare-pages.md) · [Security](SECURITY.md).
 
-## Documentation and attribution
+## Team, license and credits
 
-[Method](docs/scientific-method.md) · [Validation](docs/validation.md) ·
-[Reproduction](docs/reproducibility.md) · [Sources and terms](docs/data-sources.md) ·
-[API](docs/api-contract.md) · [Limitations](docs/limitations.md) ·
-[Repository controls](docs/repository-setup.md) · [Submission checklist](docs/submission-checklist.md)
+**Arthur Henrique Fassina**, **Mateus Carniel Brambilla** and **Yuri Korolko** · [Team portfolio](https://sudonova.surfacesignal.earth) · [Project presentation](https://github.com/sudo-nova-nsac26/presentation/blob/main/Surface%20Signal%20-%20Presentation.pdf) · [NASA Space Apps entry](https://www.spaceappschallenge.org/2026/find-a-team/sudo-nova/?tab=project).
 
-Code licensing remains **pending owner authorization**; no open-source license is granted
-by this project. Repository visibility is not changed by this work. Dataset and dependency terms are
-independent of the code license. No merge or public release is performed.
+Original SurfaceSignal code and original project documentation: **[Apache License 2.0](LICENSE)** (SPDX `Apache-2.0`). Third-party scientific data, map layers, software, fonts and visual assets **retain their own usage terms**, and are **not relicensed** by the project's code license. See [NOTICE](NOTICE) and [source attribution](docs/data-sources.md). Earlier prototyping and unresolved competitive eligibility questions are recorded in [provenance](docs/prototype-provenance.md); a code license does **not** certify competition eligibility.
 
-Original foundation verification: **41 offline tests passed, 90% statement coverage**, Ruff lint/format
-clean. See [review fixes and acceptance status](docs/implementation-status.md) and
-[GitHub Actions](https://github.com/matbforge/nsac26-dancing-with-the-sars/actions/workflows/backend-ci.yml).
-
-## Next.js frontend
-
-From `frontend/`, run `npm ci` and `npm run dev` (port 3000). Install the prepared static
-bundle first, or set `NEXT_PUBLIC_API_BASE_URL` for API mode. No visual components were rebuilt
-in the backend MVP. Code assistance by OpenAI Codex is disclosed; runtime interpretation is
-deterministic Python rules, without a generative model.
+<div align="center"><sub>Independent Sudo Nova project · Brazil · 2026 · Not affiliated with NASA or ISRO.</sub></div>
